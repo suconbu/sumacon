@@ -52,9 +52,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="mobile\Battery.cs" />
     <Compile Include="CommandContext.cs" />
-    <Compile Include="MobileDevice.cs" />
-    <Compile Include="MobileDeviceWatcher.cs" />
+    <Compile Include="mobile\MobileDevice.cs" />
+    <Compile Include="mobile\MobileDeviceWatcher.cs" />
     <Compile Include="FormCommandPalette.cs">
       <SubType>Form</SubType>
     </Compile>
