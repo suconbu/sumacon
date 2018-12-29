@@ -1,5 +1,6 @@
 ﻿using Suconbu.Toolbox;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Suconbu.Mobile
@@ -14,7 +15,7 @@ namespace Suconbu.Mobile
         [Flags]
         public enum SettableProperties { Powered = 0x1, Level = 0x2, Status = 0x4 }
 
-        public event EventHandler<string> PropertyChanged = delegate { };
+        public event EventHandler<SortedSet<string>> PropertyChanged = delegate { };
 
         // Setttable properties
 
@@ -52,8 +53,10 @@ namespace Suconbu.Mobile
         public float Voltage { get; set; }
         // Celsius
         public float Temperature { get; private set; }
-        // Ah
+        // Remaining battery capacity [Ah]
         public float Capacity { get; private set; }
+        // Remaining battery capacity [Ah]
+        public float FullCapacity { get { return this.Capacity * 100.0f / this.Level; } }
         // e.g. Li-ion
         public string Technology { get; private set; } = string.Empty;
 
@@ -84,10 +87,19 @@ namespace Suconbu.Mobile
         /// </summary>
         public CommandContext PullAsync()
         {
+            var changedPropertyNames = new SortedSet<string>();
             int levelValue = 0;
             return this.device.RunCommandAsync(this.commandPrefix, output =>
             {
-                if (output == null) return;
+                if (output == null)
+                {
+                    if (changedPropertyNames.Count > 0)
+                    {
+                        this.PropertyChanged(this, changedPropertyNames);
+                    }
+                    return;
+                }
+
                 var tokens = output.Split(new[] { ": " }, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length != 2) return;
 
@@ -98,17 +110,64 @@ namespace Suconbu.Mobile
 
                 try
                 {
-                    if (item == "AC powered") this.ChangePowerSouceState(PowerSources.AC, boolValue, false);
-                    else if (item == "USB powered") this.ChangePowerSouceState(PowerSources.Usb, boolValue, false);
-                    else if (item == "Wireless powered") this.ChangePowerSouceState(PowerSources.Wireless, boolValue, false);
-                    else if (item == "Charge counter") this.Capacity = intValue / 1000.0f / 1000.0f;
-                    else if (item == "status") this.ChangeStatus((StatusCode)Enum.ToObject(typeof(StatusCode), intValue), false);
-                    else if (item == "health") this.Health = (HealthCode)Enum.ToObject(typeof(HealthCode), intValue);
-                    else if (item == "level") levelValue = intValue;
-                    else if (item == "scale") this.ChangeLevel(100.0f * levelValue / intValue, false);
-                    else if (item == "voltage") this.Voltage = intValue / 1000.0f;
-                    else if (item == "temperature") this.Temperature = intValue / 10.0f;
-                    else if (item == "technology") this.Technology = value;
+                    if (item == "AC powered")
+                    {
+                        if (this.ChangePowerSouceState(PowerSources.AC, boolValue, false)) changedPropertyNames.Add(nameof(SettableProperties.Powered));
+                    }
+                    else if (item == "USB powered")
+                    {
+                        if (this.ChangePowerSouceState(PowerSources.Usb, boolValue, false)) changedPropertyNames.Add(nameof(SettableProperties.Powered));
+                    }
+                    else if (item == "Wireless powered")
+                    {
+                        if (this.ChangePowerSouceState(PowerSources.Wireless, boolValue, false)) changedPropertyNames.Add(nameof(SettableProperties.Powered));
+                    }
+                    else if (item == "Charge counter")
+                    {
+                        var newCapacity = intValue / 1000.0f / 1000.0f;
+                        if (this.Capacity != newCapacity) changedPropertyNames.Add(nameof(this.Capacity));
+                        this.Capacity = newCapacity;
+                    }
+                    else if (item == "status")
+                    {
+                        if (this.ChangeStatus((StatusCode)Enum.ToObject(typeof(StatusCode), intValue), false)) changedPropertyNames.Add(nameof(SettableProperties.Status));
+                    }
+                    else if (item == "health")
+                    {
+                        var newHealth = (HealthCode)Enum.ToObject(typeof(HealthCode), intValue);
+                        if(this.Health != newHealth) changedPropertyNames.Add(nameof(this.Health));
+                        this.Health = newHealth;
+                    }
+                    else if (item == "level")
+                    {
+                        levelValue = intValue;
+                    }
+                    else if (item == "scale")
+                    {
+                        if (this.ChangeLevel(100.0f * levelValue / intValue, false)) changedPropertyNames.Add(nameof(SettableProperties.Level));
+                    }
+                    else if (item == "voltage")
+                    {
+                        var newVoltage = intValue / 1000.0f;
+                        if (this.Voltage != newVoltage) changedPropertyNames.Add(nameof(this.Voltage));
+                        this.Voltage = newVoltage;
+                    }
+                    else if (item == "temperature")
+                    {
+                        var newTemperature = intValue / 10.0f;
+                        if (this.Temperature != newTemperature) changedPropertyNames.Add(nameof(this.Temperature));
+                        this.Temperature = newTemperature;
+                    }
+                    else if (item == "technology")
+                    {
+                        var newTechnology = value;
+                        if (this.Technology != value) changedPropertyNames.Add(nameof(this.Technology));
+                        this.Technology = value;
+                    }
+                    else
+                    {
+                        ;
+                    }
                 }
                 catch (InvalidCastException ex)
                 {
@@ -155,16 +214,18 @@ namespace Suconbu.Mobile
             this.ChangePowerSources(0);
         }
 
-        void ChangePowerSouceState(PowerSources powerSources, bool plugged, bool push = true)
+        bool ChangePowerSouceState(PowerSources powerSources, bool plugged, bool push = true)
         {
             var newPowerSources = plugged ?
                 this.powerSources | powerSources :
                 this.powerSources & ~powerSources;
-            this.ChangePowerSources(newPowerSources, push);
+            return this.ChangePowerSources(newPowerSources, push);
         }
 
-        void ChangePowerSources(PowerSources newPowerSources, bool push = true)
+        bool ChangePowerSources(PowerSources newPowerSources, bool push = true)
         {
+            if (this.powerSources == newPowerSources) return false;
+
             // 変化のあったものだけ更新
             foreach(PowerSources powerSource in Enum.GetValues(typeof(PowerSources)))
             {
@@ -177,24 +238,34 @@ namespace Suconbu.Mobile
                 }
             }
             this.powerSources = newPowerSources;
+            if (push) this.PropertyChanged(this, new SortedSet<string>(new[] { nameof(SettableProperties.Powered) }));
+            return true;
         }
 
-        void ChangeLevel(float newLevel, bool push = true)
+        bool ChangeLevel(float newLevel, bool push = true)
         {
-            if (this.level != newLevel && push)
+            if (this.level == newLevel) return false;
+
+            if (push)
             {
                 this.device.RunCommandAsync($"{this.commandPrefix} set level {(int)newLevel}");
+                this.PropertyChanged(this, new SortedSet<string>(new[] { nameof(SettableProperties.Level) }));
             }
             this.level = newLevel;
+            return true;
         }
 
-        void ChangeStatus(StatusCode newStatus, bool push = true)
+        bool ChangeStatus(StatusCode newStatus, bool push = true)
         {
-            if(this.status != newStatus && push)
+            if (this.status == newStatus) return false;
+
+            if (push)
             {
                 this.device.RunCommandAsync($"{this.commandPrefix} set status {(int)newStatus}");
+                this.PropertyChanged(this, new SortedSet<string>(new[] { nameof(SettableProperties.Status) }));
             }
             this.status = newStatus;
+            return true;
         }
     }
 }

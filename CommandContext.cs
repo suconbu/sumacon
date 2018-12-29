@@ -73,6 +73,8 @@ namespace Suconbu.Toolbox
                 instance.outputBuffer = new StringBuilder();
             }
 
+            Debug.Print($"StartNewInternal: {command} {arguments}");
+
             if (!instance.process.Start()) return null;
 
             if (!binary)

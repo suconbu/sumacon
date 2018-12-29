@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 
@@ -53,9 +54,18 @@ namespace Suconbu.Sumacon
 
         private void Watcher_Connected(object sender, string deviceId)
         {
-            var device = new MobileDevice(deviceId);
             this.SafeInvoke(() =>
             {
+                if (this.devices.Find(d => d.Id == deviceId) != null) return;
+
+                var device = new MobileDevice(deviceId, 1000);
+                device.Battery.PropertyChanged += (s, names) =>
+                {
+                    Trace.TraceInformation("PropertyChanged");
+                    Trace.Indent();
+                    foreach (var name in names) Trace.TraceInformation(name);
+                    Trace.Unindent();
+                };
                 this.devices.Add(device);
                 this.UpdateDeviceList();
                 if (this.selectedDevice == null)
@@ -70,17 +80,16 @@ namespace Suconbu.Sumacon
             this.SafeInvoke(() =>
             {
                 var device = this.devices.Find(d => d.Id == deviceId);
-                if (device != null)
+                if (device == null) return;
+
+                this.devices.Remove(device);
+                this.UpdateDeviceList();
+                if (this.selectedDevice == device)
                 {
-                    this.devices.Remove(device);
-                    this.UpdateDeviceList();
-                    if (this.selectedDevice == device)
-                    {
-                        var nextDevice = (this.devices.Count > 0) ? this.devices[0] : null;
-                        this.ChangeSelectedDevice(nextDevice);
-                    }
-                    device.Dispose();
+                    var nextDevice = (this.devices.Count > 0) ? this.devices[0] : null;
+                    this.ChangeSelectedDevice(nextDevice);
                 }
+                device.Dispose();
             });
         }
 
@@ -102,20 +111,20 @@ namespace Suconbu.Sumacon
                     item.Click += (s, e) => this.ChangeSelectedDevice(device);
                 }
             }
-            else
-            {
-                this.deviceInfoDropDown.Text = "-";
-            }
         }
 
         void ChangeSelectedDevice(MobileDevice device)
         {
             this.selectedDevice = device;
 
-            if (device.Id == this.selectedDevice.Id)
+            if (device != null)
             {
                 this.deviceInfoDropDown.Text = $"{device.Model} ({device.Name})";
                 this.deviceInfoDropDown.Image = this.imageList1.Images["phone.png"];
+            }
+            else
+            {
+                this.deviceInfoDropDown.Text = "-";
             }
         }
 
