@@ -34,7 +34,7 @@ namespace Suconbu.Mobile
                         property.PullAsync(this.device).Wait();
                         if (latest != property.Value?.ToString())
                         {
-                            this.OnPropertyChanged(new List<Property>(new[] { property }));
+                            this.OnPropertyChanged(new List<Property>() { property });
                         }
                     }
                 });
@@ -66,7 +66,7 @@ namespace Suconbu.Mobile
             {
                 property.Value = value;
                 property.PushAsync(this.device);
-                this.OnPropertyChanged(new List<Property>(new[] { property }));
+                this.OnPropertyChanged(new List<Property>() { property });
             }
         }
 

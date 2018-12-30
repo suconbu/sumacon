@@ -1,14 +1,10 @@
 ﻿using Suconbu.Toolbox;
-using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Serialization;
 
 namespace Suconbu.Mobile
 {
@@ -28,7 +24,11 @@ namespace Suconbu.Mobile
             using (var reader = new StreamReader(path))
             {
                 var group = serializer.Deserialize(reader) as PropertyGroup;
-                group.Properties.ForEach(p => p.CommandPrefix = group.CommandPrefix);
+                group.Properties.ForEach(p =>
+                {
+                    p.CommandPrefix = group.CommandPrefix;
+                    p.InitializeValue();
+                });
                 return group;
             }
         }
@@ -82,6 +82,16 @@ namespace Suconbu.Mobile
         object internalValue;
 
         public Property() { }
+
+        public void InitializeValue()
+        {
+            this.internalValue =
+                (this.Type == DataType.Size) ? Size.Empty :
+                (this.Type == DataType.Bool) ? false :
+                (this.Type == DataType.Integer) ? 0 :
+                (this.Type == DataType.String) ? string.Empty :
+                this.internalValue;
+        }
 
         public CommandContext PullAsync(Device device)
         {
@@ -140,26 +150,12 @@ namespace Suconbu.Mobile
             var match = Regex.Match(input, this.PullPattern);
             if (!match.Success) return false;
 
-            if (this.Type == DataType.String)
-            {
-                this.internalValue = match.Groups[1].Value;
-            }
-            else if (this.Type == DataType.Integer)
-            {
-                this.internalValue = int.Parse(match.Groups[1].Value);
-            }
-            else if (this.Type == DataType.Bool)
-            {
-                this.internalValue = bool.Parse(match.Groups[1].Value);
-            }
-            else if (this.Type == DataType.Size)
-            {
-                this.internalValue = new Size(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value));
-            }
-            else
-            {
-                throw new NotSupportedException();
-            }
+            this.internalValue =
+                (this.Type == DataType.Size) ? new Size(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value)) :
+                (this.Type == DataType.Bool) ? bool.Parse(match.Groups[1].Value) :
+                (this.Type == DataType.Integer) ? int.Parse(match.Groups[1].Value) :
+                (this.Type == DataType.String) ? match.Groups[1].Value :
+                this.internalValue;
             this.OriginalValue = this.OriginalValue ?? this.internalValue;
             return true;
         }

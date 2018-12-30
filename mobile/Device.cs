@@ -52,9 +52,12 @@ namespace Suconbu.Mobile
         public Battery Battery { get; private set; }
         [Browsable(false)]
         public Screen Screen { get; private set; }
+        [Browsable(false)]
+        public IReadOnlyList<DeviceComponentBase> ObserveComponents = new List<DeviceComponentBase>();
+
+        public static Device Empty = new Device();
 
         DeviceData deviceData;
-        List<DeviceComponentBase> observedComponents = new List<DeviceComponentBase>();
         Timer observeTimer = new Timer();
 
         public Device(string id, int observeIntervalMilliseconds = 0)
@@ -62,27 +65,19 @@ namespace Suconbu.Mobile
             this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
             this.Battery = new Battery(this, "properties_battery.xml");
             this.Screen = new Screen(this, "properties_screen.xml");
-            this.observedComponents.Add(this.Battery);
-            this.observedComponents.Add(this.Screen);
+            this.ObserveComponents = new List<DeviceComponentBase>() { this.Battery, this.Screen };
             this.observeTimer.AutoReset = false;
             this.observeTimer.Interval = 1;
             this.observeTimer.Elapsed += (s, e) =>
             {
-                Parallel.ForEach(this.observedComponents, component => component.PullAsync().Wait());
+                Parallel.ForEach(this.ObserveComponents, component => component.PullAsync().Wait());
                 this.observeTimer.Interval = observeIntervalMilliseconds;
                 this.observeTimer.Start();
             };
             if (observeIntervalMilliseconds > 0) this.observeTimer.Start();
         }
 
-        public CommandContext GetScreenCaptureAsync(Action<Image> captured)
-        {
-            return this.RunCommandOutputBinaryAsync("shell screencap -p", stream =>
-            {
-                var image = Bitmap.FromStream(stream);
-                captured?.Invoke(image);
-            });
-        }
+        Device() { }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
         {

@@ -10,13 +10,13 @@ using WeifenLuo.WinFormsUI.Docking;
 
 namespace Suconbu.Sumacon
 {
-    public partial class FormMain : Form
+    public partial class FormMain : FormBase
     {
         DockPanel dockPanel = new DockPanel();
+        FormProperty propertyForm = new FormProperty();
         ToolStripDropDownButton deviceInfoDropDown;
         ToolStripItem displayInfoLabel;
         ToolStripItem batteryInfoLabel;
-        bool closed = false;
 
         DeviceWatcher watcher = new DeviceWatcher();
         List<Device> devices = new List<Device>();
@@ -30,6 +30,9 @@ namespace Suconbu.Sumacon
 
             this.dockPanel.Dock = DockStyle.Fill;
             this.dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
+            this.toolStripContainer1.ContentPanel.Controls.Add(this.dockPanel);
+
+            this.propertyForm.Show(this.dockPanel, DockState.DockRight);
 
             this.deviceInfoDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
             this.statusStrip1.Items.Add(this.deviceInfoDropDown);
@@ -46,15 +49,12 @@ namespace Suconbu.Sumacon
             this.watcher.Connected += this.Watcher_Connected;
             this.watcher.Disconnected += this.Watcher_Disconnected;
             this.watcher.Start();
-
-            Util.TraverseControls(this, c => c.Font = SystemFonts.MessageBoxFont);
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
             this.devices.ForEach(d => d.Dispose());
-            this.closed = true;
         }
 
         private void Watcher_Connected(object sender, string deviceId)
@@ -64,33 +64,12 @@ namespace Suconbu.Sumacon
                 if (this.devices.Find(d => d.Id == deviceId) != null) return;
 
                 var device = new Device(deviceId, 1000);
-
-                //var group = PropertyGroup.FromXml("properties_battery.xml");
-                //group["ACPowered"].Value = true;
-                //group["ACPowered"].PushAsync(device);
-                //group["ACPowered"].ResetAsync(device);
-
-                device.Battery.PropertyChanged += this.Component_PropertyChanged;
-                device.Screen.PropertyChanged += this.Component_PropertyChanged;
                 this.devices.Add(device);
                 this.UpdateDeviceList();
                 if (this.selectedDevice == null)
                 {
                     this.ChangeSelectedDevice(device);
                 }
-            });
-        }
-
-        private void Component_PropertyChanged(object sender, IReadOnlyList<Property> properties)
-        {
-            Trace.TraceInformation("PropertyChanged");
-            Trace.Indent();
-            foreach (var p in properties) Trace.TraceInformation(p.ToString());
-            Trace.Unindent();
-            this.SafeInvoke(() =>
-            {
-                this.propertyGrid1.PropertySort = PropertySort.Categorized;
-                this.propertyGrid1.SelectedObject = this.selectedDevice;
             });
         }
 
@@ -112,11 +91,6 @@ namespace Suconbu.Sumacon
             });
         }
 
-        void SafeInvoke(MethodInvoker action)
-        {
-            if(!this.closed) this.Invoke(action);
-        }
-
         void UpdateDeviceList()
         {
             if (this.devices.Count > 0)
@@ -135,6 +109,7 @@ namespace Suconbu.Sumacon
         void ChangeSelectedDevice(Device device)
         {
             this.selectedDevice = device;
+            this.propertyForm.TargetDevice = device;
 
             if (device != null)
             {
@@ -150,14 +125,6 @@ namespace Suconbu.Sumacon
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
-
-            if (e.KeyCode == Keys.P)
-            {
-                this.selectedDevice?.GetScreenCaptureAsync(image =>
-                {
-                    this.Invoke((MethodInvoker)(() => { this.pictureBox1.Image = image; }));
-                });
-            }
         }
     }
 }
