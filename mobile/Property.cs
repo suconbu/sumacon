@@ -83,7 +83,7 @@ namespace Suconbu.Mobile
 
         public Property() { }
 
-        public CommandContext PullAsync(MobileDevice device)
+        public CommandContext PullAsync(Device device)
         {
             return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {this.PullCommand}", output =>
             {
@@ -94,7 +94,7 @@ namespace Suconbu.Mobile
             });
         }
 
-        public CommandContext PushAsync(MobileDevice device, bool force = false)
+        public CommandContext PushAsync(Device device, bool force = false)
         {
             if (!force && this.Value?.ToString() == this.OriginalValue?.ToString()) return null;
 
@@ -118,7 +118,7 @@ namespace Suconbu.Mobile
             return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {command}", output => this.Pushing = false);
         }
 
-        public CommandContext ResetAsync(MobileDevice device)
+        public CommandContext ResetAsync(Device device)
         {
             if (!string.IsNullOrEmpty(this.ResetCommand))
             {
@@ -162,6 +162,11 @@ namespace Suconbu.Mobile
             }
             this.OriginalValue = this.OriginalValue ?? this.internalValue;
             return true;
+        }
+
+        public override string ToString()
+        {
+            return $"{this.Name} - {this.Value} : {this.Type}";
         }
     }
 }

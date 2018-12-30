@@ -18,9 +18,9 @@ namespace Suconbu.Sumacon
         ToolStripItem batteryInfoLabel;
         bool closed = false;
 
-        MobileDeviceWatcher watcher = new MobileDeviceWatcher();
-        List<MobileDevice> devices = new List<MobileDevice>();
-        MobileDevice selectedDevice;
+        DeviceWatcher watcher = new DeviceWatcher();
+        List<Device> devices = new List<Device>();
+        Device selectedDevice;
 
         public FormMain()
         {
@@ -63,7 +63,7 @@ namespace Suconbu.Sumacon
             {
                 if (this.devices.Find(d => d.Id == deviceId) != null) return;
 
-                var device = new MobileDevice(deviceId, 1000);
+                var device = new Device(deviceId, 1000);
 
                 //var group = PropertyGroup.FromXml("properties_battery.xml");
                 //group["ACPowered"].Value = true;
@@ -81,11 +81,11 @@ namespace Suconbu.Sumacon
             });
         }
 
-        private void Component_PropertyChanged(object sender, SortedSet<string> names)
+        private void Component_PropertyChanged(object sender, IReadOnlyList<Property> properties)
         {
             Trace.TraceInformation("PropertyChanged");
             Trace.Indent();
-            foreach (var name in names) Trace.TraceInformation(name);
+            foreach (var p in properties) Trace.TraceInformation(p.ToString());
             Trace.Unindent();
             this.SafeInvoke(() =>
             {
@@ -132,7 +132,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void ChangeSelectedDevice(MobileDevice device)
+        void ChangeSelectedDevice(Device device)
         {
             this.selectedDevice = device;
 

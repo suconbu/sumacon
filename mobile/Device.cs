@@ -1,14 +1,16 @@
 ﻿using SharpAdbClient;
 using Suconbu.Toolbox;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace Suconbu.Mobile
 {
-    public class MobileDevice : IDisposable
+    public class Device : IDisposable
     {
         // e.g. HXC8KSKL24PZB
         [Category("Device")]
@@ -52,19 +54,21 @@ namespace Suconbu.Mobile
         public Screen Screen { get; private set; }
 
         DeviceData deviceData;
+        List<DeviceComponentBase> observedComponents = new List<DeviceComponentBase>();
         Timer observeTimer = new Timer();
 
-        public MobileDevice(string id, int observeIntervalMilliseconds = 0)
+        public Device(string id, int observeIntervalMilliseconds = 0)
         {
             this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
             this.Battery = new Battery(this, "properties_battery.xml");
             this.Screen = new Screen(this, "properties_screen.xml");
+            this.observedComponents.Add(this.Battery);
+            this.observedComponents.Add(this.Screen);
             this.observeTimer.AutoReset = false;
             this.observeTimer.Interval = 1;
             this.observeTimer.Elapsed += (s, e) =>
             {
-                this.Battery.PullAsync().Wait();
-                this.Screen.PullAsync().Wait();
+                Parallel.ForEach(this.observedComponents, component => component.PullAsync().Wait());
                 this.observeTimer.Interval = observeIntervalMilliseconds;
                 this.observeTimer.Start();
             };

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Suconbu.Mobile
 {
-    class MobileDeviceWatcher
+    class DeviceWatcher
     {
         public event EventHandler<string> Connected = delegate { };
         public event EventHandler<string> Disconnected = delegate { };
@@ -19,7 +19,7 @@ namespace Suconbu.Mobile
         DeviceMonitor monitor;
         readonly List<string> deviceIds = new List<string>();
 
-        public MobileDeviceWatcher(string adbPath = null)
+        public DeviceWatcher(string adbPath = null)
         {
             if(string.IsNullOrWhiteSpace(adbPath))
             {

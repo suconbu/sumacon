@@ -54,8 +54,9 @@
   <ItemGroup>
     <Compile Include="mobile\Battery.cs" />
     <Compile Include="CommandContext.cs" />
-    <Compile Include="mobile\MobileDevice.cs" />
-    <Compile Include="mobile\MobileDeviceWatcher.cs" />
+    <Compile Include="mobile\DeviceComponentBase.cs" />
+    <Compile Include="mobile\Device.cs" />
+    <Compile Include="mobile\DeviceWatcher.cs" />
     <Compile Include="FormCommandPalette.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -5,12 +5,10 @@ using System.Diagnostics;
 
 namespace Suconbu.Mobile
 {
-    public class Battery
+    public class Battery : DeviceComponentBase
     {
         public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
         public enum HealthCode { Unknown = 1, Good = 2, OverHeat = 3, Dead = 4, OverVoltage = 5, UnspecifiedFailrue, Cold = 7 }
-
-        public event EventHandler<SortedSet<string>> PropertyChanged = delegate { };
 
         public bool ACPowered
         {
@@ -68,26 +66,19 @@ namespace Suconbu.Mobile
             get { return (string)this.propertyGroup[nameof(this.Technology)].Value; }
         }
 
-        readonly MobileDevice device;
-        readonly PropertyGroup propertyGroup;
-
-        public Battery(MobileDevice device, string xmlPath)
-        {
-            this.device = device;
-            this.propertyGroup = PropertyGroup.FromXml(xmlPath);
-        }
+        public Battery(Device device, string xmlPath) : base(device, xmlPath) { }
 
         /// <summary>
         /// すべてのプロパティを最新の値に更新します。
         /// </summary>
-        public CommandContext PullAsync()
+        public override CommandContext PullAsync()
         {
-            var changedPropertyNames = new SortedSet<string>();
+            var changedProperties = new List<Property>();
             return this.device.RunCommandAsync("shell dumpsys battery", output =>
             {
                 if (output == null)
                 {
-                    if (changedPropertyNames.Count > 0) this.PropertyChanged(this, changedPropertyNames);
+                    if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
                     return;
                 }
 
@@ -96,39 +87,10 @@ namespace Suconbu.Mobile
                     var latest = p.Value?.ToString();
                     if(p.TrySetValueFromString(output.Trim()))
                     {
-                        if (latest != p.Value?.ToString()) changedPropertyNames.Add(p.Name);
+                        if (latest != p.Value?.ToString()) changedProperties.Add(p);
                     }
                 });
             });
-        }
-
-        /// <summary>
-        /// 指定されたプロパティを本来の値に戻します。
-        /// プロパティ名を省略した時はすべてのプロパティが対象となります。
-        /// </summary>
-        public CommandContext ResetAsync(string propertyName = null)
-        {
-            if(string.IsNullOrEmpty(propertyName))
-            {
-                var property = this.propertyGroup.Properties.Find(p => p.Name == propertyName);
-                if (property == null) return null;
-                return property.ResetAsync(this.device);
-            }
-            else
-            {
-                return CommandContext.StartNew(() => this.propertyGroup.Properties.ForEach(p => p.ResetAsync(this.device).Wait()));
-            }
-        }
-
-        void SetAndPushValue(string name, object value)
-        {
-            var property = this.propertyGroup[name];
-            if(property != null && property?.Value?.ToString() != value?.ToString())
-            {
-                property.Value = value;
-                property.PushAsync(this.device);
-                this.PropertyChanged(this, new SortedSet<string>(new[] { property.Name }));
-            }
         }
     }
 }
