@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="screen" prefix="shell wm">
-  <property name="Size" type="Size" pull="size" pattern="size: (\d+)x(\d+)$" push="size {0}x{1}" reset="size reset"/>
-  <property name="Density" type="Integer" pull="density" pattern="density: (\d+)$" push="density {0}" reset="density reset"/>
+<root name="Screen" prefix="shell">
+  <property name="Size" type="Size" pull="wm size" pattern="size: (\d+)x(\d+)$" push="wm size {0}x{1}" reset="wm size reset"/>
+  <property name="Density" type="Integer" pull="wm density" pattern="density: (\d+)$" push="wm density {0}" reset="wm density reset"/>
+  <property name="Brightness" type="Integer" pull="settings get system screen_brightness" pattern="(\d+)" push="settings put system screen_brightness {0}"/>
+  <property name="AutoRotate" type="Integer" pull="settings get system accelerometer_rotation" pattern="(\d+)" push="settings put system accelerometer_rotation {0}"/>
+  <property name="UserRotation" type="Integer" pull="settings get system user_rotation" pattern="(\d+)" push="settings put system user_rotation {0}"/>
+  <property name="OffTimeout" type="Integer" pull="settings get system screen_off_timeout" pattern="(\d+)" push="settings put system screen_off_timeout {0}"/>
 </root>

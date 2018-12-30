@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 
@@ -14,13 +15,14 @@ namespace Suconbu.Sumacon
     {
         DockPanel dockPanel = new DockPanel();
         FormProperty propertyForm = new FormProperty();
-        ToolStripDropDownButton deviceInfoDropDown;
-        ToolStripItem displayInfoLabel;
-        ToolStripItem batteryInfoLabel;
+        ToolStripDropDownButton deviceDropDown;
+        ToolStripItem deviceInfoLabel;
 
         DeviceWatcher watcher = new DeviceWatcher();
         List<Device> devices = new List<Device>();
         Device selectedDevice;
+
+        readonly int observeIntervalMilliseconds = 3000;
 
         public FormMain()
         {
@@ -34,12 +36,9 @@ namespace Suconbu.Sumacon
 
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
 
-            this.deviceInfoDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
-            this.statusStrip1.Items.Add(this.deviceInfoDropDown);
-            this.statusStrip1.Items.Add(new ToolStripSeparator());
-            this.displayInfoLabel = this.statusStrip1.Items.Add(string.Empty);
-            this.statusStrip1.Items.Add(new ToolStripSeparator());
-            this.batteryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
+            this.deviceDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
+            this.statusStrip1.Items.Add(this.deviceDropDown);
+            this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
         }
 
         protected override void OnLoad(EventArgs e)
@@ -63,7 +62,7 @@ namespace Suconbu.Sumacon
             {
                 if (this.devices.Find(d => d.Id == deviceId) != null) return;
 
-                var device = new Device(deviceId, 1000);
+                var device = new Device(deviceId);
                 this.devices.Add(device);
                 this.UpdateDeviceList();
                 if (this.selectedDevice == null)
@@ -95,11 +94,11 @@ namespace Suconbu.Sumacon
         {
             if (this.devices.Count > 0)
             {
-                this.deviceInfoDropDown.DropDownItems.Clear();
+                this.deviceDropDown.DropDownItems.Clear();
                 foreach (var device in this.devices)
                 {
                     var t = $"{device.Model} ({device.Name}) - {device.Id}";
-                    var item = this.deviceInfoDropDown.DropDownItems.Add(t);
+                    var item = this.deviceDropDown.DropDownItems.Add(t);
                     item.Image = this.imageList1.Images["phone.png"];
                     item.Click += (s, e) => this.ChangeSelectedDevice(device);
                 }
@@ -108,23 +107,63 @@ namespace Suconbu.Sumacon
 
         void ChangeSelectedDevice(Device device)
         {
+            if (this.selectedDevice != null)
+            {
+                foreach (var component in this.selectedDevice.Components)
+                {
+                    component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
+                }
+                this.selectedDevice.ObserveIntervalMilliseconds = 0;
+            }
+
             this.selectedDevice = device;
+            if (this.selectedDevice != null)
+            {
+                foreach (var component in this.selectedDevice.Components)
+                {
+                    component.PropertyChanged += this.DeviceComponent_PropertyChanged;
+                }
+                this.selectedDevice.ObserveIntervalMilliseconds = this.observeIntervalMilliseconds;
+            }
+
             this.propertyForm.TargetDevice = device;
 
             if (device != null)
             {
-                this.deviceInfoDropDown.Text = $"{device.Model} ({device.Name})";
-                this.deviceInfoDropDown.Image = this.imageList1.Images["phone.png"];
+                this.deviceDropDown.Text = $"{device.Model} ({device.Name})";
+                this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
             }
             else
             {
-                this.deviceInfoDropDown.Text = "-";
+                this.deviceDropDown.Text = "-";
             }
+            this.UpdateDeviceInfo();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
+        }
+
+        void DeviceComponent_PropertyChanged(object sender, IReadOnlyList<Property> properties)
+        {
+            Trace.TraceInformation("PropertyChanged");
+            Trace.Indent();
+            foreach (var p in properties) Trace.TraceInformation(p.ToString());
+            Trace.Unindent();
+
+            this.SafeInvoke(() => this.UpdateDeviceInfo());
+        }
+
+        void UpdateDeviceInfo()
+        {
+            var device = this.selectedDevice;
+            this.deviceInfoLabel.Text = string.Empty;
+            if (device != null)
+            {
+                this.deviceInfoLabel.Text = $"{device.ScreenSize.Width}x{device.ScreenSize.Height} ({device.ScreenDensity} DPI) " +
+                    $"🔋 {device.ChargeLevel} % ({device.Status})";
+            }
         }
     }
 }

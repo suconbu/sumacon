@@ -10,6 +10,8 @@ namespace Suconbu.Mobile
     {
         public event EventHandler<IReadOnlyList<Property>> PropertyChanged = delegate { };
 
+        public string Name { get { return this.propertyGroup.Name; } }
+
         protected readonly Device device;
         protected readonly PropertyGroup propertyGroup;
 
@@ -47,16 +49,22 @@ namespace Suconbu.Mobile
         /// </summary>
         public CommandContext ResetAsync(string propertyName = null)
         {
-            if (string.IsNullOrEmpty(propertyName))
+            if (!string.IsNullOrEmpty(propertyName))
             {
-                var property = this.propertyGroup.Properties.Find(p => p.Name == propertyName);
-                if (property == null) return null;
-                return property.ResetAsync(this.device);
+                return this.propertyGroup.Properties.Find(p => p.Name == propertyName)?.ResetAsync(this.device);
             }
             else
             {
-                return CommandContext.StartNew(() => this.propertyGroup.Properties.ForEach(p => p.ResetAsync(this.device).Wait()));
+                return CommandContext.StartNew(() =>
+                {
+                    Parallel.ForEach(this.propertyGroup.Properties, property => property.ResetAsync(this.device)?.Wait());
+                });
             }
+        }
+
+        public Property Find(string name)
+        {
+            return this.propertyGroup.Properties.Find(p => p.Name == name);
         }
 
         protected void SetAndPushValue(string name, object value)

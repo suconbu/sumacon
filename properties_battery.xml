@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="battery" prefix="shell dumpsys battery">
+<root name="Battery" prefix="shell dumpsys battery">
   <property name="ACPowered" type="Bool" pattern="^AC powered: (\w+)" push="set ac {0}" reset="reset ac"/>
   <property name="UsbPowered" type="Bool" pattern="^USB powered: (\w+)" push="set usb {0}" reset="reset usb"/>
   <property name="WirelessPowered" type="Bool" pattern="^Wireless powered: (\w+)" push="set wireless {0}" reset="reset wireless"/>
