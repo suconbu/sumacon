@@ -1,0 +1,5 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root name="screen" prefix="shell wm">
+  <property name="Size" type="Size" pull="size" pattern="size: (\d+)x(\d+)$" push="size {0}x{1}" reset="size reset"/>
+  <property name="Density" type="Integer" pull="density" pattern="density: (\d+)$" push="density {0}" reset="density reset"/>
+</root>

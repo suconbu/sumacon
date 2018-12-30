@@ -27,7 +27,7 @@ namespace Suconbu.Mobile
         [Category("Battery")]
         public bool WirelessPowered { get { return this.Battery.WirelessPowered; } set { this.Battery.WirelessPowered = value; } }
         [Category("Battery")]
-        public float Level { get { return this.Battery.Level / this.Battery.Scale * 100.0f; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
+        public float ChargeLevel { get { return 100.0f * this.Battery.Level / this.Battery.Scale; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
         [Category("Battery")]
         public Battery.StatusCode Status { get { return this.Battery.Status; } set { this.Battery.Status = value; } }
         [Category("Battery")]
@@ -41,8 +41,15 @@ namespace Suconbu.Mobile
         [Category("Battery")]
         public string Technology { get { return this.Battery.Technology; } }
 
+        [Category("Screen")]
+        public Size ScreenSize { get { return this.Screen.Size; } set { this.Screen.Size = value; } }
+        [Category("Screen")]
+        public int ScreenDensity { get { return this.Screen.Density; } set { this.Screen.Density = value; } }
+
         [Browsable(false)]
         public Battery Battery { get; private set; }
+        [Browsable(false)]
+        public Screen Screen { get; private set; }
 
         DeviceData deviceData;
         Timer observeTimer = new Timer();
@@ -51,11 +58,15 @@ namespace Suconbu.Mobile
         {
             this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
             this.Battery = new Battery(this, "properties_battery.xml");
+            this.Screen = new Screen(this, "properties_screen.xml");
+            this.observeTimer.AutoReset = false;
             this.observeTimer.Interval = 1;
             this.observeTimer.Elapsed += (s, e) =>
             {
+                this.Battery.PullAsync().Wait();
+                this.Screen.PullAsync().Wait();
                 this.observeTimer.Interval = observeIntervalMilliseconds;
-                this.Battery.PullAsync();
+                this.observeTimer.Start();
             };
             if (observeIntervalMilliseconds > 0) this.observeTimer.Start();
         }
@@ -93,6 +104,7 @@ namespace Suconbu.Mobile
 
             this.observeTimer.Stop();
             this.Battery.ResetAsync();
+            this.Screen.ResetAsync();
 
             this.disposed = true;
         }

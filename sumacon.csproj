@@ -69,6 +69,7 @@
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
     <Compile Include="mobile\Property.cs" />
+    <Compile Include="mobile\Screen.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="toolbox\Util.cs" />

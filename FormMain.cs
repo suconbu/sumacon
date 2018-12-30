@@ -70,24 +70,27 @@ namespace Suconbu.Sumacon
                 //group["ACPowered"].PushAsync(device);
                 //group["ACPowered"].ResetAsync(device);
 
-                device.Battery.PropertyChanged += (s, names) =>
-                {
-                    Trace.TraceInformation("PropertyChanged");
-                    Trace.Indent();
-                    foreach (var name in names) Trace.TraceInformation(name);
-                    Trace.Unindent();
-                    this.SafeInvoke(() =>
-                    {
-                        this.propertyGrid1.PropertySort = PropertySort.Categorized;
-                        this.propertyGrid1.SelectedObject = device;
-                    });
-                };
+                device.Battery.PropertyChanged += this.Component_PropertyChanged;
+                device.Screen.PropertyChanged += this.Component_PropertyChanged;
                 this.devices.Add(device);
                 this.UpdateDeviceList();
                 if (this.selectedDevice == null)
                 {
                     this.ChangeSelectedDevice(device);
                 }
+            });
+        }
+
+        private void Component_PropertyChanged(object sender, SortedSet<string> names)
+        {
+            Trace.TraceInformation("PropertyChanged");
+            Trace.Indent();
+            foreach (var name in names) Trace.TraceInformation(name);
+            Trace.Unindent();
+            this.SafeInvoke(() =>
+            {
+                this.propertyGrid1.PropertySort = PropertySort.Categorized;
+                this.propertyGrid1.SelectedObject = this.selectedDevice;
             });
         }
 

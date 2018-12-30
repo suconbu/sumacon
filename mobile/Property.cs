@@ -75,6 +75,9 @@ namespace Suconbu.Mobile
         public bool Overridden { get; private set; }
         [XmlIgnore]
         public string CommandPrefix { get; internal set; }
+        // PushAsyncを呼び出した後、値がデバイスに反映されるまでの間はtrue
+        [XmlIgnore]
+        public bool Pushing { get; private set; }
 
         object internalValue;
 
@@ -84,7 +87,7 @@ namespace Suconbu.Mobile
         {
             return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {this.PullCommand}", output =>
             {
-                if (this.TrySetValueFromString(output))
+                if (this.TrySetValueFromString(output.Trim()))
                 {
                     this.OriginalValue = this.internalValue;
                 }
@@ -95,13 +98,15 @@ namespace Suconbu.Mobile
         {
             if (!force && this.Value?.ToString() == this.OriginalValue?.ToString()) return null;
 
+            this.Pushing = true;
+
             string command;
             if (this.Type == DataType.Size)
             {
                 var sizeValue = (Size)this.internalValue;
                 command = string.Format(this.PushCommand, sizeValue.Width, sizeValue.Height);
             }
-            if (this.Type == DataType.Bool)
+            else if (this.Type == DataType.Bool)
             {
                 var boolValue = (bool)this.internalValue;
                 command = string.Format(this.PushCommand, boolValue ? 1 : 0);
@@ -110,7 +115,7 @@ namespace Suconbu.Mobile
             {
                 command = string.Format(this.PushCommand, this.internalValue.ToString());
             }
-            return device.RunCommandAsync($"{this.CommandPrefix} {command}");
+            return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {command}", output => this.Pushing = false);
         }
 
         public CommandContext ResetAsync(MobileDevice device)

@@ -96,7 +96,7 @@ namespace Suconbu.Mobile
                     var latest = p.Value?.ToString();
                     if(p.TrySetValueFromString(output.Trim()))
                     {
-                        if (latest != p.Value.ToString()) changedPropertyNames.Add(p.Name);
+                        if (latest != p.Value?.ToString()) changedPropertyNames.Add(p.Name);
                     }
                 });
             });
@@ -123,12 +123,9 @@ namespace Suconbu.Mobile
         void SetAndPushValue(string name, object value)
         {
             var property = this.propertyGroup[name];
-            if (property == null) return;
-
-            var changed = property?.Value?.ToString() != value?.ToString();
-            property.Value = value;
-            if (changed)
+            if(property != null && property?.Value?.ToString() != value?.ToString())
             {
+                property.Value = value;
                 property.PushAsync(this.device);
                 this.PropertyChanged(this, new SortedSet<string>(new[] { property.Name }));
             }
