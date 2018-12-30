@@ -1,8 +1,10 @@
 ﻿using Suconbu.Mobile;
+using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 
@@ -37,12 +39,6 @@ namespace Suconbu.Sumacon
             this.batteryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
         }
 
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            base.OnClosing(e);
-            this.closed = true;
-        }
-
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -50,6 +46,15 @@ namespace Suconbu.Sumacon
             this.watcher.Connected += this.Watcher_Connected;
             this.watcher.Disconnected += this.Watcher_Disconnected;
             this.watcher.Start();
+
+            Util.TraverseControls(this, c => c.Font = SystemFonts.MessageBoxFont);
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            this.devices.ForEach(d => d.Dispose());
+            this.closed = true;
         }
 
         private void Watcher_Connected(object sender, string deviceId)
@@ -59,12 +64,23 @@ namespace Suconbu.Sumacon
                 if (this.devices.Find(d => d.Id == deviceId) != null) return;
 
                 var device = new MobileDevice(deviceId, 1000);
+
+                //var group = PropertyGroup.FromXml("properties_battery.xml");
+                //group["ACPowered"].Value = true;
+                //group["ACPowered"].PushAsync(device);
+                //group["ACPowered"].ResetAsync(device);
+
                 device.Battery.PropertyChanged += (s, names) =>
                 {
                     Trace.TraceInformation("PropertyChanged");
                     Trace.Indent();
                     foreach (var name in names) Trace.TraceInformation(name);
                     Trace.Unindent();
+                    this.SafeInvoke(() =>
+                    {
+                        this.propertyGrid1.PropertySort = PropertySort.Categorized;
+                        this.propertyGrid1.SelectedObject = device;
+                    });
                 };
                 this.devices.Add(device);
                 this.UpdateDeviceList();

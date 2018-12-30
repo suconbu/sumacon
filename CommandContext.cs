@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Suconbu.Toolbox
 {
-    class CommandContext
+    public class CommandContext
     {
         public string Command { get; private set; }
         public string Arguments { get; private set; }
@@ -28,7 +28,7 @@ namespace Suconbu.Toolbox
         }
 
         /// <summary>
-        /// コマンド実行終了時に標準出力内容の全体を文字列としてfinishedに渡します。
+        /// コマンド実行終了時に標準出力内容の全体を文字列としてonFinishedに渡します。
         /// </summary>
         public static CommandContext StartNewText(string command, string arguments, Action<string> onFinished)
         {
@@ -39,7 +39,7 @@ namespace Suconbu.Toolbox
         }
 
         /// <summary>
-        /// コマンド実行終了時に標準出力をバイナリ化してそのストリームをfinishedに渡します。
+        /// コマンド実行終了時に標準出力をバイナリ化してそのストリームをonFinishedに渡します。
         /// </summary>
         public static CommandContext StartNewBinary(string command, string arguments, Action<Stream> onFinished)
         {
@@ -50,6 +50,16 @@ namespace Suconbu.Toolbox
                     onFinished?.Invoke(stream);
                 }
             });
+        }
+
+        /// <summary>
+        /// コマンドは実行せず単にonFinishedを呼び出します。
+        /// </summary>
+        public static CommandContext StartNew(Action onFinished)
+        {
+            var instance = new CommandContext();
+            instance.task = Task.Run(() => onFinished());
+            return instance;
         }
 
         static CommandContext StartNewInternal(string command, string arguments, bool binary, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<CommandContext> onFinished)
@@ -129,14 +139,14 @@ namespace Suconbu.Toolbox
 
         public void Cancel()
         {
-            this.process.Kill();
+            this.process?.Kill();
             this.process = null;
             this.task = null;
         }
 
         public void Wait()
         {
-            this.process.WaitForExit();
+            this.process?.WaitForExit();
             this.task?.Wait();
             this.process = null;
             this.task = null;
@@ -144,7 +154,7 @@ namespace Suconbu.Toolbox
 
         public void Wait(int millisecondsTimeout)
         {
-            this.process.WaitForExit(millisecondsTimeout);
+            this.process?.WaitForExit(millisecondsTimeout);
             this.task?.Wait(millisecondsTimeout);
             this.process = null;
             this.task = null;
@@ -152,7 +162,7 @@ namespace Suconbu.Toolbox
 
         public void Wait(TimeSpan timeout)
         {
-            this.process.WaitForExit((int)timeout.TotalMilliseconds);
+            this.process?.WaitForExit((int)timeout.TotalMilliseconds);
             this.task?.Wait((int)timeout.TotalMilliseconds);
             this.process = null;
             this.task = null;

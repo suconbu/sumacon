@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root name="battery" prefix="shell dumpsys battery">
+  <property name="ACPowered" type="Bool" pattern="^AC powered: (\w+)" push="set ac {0}" reset="reset ac"/>
+  <property name="UsbPowered" type="Bool" pattern="^USB powered: (\w+)" push="set usb {0}" reset="reset usb"/>
+  <property name="WirelessPowered" type="Bool" pattern="^Wireless powered: (\w+)" push="set wireless {0}" reset="reset wireless"/>
+  <property name="Status" type="Integer" pattern="^status: (\d+)" push="set status {0}" reset="reset status"/>
+  <property name="Level" type="Integer" pattern="^level: (\d+)" push="set level {0}" reset="reset level"/>
+  <property name="Scale" type="Integer" pattern="^scale: (\d+)"/>
+  <property name="Health" type="Integer" pattern="^health: (\d+)"/>
+  <property name="Voltage" type="Integer" pattern="^voltage: (\d+)"/>
+  <property name="Temperature" type="Integer" pattern="^temperature: (\d+)"/>
+  <property name="ChargeCounter" type="Integer" pattern="^Charge counter: (\d+)"/>
+  <property name="Technology" type="String" pattern="^technology: (.+)"/>
+</root>
