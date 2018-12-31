@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.uxOuterPanel = new System.Windows.Forms.TableLayoutPanel();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.uxFileListView = new System.Windows.Forms.ListView();
@@ -45,6 +46,7 @@
             this.uxIntervalLabel = new System.Windows.Forms.Label();
             this.uxIntervalNumeric = new System.Windows.Forms.NumericUpDown();
             this.uxCountCheck = new System.Windows.Forms.CheckBox();
+            this.uxToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.uxOuterPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -177,11 +179,11 @@
             this.label2.Text = "File name pattern:";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // uxSaveText
+            // uxSaveDirectoryText
             // 
             this.uxSaveDirectoryText.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxSaveDirectoryText.Location = new System.Drawing.Point(118, 3);
-            this.uxSaveDirectoryText.Name = "uxSaveText";
+            this.uxSaveDirectoryText.Name = "uxSaveDirectoryText";
             this.uxSaveDirectoryText.Size = new System.Drawing.Size(531, 23);
             this.uxSaveDirectoryText.TabIndex = 2;
             // 
@@ -307,5 +309,6 @@
         private System.Windows.Forms.NumericUpDown uxIntervalNumeric;
         private System.Windows.Forms.CheckBox uxCountCheck;
         private System.Windows.Forms.CheckBox uxSkipCheck;
+        private System.Windows.Forms.ToolTip uxToolTip;
     }
 }

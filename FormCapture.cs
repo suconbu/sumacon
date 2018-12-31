@@ -32,6 +32,7 @@ namespace Suconbu.Sumacon
         readonly string labelStop = "Stop";
         readonly int sequenceNoStart = 1;
         readonly int sequenceNoMax = 9999;
+        readonly string patternToolTipText;
         //readonly string deviceSaveDirectory = "/sdcard/Pictures/Screenshots";
 
         public FormCapture(DeviceManager deviceManager)
@@ -45,6 +46,14 @@ namespace Suconbu.Sumacon
             };
 
             this.sequenceNo = this.sequenceNoStart;
+            var sb = new StringBuilder();
+            sb.AppendLine("{device-id} : e.g. 'HXC8KSKL99XYZ'");
+            sb.AppendLine("{device-model} : e.g. 'Nexus_9'");
+            sb.AppendLine("{device-name} : e.g. 'MyTablet'");
+            sb.AppendLine("{date} : '2018-12-31'");
+            sb.AppendLine("{time} : '12-34-56'");
+            sb.AppendLine("{no} : Sequential number based on '0001'. This is reset in application start.");
+            this.patternToolTipText = sb.ToString();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -54,11 +63,14 @@ namespace Suconbu.Sumacon
             this.uxPreviewPicture.BackColor = Color.Black;
 
             this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
+            this.uxPatternText.Text = this.defaultPattern;
+            this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
+            this.uxToolTip.AutoPopDelay = 30000;
+
             this.uxIntervalNumeric.Minimum = 1;
             this.uxIntervalNumeric.Value = this.defaultInterval;
             this.uxCountNumeric.Minimum = 1;
             this.uxCountNumeric.Value = this.defaultCount;
-            this.uxPatternText.Text = this.defaultPattern;
 
             this.uxContinuousCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
             this.uxCountCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
