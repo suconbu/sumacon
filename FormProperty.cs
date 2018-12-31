@@ -16,46 +16,48 @@ namespace Suconbu.Sumacon
 {
     public partial class FormProperty : FormBase
     {
-        public Device TargetDevice
-        {
-            get { return this.device; }
-            set
-            {
-                foreach (var component in this.device?.Components ?? Enumerable.Empty<DeviceComponentBase>())
-                {
-                    component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
-                }
-                this.device = value;
-                this.propertyGrid1.SelectedObject = this.device;
-                foreach (var component in this.device?.Components ?? Enumerable.Empty<DeviceComponentBase>())
-                {
-                    component.PropertyChanged += this.DeviceComponent_PropertyChanged;
-                }
-            }
-        }
-
-        Device device;
+        DeviceManager deviceManager;
         ContextMenuStrip menu = new ContextMenuStrip();
 
-        public FormProperty()
+        public FormProperty(DeviceManager deviceManager)
         {
             InitializeComponent();
 
+            this.deviceManager = deviceManager;
+            this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
+            {
+                this.SafeInvoke(() =>
+                {
+                    this.propertyGrid1.SelectedObject = this.deviceManager.ActiveDevice;
+                    this.SetupContextMenu();
+                });
+            };
+            this.deviceManager.PropertyChanged += this.DeviceManager_PropertyChanged; ;
+        }
+
+        void SetupContextMenu()
+        {
             var resetPropertyMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null) return;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
-                var component = this.device.ComponentsByCategory[category];
+                var component = device.ComponentsByCategory[category];
                 var property = component?.Find(this.propertyGrid1.SelectedGridItem.Label);
-                property?.ResetAsync(this.device);
+                property?.ResetAsync(device);
             });
             var resetCategoryMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null) return;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
-                this.device.ComponentsByCategory[category]?.ResetAsync();
+                device.ComponentsByCategory[category]?.ResetAsync();
             });
             this.menu.Items.Add("Reset all properties", null, (s, e) =>
             {
-                foreach (var component in this.device.Components)
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null) return;
+                foreach (var component in device.Components)
                 {
                     component.ResetAsync();
                 }
@@ -63,8 +65,15 @@ namespace Suconbu.Sumacon
 
             this.menu.Opening += (s, e) =>
             {
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
-                var component = this.device.ComponentsByCategory[category];
+                var component = device.ComponentsByCategory[category];
                 var label = this.propertyGrid1.SelectedGridItem.Label;
                 var property = component?.Find(label);
 
@@ -77,10 +86,11 @@ namespace Suconbu.Sumacon
             this.propertyGrid1.ContextMenuStrip = this.menu;
         }
 
-        void DeviceComponent_PropertyChanged(object sender, IReadOnlyList<Property> properties)
+
+        void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Property> properties)
         {
             //Console.Beep(1000, 100);
-            this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.device);
+            this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.deviceManager.ActiveDevice);
         }
     }
 }

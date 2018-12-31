@@ -25,7 +25,14 @@ namespace Suconbu.Sumacon
 
         protected void SafeInvoke(MethodInvoker action)
         {
-            if (!this.formClosed) this.Invoke(action);
+            try
+            {
+                if (!this.formClosed) this.Invoke(action);
+            }
+            catch(Exception)
+            {
+                ;
+            }
         }
     }
 }

@@ -68,27 +68,14 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public Screen Screen { get; private set; }
         [Browsable(false)]
-        public int ObserveIntervalMilliseconds
-        {
-            get { return (int)this.observeIntervalMilliseconds; }
-            set
-            {
-                this.observeIntervalMilliseconds = value;
-                if (value > 0)
-                {
-                    this.observeTimer.Interval = 1;
-                    this.observeTimer.Start();
-                }
-            }
-        }
-        [Browsable(false)]
-        public IReadOnlyList<DeviceComponentBase> Components = new List<DeviceComponentBase>();
+        public IReadOnlyList<DeviceComponentBase> Components;
         [Browsable(false)]
         public Dictionary<string, DeviceComponentBase> ComponentsByCategory = new Dictionary<string, DeviceComponentBase>();
 
         DeviceData deviceData;
-        int observeIntervalMilliseconds = 0;
-        Timer observeTimer = new Timer();
+        int observeIntervalMilliseconds = 1000;
+        bool observeActivated;
+        string timeoutId;
 
         public Device(string id)
         {
@@ -99,20 +86,34 @@ namespace Suconbu.Mobile
             this.ComponentsByCategory[ComponentCategory.Device] = null;
             this.ComponentsByCategory[ComponentCategory.Battery] = this.Battery;
             this.ComponentsByCategory[ComponentCategory.Screen] = this.Screen;
-            this.observeTimer.AutoReset = false;
-            this.observeTimer.Interval = 1;
-            this.observeTimer.Elapsed += (s, e) =>
-            {
-                Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
-                if (this.observeIntervalMilliseconds > 0)
-                {
-                    this.observeTimer.Interval = this.observeIntervalMilliseconds;
-                    this.observeTimer.Start();
-                }
-            };
         }
 
-        Device() { }
+        public void StartObserve(int intervalMilliseconds = 0)
+        {
+            if (intervalMilliseconds > 0)
+            {
+                this.observeIntervalMilliseconds = intervalMilliseconds;
+            }
+            if (this.observeActivated)
+            {
+                this.StopObserve();
+            }
+            this.observeActivated = true;
+            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, 1);
+        }
+
+        public void StopObserve()
+        {
+            this.observeActivated = false;
+            Delay.ClearTimeout(this.timeoutId);
+        }
+
+        void TimerElapsed()
+        {
+            Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
+            if (!this.observeActivated) return;
+            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
+        }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
         {
@@ -136,9 +137,10 @@ namespace Suconbu.Mobile
         {
             if (this.disposed) return;
 
-            this.observeTimer.Stop();
-            this.Battery.ResetAsync();
-            this.Screen.ResetAsync();
+            foreach (var component in this.Components)
+            {
+                component.ResetAsync();
+            }
 
             this.disposed = true;
         }

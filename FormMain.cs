@@ -13,14 +13,14 @@ namespace Suconbu.Sumacon
 {
     public partial class FormMain : FormBase
     {
-        DockPanel dockPanel = new DockPanel();
-        FormProperty propertyForm = new FormProperty();
+        DockPanel dockPanel;
+        FormProperty propertyForm;
+        FormConsole consoleForm;
+        FormShortcut shortcutForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripItem deviceInfoLabel;
 
-        DeviceWatcher watcher = new DeviceWatcher();
-        List<Device> devices = new List<Device>();
-        Device selectedDevice;
+        DeviceManager deviceManager;
 
         readonly int observeIntervalMilliseconds = 3000;
 
@@ -30,114 +30,36 @@ namespace Suconbu.Sumacon
 
             this.KeyPreview = true;
 
+            this.dockPanel = new DockPanel();
             this.dockPanel.Dock = DockStyle.Fill;
             this.dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
             this.toolStripContainer1.ContentPanel.Controls.Add(this.dockPanel);
 
-            this.propertyForm.Show(this.dockPanel, DockState.DockRight);
-
             this.deviceDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
             this.statusStrip1.Items.Add(this.deviceDropDown);
             this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
+
+            this.SetupDeviceManager();
+
+            this.consoleForm = new FormConsole();
+            this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
+            this.shortcutForm = new FormShortcut();
+            this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
+            this.propertyForm = new FormProperty(this.deviceManager);
+            this.propertyForm.Show(this.dockPanel, DockState.DockRight);
         }
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 
-            this.watcher.Connected += this.Watcher_Connected;
-            this.watcher.Disconnected += this.Watcher_Disconnected;
-            this.watcher.Start();
+            this.deviceManager.StartDeviceWatching();
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
-            this.devices.ForEach(d => d.Dispose());
-        }
-
-        private void Watcher_Connected(object sender, string deviceId)
-        {
-            this.SafeInvoke(() =>
-            {
-                if (this.devices.Find(d => d.Id == deviceId) != null) return;
-
-                var device = new Device(deviceId);
-                this.devices.Add(device);
-                this.UpdateDeviceList();
-                if (this.selectedDevice == null)
-                {
-                    this.ChangeSelectedDevice(device);
-                }
-            });
-        }
-
-        private void Watcher_Disconnected(object sender, string deviceId)
-        {
-            this.SafeInvoke(() =>
-            {
-                var device = this.devices.Find(d => d.Id == deviceId);
-                if (device == null) return;
-
-                this.devices.Remove(device);
-                this.UpdateDeviceList();
-                if (this.selectedDevice == device)
-                {
-                    var nextDevice = (this.devices.Count > 0) ? this.devices[0] : null;
-                    this.ChangeSelectedDevice(nextDevice);
-                }
-                device.Dispose();
-            });
-        }
-
-        void UpdateDeviceList()
-        {
-            if (this.devices.Count > 0)
-            {
-                this.deviceDropDown.DropDownItems.Clear();
-                foreach (var device in this.devices)
-                {
-                    var t = $"{device.Model} ({device.Name}) - {device.Id}";
-                    var item = this.deviceDropDown.DropDownItems.Add(t);
-                    item.Image = this.imageList1.Images["phone.png"];
-                    item.Click += (s, e) => this.ChangeSelectedDevice(device);
-                }
-            }
-        }
-
-        void ChangeSelectedDevice(Device device)
-        {
-            if (this.selectedDevice != null)
-            {
-                foreach (var component in this.selectedDevice.Components)
-                {
-                    component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
-                }
-                this.selectedDevice.ObserveIntervalMilliseconds = 0;
-            }
-
-            this.selectedDevice = device;
-            if (this.selectedDevice != null)
-            {
-                foreach (var component in this.selectedDevice.Components)
-                {
-                    component.PropertyChanged += this.DeviceComponent_PropertyChanged;
-                }
-                this.selectedDevice.ObserveIntervalMilliseconds = this.observeIntervalMilliseconds;
-            }
-
-            this.propertyForm.TargetDevice = device;
-
-            if (device != null)
-            {
-                this.deviceDropDown.Text = $"{device.Model} ({device.Name})";
-                this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
-            }
-            else
-            {
-                this.deviceDropDown.Text = "-";
-            }
-            this.UpdateDeviceInfo();
+            this.deviceManager.Dispose();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -145,24 +67,60 @@ namespace Suconbu.Sumacon
             base.OnKeyDown(e);
         }
 
-        void DeviceComponent_PropertyChanged(object sender, IReadOnlyList<Property> properties)
+        void SetupDeviceManager()
         {
-            Trace.TraceInformation("PropertyChanged");
-            Trace.Indent();
-            foreach (var p in properties) Trace.TraceInformation(p.ToString());
-            Trace.Unindent();
+            this.deviceManager = new DeviceManager();
+            this.deviceManager.PropertyChanged += (s, properties) =>
+            {
+                Trace.TraceInformation("PropertyChanged");
+                Trace.Indent();
+                foreach (var p in properties) Trace.TraceInformation(p.ToString());
+                Trace.Unindent();
 
-            this.SafeInvoke(() => this.UpdateDeviceInfo());
+                this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
+            };
+            this.deviceManager.ConnectedDevicesChanged += (s, ee) =>
+            {
+                this.SafeInvoke(() => this.UpdateDeviceList());
+            };
+            this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
+            {
+                previousActiveDevice?.StopObserve();
+                var activeDevice = this.deviceManager.ActiveDevice;
+                activeDevice?.StartObserve(this.observeIntervalMilliseconds);
+
+                this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
+            };
         }
 
-        void UpdateDeviceInfo()
+        void UpdateDeviceList()
         {
-            var device = this.selectedDevice;
-            this.deviceInfoLabel.Text = string.Empty;
+            this.deviceDropDown.DropDownItems.Clear();
+            foreach (var device in this.deviceManager.ConnectedDevices.OrEmptyIfNull())
+            {
+                var t = $"{device.Model} ({device.Name}) - {device.Id}";
+                var item = this.deviceDropDown.DropDownItems.Add(t);
+                item.Image = this.imageList1.Images["phone.png"];
+                item.Click += (s, e) => this.deviceManager.ActiveDevice = device;
+            }
+        }
+
+        void UpdateStatusDeviceInfo()
+        {
+            var device = this.deviceManager.ActiveDevice;
+
             if (device != null)
             {
+                this.deviceDropDown.Text = $"{device.Model} ({device.Name})";
+                this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
+
                 this.deviceInfoLabel.Text = $"{device.ScreenSize.Width}x{device.ScreenSize.Height} ({device.ScreenDensity} DPI) " +
                     $"🔋 {device.ChargeLevel} % ({device.Status})";
+            }
+            else
+            {
+                this.deviceDropDown.Text = "-";
+                this.deviceInfoLabel.Text = string.Empty;
             }
         }
     }
