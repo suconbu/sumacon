@@ -66,13 +66,12 @@ namespace Suconbu.Sumacon
             this.menu.Opening += (s, e) =>
             {
                 var device = this.deviceManager.ActiveDevice;
-                if (device == null)
+                var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor?.Category;
+                if (device == null || category == null)
                 {
                     e.Cancel = true;
                     return;
                 }
-
-                var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
                 var component = device.ComponentsByCategory[category];
                 var label = this.propertyGrid1.SelectedGridItem.Label;
                 var property = component?.Find(label);

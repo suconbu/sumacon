@@ -43,13 +43,26 @@ namespace Suconbu.Mobile
 
         public Screen(Device device, string xmlPath) : base(device, xmlPath) { }
 
-        public CommandContext CaptureAsync(Action<Image> onCaptured)
+        public CommandContext CaptureAsync(Action<Bitmap> onCaptured)
         {
             return this.device.RunCommandOutputBinaryAsync("shell screencap -p", stream =>
             {
-                var image = Bitmap.FromStream(stream);
-                onCaptured?.Invoke(image);
+                Bitmap bitmap = null;
+                try
+                {
+                    bitmap = Image.FromStream(stream) as Bitmap;
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError(ex.ToString());
+                }
+                onCaptured?.Invoke(bitmap);
             });
+        }
+
+        public CommandContext CaptureIntoDeviceAsync(string saveTo, Action<string> onCaptured)
+        {
+            return this.device.RunCommandOutputTextAsync($"shell screencap -p > {saveTo}", output => onCaptured(saveTo));
         }
     }
 }

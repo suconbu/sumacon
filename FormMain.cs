@@ -17,13 +17,14 @@ namespace Suconbu.Sumacon
         FormProperty propertyForm;
         FormConsole consoleForm;
         FormShortcut shortcutForm;
+        FormCapture captureForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripItem deviceInfoLabel;
 
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
 
-        readonly int observeIntervalMilliseconds = 3000;
+        readonly int observeIntervalMilliseconds = 300000;
 
         public FormMain()
         {
@@ -54,6 +55,8 @@ namespace Suconbu.Sumacon
             this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
             this.propertyForm = new FormProperty(this.deviceManager);
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
+            this.captureForm = new FormCapture(this.deviceManager);
+            this.captureForm.Show(this.dockPanel, DockState.Document);
 
             this.deviceManager.StartDeviceWatching();
         }

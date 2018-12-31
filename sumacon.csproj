@@ -52,9 +52,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DailyLoggingTraceListener.cs" />
     <Compile Include="DeviceManager.cs" />
     <Compile Include="FormBase.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormCapture.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormCapture.Designer.cs">
+      <DependentUpon>FormCapture.cs</DependentUpon>
     </Compile>
     <Compile Include="FormConsole.cs">
       <SubType>Form</SubType>
@@ -93,6 +100,9 @@
     <Compile Include="toolbox\Delay.cs" />
     <Compile Include="toolbox\Extension.cs" />
     <Compile Include="toolbox\Util.cs" />
+    <EmbeddedResource Include="FormCapture.resx">
+      <DependentUpon>FormCapture.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FormShortcut.resx">
       <DependentUpon>FormShortcut.cs</DependentUpon>
     </EmbeddedResource>

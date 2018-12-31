@@ -139,11 +139,14 @@ namespace Suconbu.Toolbox
                 this.process.StandardOutput.BaseStream.CopyTo(dataStream);
                 var data = dataStream.ToArray();
                 var outputStream = new MemoryStream(data.Length);
-                for (int i = 0; i < data.Length - 1; i++)
+                if (data.Length > 0)
                 {
-                    if (!(data[i] == 0x0D && data[i + 1] == 0x0A)) outputStream.WriteByte(data[i]);
+                    for (int i = 0; i < data.Length - 1; i++)
+                    {
+                        if (!(data[i] == 0x0D && data[i + 1] == 0x0A)) outputStream.WriteByte(data[i]);
+                    }
+                    outputStream.WriteByte(data[data.Length - 1]);
                 }
-                outputStream.WriteByte(data[data.Length - 1]);
                 outputStream.Position = 0;
                 return outputStream;
             }
