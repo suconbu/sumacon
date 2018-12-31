@@ -21,9 +21,10 @@ namespace Suconbu.Sumacon
         Dictionary<string, CommandSet> commandSets = new Dictionary<string, CommandSet>();
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
+        FileSystemWatcher watcher = new FileSystemWatcher();
 
         readonly string directoryPath = "command";
-        readonly string fileNamePattern = "*.txt";
+        readonly string fileNameFilter = "*.txt";
 
         public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
@@ -31,6 +32,23 @@ namespace Suconbu.Sumacon
 
             this.deviceManager = deviceManager;
             this.commandReceiver = commandReceiver;
+            if (Directory.Exists(this.directoryPath))
+            {
+                this.watcher.Path = this.directoryPath;
+                this.watcher.Filter = this.fileNameFilter;
+                this.watcher.Changed += this.Watcher_Changed;
+                this.watcher.Created += this.Watcher_Changed;
+                this.watcher.Renamed += this.Watcher_Changed;
+                this.watcher.Deleted += this.Watcher_Changed;
+                this.watcher.EnableRaisingEvents = true;
+                this.watcher.SynchronizingObject = this;
+            }
+        }
+
+        private void Watcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            this.LoadCommandFiles(this.directoryPath);
+            this.UpdateList();
         }
 
         public void NotifyKeyDown(KeyEventArgs e)
@@ -46,22 +64,26 @@ namespace Suconbu.Sumacon
         {
             base.OnLoad(e);
 
-            this.LoadCommandFiles(this.directoryPath);
             this.SetupList();
+
+            this.LoadCommandFiles(this.directoryPath);
             this.UpdateList();
         }
 
         void LoadCommandFiles(string directoryPath)
         {
+            if (!Directory.Exists(directoryPath)) return;
+
             // 設定ファイル読み込み
-            var paths = Directory.EnumerateFiles(directoryPath, this.fileNamePattern, SearchOption.TopDirectoryOnly);
+            this.commandSets.Clear();
+            var paths = Directory.EnumerateFiles(directoryPath, this.fileNameFilter, SearchOption.TopDirectoryOnly);
             foreach (var path in paths.OrEmptyIfNull())
             {
                 try
                 {
                     var keyName = Path.GetFileNameWithoutExtension(path);
                     // ファンクションキーに限定
-                    if (Regex.IsMatch(keyName, @"F\d+") && Enum.TryParse<Keys>(keyName, out var key))
+                    if (Regex.IsMatch(keyName, @"^F\d+$") && Enum.TryParse<Keys>(keyName, out var key))
                     {
                         var command = new CommandSet(path, key);
                         this.commandSets.Add(keyName, command);
