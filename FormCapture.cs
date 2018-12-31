@@ -22,6 +22,7 @@ namespace Suconbu.Sumacon
         bool continuousCapturing;
         int sequenceNo;
         int remainingCount;
+        int capturedCount;
         string previousBitmapMd5;
 
         readonly int defaultInterval = 5;
@@ -40,10 +41,7 @@ namespace Suconbu.Sumacon
             InitializeComponent();
 
             this.deviceManager = deviceManager;
-            this.deviceManager.ActiveDeviceChanged += (s, e) =>
-            {
-                this.SafeInvoke(() => this.uxStartButton.Enabled = (this.deviceManager.ActiveDevice != null));
-            };
+            this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
 
             this.sequenceNo = this.sequenceNoStart;
             var sb = new StringBuilder();
@@ -85,6 +83,7 @@ namespace Suconbu.Sumacon
         {
             if (!this.continuousCapturing)
             {
+                this.capturedCount = 0;
                 this.continuousCapturing = this.uxContinuousCheck.Checked;
                 if (this.continuousCapturing)
                 {
@@ -115,6 +114,8 @@ namespace Suconbu.Sumacon
             //var saveTo = $"{this.deviceSaveDirectory}/{this.GetNextFileName()}";
             //this.captureContext = device.Screen.CaptureIntoDeviceAsync(saveTo, path =>
             this.captureContext = device.Screen.CaptureAsync(this.Captured);
+
+            this.UpdateControlState();
         }
 
         void StopCapture()
@@ -124,8 +125,10 @@ namespace Suconbu.Sumacon
             Delay.ClearTimeout(this.timeoutId);
             this.timeoutId = null;
             this.remainingCount = 0;
+            this.capturedCount = 0;
             this.continuousCapturing = false;
             this.previousBitmapMd5 = null;
+
             this.UpdateControlState();
         }
 
@@ -135,7 +138,7 @@ namespace Suconbu.Sumacon
             if (bitmap == null) return;
 
             var skip = false;
-            if (this.uxSkipCheck.Checked)
+            if (this.continuousCapturing && this.uxSkipCheck.Checked)
             {
                 // 同一画像判定
                 var md5 = bitmap.ComputeMD5();
@@ -146,9 +149,13 @@ namespace Suconbu.Sumacon
                 this.previousBitmapMd5 = md5;
             }
 
-            if (!skip && this.remainingCount > 0)
+            if (!skip)
             {
-                this.remainingCount--;
+                if (this.remainingCount > 0)
+                {
+                    this.remainingCount--;
+                }
+                this.capturedCount++;
             }
 
             if (this.continuousCapturing &&
@@ -159,8 +166,7 @@ namespace Suconbu.Sumacon
                 var nextInterval = (int)this.uxIntervalNumeric.Value * 1000;
                 nextInterval = Math.Max(1, nextInterval - elapsed);
                 Trace.TraceInformation($"StartCapture - elapsed: {elapsed} ms, nextInterval: {nextInterval} ms");
-                this.timeoutId = Delay.SetTimeout(() => this.StartCapture(), nextInterval);
-
+                this.timeoutId = Delay.SetTimeout(() => this.StartCapture(), nextInterval, this);
                 this.SafeInvoke(() => this.UpdateControlState());
             }
             else
@@ -171,8 +177,9 @@ namespace Suconbu.Sumacon
 
             if (!skip)
             {
-                this.SafeInvoke(() => this.uxPreviewPicture.Image = bitmap);
+                // SaveとPictureBoxの描画がかち合うとInvalidOperationException出るのでこの順番
                 this.SaveCapture(bitmap);
+                this.SafeInvoke(() => this.uxPreviewPicture.Image = bitmap);
             }
         }
 
@@ -197,20 +204,20 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
-            if(this.continuousCapturing)
+            if (this.continuousCapturing)
             {
                 this.uxSettingPanel.Enabled = false;
-                if(this.remainingCount > 0)
+                var sb = new StringBuilder();
+                sb.AppendLine(this.labelStop);
+                if (this.remainingCount >= 0)
                 {
-                    var sb = new StringBuilder();
-                    sb.AppendLine(this.labelStop);
                     sb.Append($"({this.remainingCount} shots remains)");
-                    this.uxStartButton.Text = sb.ToString();
                 }
                 else
                 {
-                    this.uxStartButton.Text = this.labelStop;
+                    sb.Append($"({this.capturedCount} captured)");
                 }
+                this.uxStartButton.Text = sb.ToString();
             }
             else
             {
@@ -221,6 +228,8 @@ namespace Suconbu.Sumacon
 
             this.uxConinuousPanel.Enabled = this.uxContinuousCheck.Checked;
             this.uxCountNumeric.Enabled = this.uxCountCheck.Checked;
+
+            this.uxOuterPanel.Enabled = (this.deviceManager.ActiveDevice != null);
         }
 
         string GetNextFileName()
