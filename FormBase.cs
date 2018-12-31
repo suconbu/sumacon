@@ -11,9 +11,9 @@ namespace Suconbu.Sumacon
     {
         bool formClosed = false;
 
-        protected override void OnShown(EventArgs e)
+        protected override void OnLoad(EventArgs e)
         {
-            base.OnShown(e);
+            base.OnLoad(e);
             Util.TraverseControls(this, c => c.Font = SystemFonts.MessageBoxFont);
         }
 

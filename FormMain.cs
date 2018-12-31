@@ -31,6 +31,14 @@ namespace Suconbu.Sumacon
 
             this.KeyPreview = true;
 
+            this.commandReceiver = new CommandReceiver();
+            this.SetupDeviceManager();
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
             this.dockPanel = new DockPanel();
             this.dockPanel.Dock = DockStyle.Fill;
             this.dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
@@ -40,20 +48,12 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(this.deviceDropDown);
             this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
 
-            this.commandReceiver = new CommandReceiver();
-            this.SetupDeviceManager();
-
-            this.consoleForm = new FormConsole(this.commandReceiver);
+            this.consoleForm = new FormConsole(this.deviceManager, this.commandReceiver);
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
             this.shortcutForm = new FormShortcut(this.deviceManager, this.commandReceiver);
             this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
             this.propertyForm = new FormProperty(this.deviceManager);
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
-        }
-
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
 
             this.deviceManager.StartDeviceWatching();
         }
@@ -67,6 +67,8 @@ namespace Suconbu.Sumacon
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
+
+            this.shortcutForm.NotifyKeyDown(e);
         }
 
         void SetupDeviceManager()

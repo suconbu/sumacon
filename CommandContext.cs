@@ -110,8 +110,8 @@ namespace Suconbu.Toolbox
                     onOutputReceived?.Invoke(e.Data);
                     if (e.Data == null)
                     {
-                        instance.process.CancelOutputRead();
-                        instance.process.CancelErrorRead();
+                        instance.process?.CancelOutputRead();
+                        instance.process?.CancelErrorRead();
                         onFinished?.Invoke(instance);
                     }
                 };
