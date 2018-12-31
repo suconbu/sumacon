@@ -24,6 +24,10 @@ namespace Suconbu.Sumacon
         int remainingCount;
         int capturedCount;
         string previousBitmapMd5;
+        FileSystemWatcher watcher = new FileSystemWatcher();
+        List<FileInfo> fileInfos = new List<FileInfo>();
+        List<ListViewItem> listItems = new List<ListViewItem>();
+        string selectedFilePath;
 
         readonly int defaultInterval = 5;
         readonly int defaultCount = 10;
@@ -34,6 +38,7 @@ namespace Suconbu.Sumacon
         readonly int sequenceNoStart = 1;
         readonly int sequenceNoMax = 9999;
         readonly string patternToolTipText;
+        readonly string fileNameFilter = "*.png";
         //readonly string deviceSaveDirectory = "/sdcard/Pictures/Screenshots";
 
         public FormCapture(DeviceManager deviceManager)
@@ -42,6 +47,13 @@ namespace Suconbu.Sumacon
 
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
+
+            this.watcher.Filter = this.fileNameFilter;
+            this.watcher.Changed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            this.watcher.Created += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            this.watcher.Renamed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            this.watcher.Deleted += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            this.watcher.SynchronizingObject = this;
 
             this.sequenceNo = this.sequenceNoStart;
             var sb = new StringBuilder();
@@ -60,6 +72,7 @@ namespace Suconbu.Sumacon
 
             this.uxPreviewPicture.BackColor = Color.Black;
 
+            this.uxSaveDirectoryText.TextChanged += (s, ee) => Delay.SetTimeout(() => this.SaveDirectoryChanged(), 500, this, Util.GetCurrentMethodName(true));
             this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
             this.uxPatternText.Text = this.defaultPattern;
             this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
@@ -76,7 +89,73 @@ namespace Suconbu.Sumacon
             this.uxStartButton.Enabled = (this.deviceManager.ActiveDevice != null);
             this.uxStartButton.Click += this.UxStartButton_Click;
 
+            this.uxFileListView.FullRowSelect = true;
+            this.uxFileListView.Columns.Add("Name");
+            this.uxFileListView.Columns.Add("Date");
+            this.uxFileListView.Columns.Add("Size");
+            //this.uxFileListView.RetrieveVirtualItem += (s, ee) =>
+            //{
+            //    ee.Item = (ee.ItemIndex < this.listItems.Count) ? this.listItems[ee.ItemIndex] : ee.Item;
+            //    ee.Item.Selected = (ee.Item.Name == this.selectedFilePath);
+            //};
+            //this.uxFileListView.VirtualMode = true;
+
             this.UpdateControlState();
+        }
+
+        void SaveDirectoryChanged()
+        {
+            var directoryPath = this.uxSaveDirectoryText.Text;
+            if(Directory.Exists(directoryPath))
+            {
+                this.watcher.Path = directoryPath;
+                this.watcher.EnableRaisingEvents = true;
+            }
+            else
+            {
+                this.watcher.EnableRaisingEvents = false;
+                this.watcher.Path = directoryPath;
+            }
+            this.UpdateFileList();
+        }
+
+        void UpdateFileList()
+        {
+            Trace.TraceInformation("UpdateFileList");
+            var directoryPath = this.uxSaveDirectoryText.Text;
+            this.fileInfos.Clear();
+            this.listItems.Clear();
+            if (Directory.Exists(directoryPath))
+            {
+                var paths = Directory.EnumerateFiles(directoryPath, this.fileNameFilter, SearchOption.TopDirectoryOnly);
+                var selectedFileName = Path.GetFileName(this.selectedFilePath);
+                foreach (var path in paths)
+                {
+                    var fileInfo = new FileInfo(path);
+                    this.fileInfos.Add(fileInfo);
+                    var item = new ListViewItem(new string[3]);
+                    item.Name = fileInfo.FullName;
+                    item.SubItems[0].Text = fileInfo.Name;
+                    item.SubItems[1].Text = $"{fileInfo.Length / 1024:#,##0} KB";
+                    item.SubItems[2].Text = fileInfo.LastWriteTime.ToString();
+                    this.listItems.Add(item);
+                }
+                var index = (this.uxFileListView.SelectedIndices.Count) > 0 ? this.uxFileListView.SelectedIndices[0] : -1;
+                this.uxFileListView.Items.Clear();
+                this.uxFileListView.Items.AddRange(this.listItems.ToArray());
+                if (index >= 0)
+                {
+                    this.uxFileListView.Items[index].Selected = true;
+                }
+                //this.uxFileListView.VirtualListSize = this.fileInfos.Count;
+            }
+            else
+            {
+                //this.uxFileListView.VirtualListSize = 0;
+                this.uxFileListView.Items.Clear();
+            }
+
+            this.uxFileListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
         }
 
         void UxStartButton_Click(object sender, EventArgs e)
@@ -187,14 +266,16 @@ namespace Suconbu.Sumacon
         {
             try
             {
-                var directory = this.uxSaveDirectoryText.Text;
-                if (!Directory.Exists(directory))
+                var directoryPath = this.uxSaveDirectoryText.Text;
+                if (!Directory.Exists(directoryPath))
                 {
-                    Directory.CreateDirectory(directory);
+                    Directory.CreateDirectory(directoryPath);
+                    this.watcher.EnableRaisingEvents = true;
                 }
                 var fileName = this.GetNextFileName();
-                var saveTo = Path.Combine(directory, fileName);
+                var saveTo = Path.Combine(directoryPath, fileName);
                 bitmap.Save(saveTo);
+                this.selectedFilePath = Path.GetFullPath(saveTo);
             }
             catch(Exception ex)
             {
