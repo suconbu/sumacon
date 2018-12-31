@@ -21,6 +21,7 @@ namespace Suconbu.Sumacon
         ToolStripItem deviceInfoLabel;
 
         DeviceManager deviceManager;
+        CommandReceiver commandReceiver;
 
         readonly int observeIntervalMilliseconds = 3000;
 
@@ -39,11 +40,12 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(this.deviceDropDown);
             this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
 
+            this.commandReceiver = new CommandReceiver();
             this.SetupDeviceManager();
 
-            this.consoleForm = new FormConsole();
+            this.consoleForm = new FormConsole(this.commandReceiver);
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
-            this.shortcutForm = new FormShortcut();
+            this.shortcutForm = new FormShortcut(this.deviceManager, this.commandReceiver);
             this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
             this.propertyForm = new FormProperty(this.deviceManager);
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);

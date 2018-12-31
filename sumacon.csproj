@@ -89,6 +89,7 @@
     <Compile Include="mobile\Screen.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="CommandReceiver.cs" />
     <Compile Include="toolbox\Delay.cs" />
     <Compile Include="toolbox\Extension.cs" />
     <Compile Include="toolbox\Util.cs" />

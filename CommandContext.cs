@@ -62,6 +62,17 @@ namespace Suconbu.Toolbox
             return instance;
         }
 
+        /// <summary>
+        /// 文字列を標準入力に書き込みます。
+        /// </summary>
+        public void PushInput(params string[] inputs)
+        {
+            foreach (var input in inputs)
+            {
+                this.process.StandardInput.WriteLine(input);
+            }
+        }
+
         static CommandContext StartNewInternal(string command, string arguments, bool binary, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<CommandContext> onFinished)
         {
             var instance = new CommandContext();
@@ -70,6 +81,7 @@ namespace Suconbu.Toolbox
             info.FileName = command;
             info.Arguments = arguments;
             info.CreateNoWindow = true;
+            info.RedirectStandardInput = true;
             info.RedirectStandardOutput = true;
             info.RedirectStandardError = !binary;
             info.UseShellExecute = false;

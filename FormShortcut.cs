@@ -38,17 +38,29 @@ namespace Suconbu.Sumacon
                 }
             }
 
-            public CommandContext RunAsync(Device device)
+            public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
             {
-                return null;
+                var context = device.RunCommandAsync("shell", output =>
+                {
+                    //Debug.Print($"CommandEntry - {output}");
+                    commandReceiver?.WriteOutput(output);
+                });
+                context.PushInput(this.Commands);
+                context.PushInput("exit");
+                return context;
             }
         }
 
         Dictionary<string, CommandEntry> commandEntries = new Dictionary<string, CommandEntry>();
+        DeviceManager deviceManager;
+        CommandReceiver commandReceiver;
 
-        public FormShortcut()
+        public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
             InitializeComponent();
+
+            this.deviceManager = deviceManager;
+            this.commandReceiver = commandReceiver;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -100,7 +112,7 @@ namespace Suconbu.Sumacon
                 if (this.uxShortcutList.SelectedItems.Count > 0)
                 {
                     var item = this.uxShortcutList.SelectedItems[0];
-                    //this.commandEntries[item.Text].RunAsync(this.device);
+                    this.commandEntries[item.Text].RunAsync(this.deviceManager.ActiveDevice, this.commandReceiver);
                 }
             };
         }

@@ -12,9 +12,17 @@ namespace Suconbu.Sumacon
 {
     public partial class FormConsole : FormBase
     {
-        public FormConsole()
+        CommandReceiver commandReceiver;
+
+        public FormConsole(CommandReceiver commandReceiver)
         {
             InitializeComponent();
+
+            this.commandReceiver = commandReceiver;
+            this.commandReceiver.OutputReceived += (s, output) =>
+            {
+                this.SafeInvoke(() => this.textBox1.AppendText(output + Environment.NewLine));
+            };
         }
     }
 }
