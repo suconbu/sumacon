@@ -18,49 +18,6 @@ namespace Suconbu.Sumacon
 {
     public partial class FormShortcut : FormBase
     {
-
-        class CommandSet
-        {
-            public Keys KeyCode;
-            public string Name;
-            public string[] Commands = new string[0];
-
-            public CommandSet(string path, Keys keyCode)
-            {
-                var lines = File.ReadAllLines(path);
-                var first = lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? string.Empty;
-                this.KeyCode = keyCode;
-                this.Name = first.StartsWith("#") ? first.Substring(1).Trim() : first;
-                this.Commands = lines;
-            }
-
-            public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
-            {
-                var sw = Stopwatch.StartNew();
-                var label = $"{this.KeyCode.ToString()} - {this.Name}";
-                var context = device.RunCommandAsync("shell", output =>
-                {
-                    if (output != null)
-                    {
-                        commandReceiver?.WriteOutput(output);
-                    }
-                    else
-                    {
-                        commandReceiver?.WriteOutput($"# Finish '{label}' ({sw.ElapsedMilliseconds} ms)");
-                        sw = null;
-                    }
-                });
-                commandReceiver?.WriteOutput($"# Run '{label}'");
-                foreach (var command in this.Commands)
-                {
-                    context.PushInput($"echo '> {command}'");
-                    context.PushInput(command);
-                }
-                context.PushInput("exit");
-                return context;
-            }
-        } // class CommandSet
-
         Dictionary<string, CommandSet> commandSets = new Dictionary<string, CommandSet>();
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
@@ -152,5 +109,47 @@ namespace Suconbu.Sumacon
             }
             this.uxShortcutList.AutoResizeColumn(1, ColumnHeaderAutoResizeStyle.ColumnContent);
         }
+
+        class CommandSet
+        {
+            public Keys KeyCode;
+            public string Name;
+            public string[] Commands = new string[0];
+
+            public CommandSet(string path, Keys keyCode)
+            {
+                var lines = File.ReadAllLines(path);
+                var first = lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? string.Empty;
+                this.KeyCode = keyCode;
+                this.Name = first.StartsWith("#") ? first.Substring(1).Trim() : first;
+                this.Commands = lines;
+            }
+
+            public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
+            {
+                var sw = Stopwatch.StartNew();
+                var label = $"{this.KeyCode.ToString()} - {this.Name}";
+                var context = device.RunCommandAsync("shell", output =>
+                {
+                    if (output != null)
+                    {
+                        commandReceiver?.WriteOutput(output);
+                    }
+                    else
+                    {
+                        commandReceiver?.WriteOutput($"# Finish '{label}' ({sw.ElapsedMilliseconds} ms)");
+                        sw = null;
+                    }
+                });
+                commandReceiver?.WriteOutput($"# Run '{label}'");
+                foreach (var command in this.Commands)
+                {
+                    context.PushInput($"echo '> {command}'");
+                    context.PushInput(command);
+                }
+                context.PushInput("exit");
+                return context;
+            }
+        } // class CommandSet
     }
 }
