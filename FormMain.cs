@@ -96,7 +96,8 @@ namespace Suconbu.Sumacon
         void UpdateDeviceList()
         {
             this.deviceDropDown.DropDownItems.Clear();
-            foreach (var device in this.deviceManager.ConnectedDevices.OrEmptyIfNull())
+            var devices = this.deviceManager.ConnectedDevices.ToArray();
+            foreach (var device in devices)
             {
                 var t = $"{device.Model} ({device.Name}) - {device.Id}";
                 var item = this.deviceDropDown.DropDownItems.Add(t);
