@@ -18,25 +18,26 @@ namespace Suconbu.Sumacon
 {
     public partial class FormShortcut : FormBase
     {
+
         class CommandSet
         {
-            public string Key;
+            public Keys KeyCode;
             public string Name;
             public string[] Commands = new string[0];
 
-            public CommandSet(string path)
+            public CommandSet(string path, Keys keyCode)
             {
                 var lines = File.ReadAllLines(path);
-                var first = lines.First().Trim();
-                this.Key = Path.GetFileNameWithoutExtension(path);
-                this.Name = first.StartsWith("#") ? first.Substring(1).Trim() : string.Empty;
+                var first = lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? string.Empty;
+                this.KeyCode = keyCode;
+                this.Name = first.StartsWith("#") ? first.Substring(1).Trim() : first;
                 this.Commands = lines;
             }
 
             public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
             {
                 var sw = Stopwatch.StartNew();
-                var label = $"{this.Key} - {this.Name}";
+                var label = $"{this.KeyCode.ToString()} - {this.Name}";
                 var context = device.RunCommandAsync("shell", output =>
                 {
                     if (output != null)
@@ -45,11 +46,11 @@ namespace Suconbu.Sumacon
                     }
                     else
                     {
-                        commandReceiver?.WriteOutput($"# FINISH '{label}' ({sw.ElapsedMilliseconds} ms)");
+                        commandReceiver?.WriteOutput($"# Finish '{label}' ({sw.ElapsedMilliseconds} ms)");
                         sw = null;
                     }
                 });
-                commandReceiver?.WriteOutput($"# RUN '{label}'");
+                commandReceiver?.WriteOutput($"# Run '{label}'");
                 foreach (var command in this.Commands)
                 {
                     context.PushInput($"echo '> {command}'");
@@ -58,11 +59,14 @@ namespace Suconbu.Sumacon
                 context.PushInput("exit");
                 return context;
             }
-        }
+        } // class CommandSet
 
         Dictionary<string, CommandSet> commandSets = new Dictionary<string, CommandSet>();
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
+
+        readonly string directoryPath = "command";
+        readonly string fileNamePattern = "*.txt";
 
         public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
@@ -85,7 +89,7 @@ namespace Suconbu.Sumacon
         {
             base.OnLoad(e);
 
-            this.LoadCommandFiles("shortcut");
+            this.LoadCommandFiles(this.directoryPath);
             this.SetupList();
             this.UpdateList();
         }
@@ -93,7 +97,7 @@ namespace Suconbu.Sumacon
         void LoadCommandFiles(string directoryPath)
         {
             // 設定ファイル読み込み
-            var paths = Directory.EnumerateFiles(directoryPath, "*.txt", SearchOption.TopDirectoryOnly);
+            var paths = Directory.EnumerateFiles(directoryPath, this.fileNamePattern, SearchOption.TopDirectoryOnly);
             foreach (var path in paths.OrEmptyIfNull())
             {
                 try
@@ -102,7 +106,7 @@ namespace Suconbu.Sumacon
                     // ファンクションキーに限定
                     if (Regex.IsMatch(keyName, @"F\d+") && Enum.TryParse<Keys>(keyName, out var key))
                     {
-                        var command = new CommandSet(path);
+                        var command = new CommandSet(path, key);
                         this.commandSets.Add(keyName, command);
                     }
                     else
@@ -139,10 +143,11 @@ namespace Suconbu.Sumacon
         void UpdateList()
         {
             this.uxShortcutList.Items.Clear();
-            foreach(var command in this.commandSets)
+            var sets = this.commandSets.Values.OrderBy(v => v.KeyCode);
+            foreach (var command in sets)
             {
-                var item = new ListViewItem(command.Key.ToString());
-                item.SubItems.Add(command.Value.Name);
+                var item = new ListViewItem(command.KeyCode.ToString());
+                item.SubItems.Add(command.Name);
                 this.uxShortcutList.Items.Add(item);
             }
             this.uxShortcutList.AutoResizeColumn(1, ColumnHeaderAutoResizeStyle.ColumnContent);
