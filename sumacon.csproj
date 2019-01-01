@@ -52,6 +52,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CaptureContext.cs" />
     <Compile Include="DailyLoggingTraceListener.cs" />
     <Compile Include="DeviceManager.cs" />
     <Compile Include="FormBase.cs">
