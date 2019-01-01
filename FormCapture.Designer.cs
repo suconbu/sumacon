@@ -41,7 +41,7 @@
             this.uxSaveDirectoryText = new System.Windows.Forms.TextBox();
             this.uxPatternText = new System.Windows.Forms.TextBox();
             this.uxConinuousPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.uxSkipCheck = new System.Windows.Forms.CheckBox();
+            this.uxSkipSameImageCheck = new System.Windows.Forms.CheckBox();
             this.uxCountNumeric = new System.Windows.Forms.NumericUpDown();
             this.uxIntervalLabel = new System.Windows.Forms.Label();
             this.uxIntervalNumeric = new System.Windows.Forms.NumericUpDown();
@@ -204,7 +204,7 @@
             this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 111F));
-            this.uxConinuousPanel.Controls.Add(this.uxSkipCheck, 4, 0);
+            this.uxConinuousPanel.Controls.Add(this.uxSkipSameImageCheck, 4, 0);
             this.uxConinuousPanel.Controls.Add(this.uxCountNumeric, 3, 0);
             this.uxConinuousPanel.Controls.Add(this.uxIntervalLabel, 0, 0);
             this.uxConinuousPanel.Controls.Add(this.uxIntervalNumeric, 1, 0);
@@ -220,14 +220,14 @@
             // 
             // uxSkipCheck
             // 
-            this.uxSkipCheck.AutoSize = true;
-            this.uxSkipCheck.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxSkipCheck.Location = new System.Drawing.Point(329, 3);
-            this.uxSkipCheck.Name = "uxSkipCheck";
-            this.uxSkipCheck.Size = new System.Drawing.Size(107, 24);
-            this.uxSkipCheck.TabIndex = 22;
-            this.uxSkipCheck.Text = "Skip duplicated";
-            this.uxSkipCheck.UseVisualStyleBackColor = true;
+            this.uxSkipSameImageCheck.AutoSize = true;
+            this.uxSkipSameImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxSkipSameImageCheck.Location = new System.Drawing.Point(329, 3);
+            this.uxSkipSameImageCheck.Name = "uxSkipCheck";
+            this.uxSkipSameImageCheck.Size = new System.Drawing.Size(107, 24);
+            this.uxSkipSameImageCheck.TabIndex = 22;
+            this.uxSkipSameImageCheck.Text = "Skip duplicated";
+            this.uxSkipSameImageCheck.UseVisualStyleBackColor = true;
             // 
             // uxCountNumeric
             // 
@@ -308,7 +308,7 @@
         private System.Windows.Forms.Label uxIntervalLabel;
         private System.Windows.Forms.NumericUpDown uxIntervalNumeric;
         private System.Windows.Forms.CheckBox uxCountCheck;
-        private System.Windows.Forms.CheckBox uxSkipCheck;
+        private System.Windows.Forms.CheckBox uxSkipSameImageCheck;
         private System.Windows.Forms.ToolTip uxToolTip;
     }
 }

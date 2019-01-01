@@ -16,16 +16,9 @@ namespace Suconbu.Sumacon
     public partial class FormCapture : FormBase
     {
         DeviceManager deviceManager;
-        CommandContext captureContext;
-        string timeoutId;
-        DateTime captureStartedAt;
-        bool continuousCapturing;
+        CaptureContext captureContext;
         int sequenceNo;
-        int remainingCount;
-        int capturedCount;
-        string previousBitmapMd5;
-        FileSystemWatcher watcher = new FileSystemWatcher();
-        List<FileInfo> fileInfos = new List<FileInfo>();
+        List<FileInfo> capturedFileInfos = new List<FileInfo>();
         List<ListViewItem> listItems = new List<ListViewItem>();
         string selectedFilePath;
 
@@ -35,10 +28,10 @@ namespace Suconbu.Sumacon
         readonly string defaultPattern = "{device-model}_{date}_{time}_{no}.png";
         readonly string labelStart = "Capture";
         readonly string labelStop = "Stop";
-        readonly int sequenceNoStart = 1;
-        readonly int sequenceNoMax = 9999;
+        readonly int startOfNo = 1;
+        readonly int endOfNo = 9999;
         readonly string patternToolTipText;
-        readonly string fileNameFilter = "*.png";
+        //readonly string fileNameFilter = "*.png";
         //readonly string deviceSaveDirectory = "/sdcard/Pictures/Screenshots";
 
         public FormCapture(DeviceManager deviceManager)
@@ -48,21 +41,22 @@ namespace Suconbu.Sumacon
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
 
-            this.watcher.Filter = this.fileNameFilter;
-            this.watcher.Changed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            this.watcher.Created += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            this.watcher.Renamed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            this.watcher.Deleted += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            this.watcher.SynchronizingObject = this;
+            //this.watcher.Filter = this.fileNameFilter;
+            //this.watcher.Changed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            //this.watcher.Created += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            //this.watcher.Renamed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            //this.watcher.Deleted += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
+            //this.watcher.SynchronizingObject = this;
 
-            this.sequenceNo = this.sequenceNoStart;
+            this.sequenceNo = this.startOfNo;
             var sb = new StringBuilder();
-            sb.AppendLine("{device-id} : e.g. 'HXC8KSKL99XYZ'");
-            sb.AppendLine("{device-model} : e.g. 'Nexus_9'");
-            sb.AppendLine("{device-name} : e.g. 'MyTablet'");
+            sb.AppendLine("{device-id} : 'HXC8KSKL99XYZ'");
+            sb.AppendLine("{device-model} : 'Nexus_9'");
+            sb.AppendLine("{device-name} : 'MyTablet'");
             sb.AppendLine("{date} : '2018-12-31'");
             sb.AppendLine("{time} : '12-34-56'");
-            sb.AppendLine("{no} : Sequential number based on '0001'. This is reset in application start.");
+            sb.AppendLine("{no} : '0001' (Single shot) / '0002-0034' (Continuous mode)");
+            sb.AppendLine("* {no} is reset in application start.");
             this.patternToolTipText = sb.ToString();
         }
 
@@ -72,7 +66,6 @@ namespace Suconbu.Sumacon
 
             this.uxPreviewPicture.BackColor = Color.Black;
 
-            this.uxSaveDirectoryText.TextChanged += (s, ee) => Delay.SetTimeout(() => this.SaveDirectoryChanged(), 500, this, Util.GetCurrentMethodName(true));
             this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
             this.uxPatternText.Text = this.defaultPattern;
             this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
@@ -103,163 +96,89 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        void SaveDirectoryChanged()
-        {
-            var directoryPath = this.uxSaveDirectoryText.Text;
-            if(Directory.Exists(directoryPath))
-            {
-                this.watcher.Path = directoryPath;
-                this.watcher.EnableRaisingEvents = true;
-            }
-            else
-            {
-                this.watcher.EnableRaisingEvents = false;
-                this.watcher.Path = directoryPath;
-            }
-            this.UpdateFileList();
-        }
+        //void UpdateFileList()
+        //{
+        //    Trace.TraceInformation("UpdateFileList");
+        //    var directoryPath = this.uxSaveDirectoryText.Text;
+        //    this.capturedFileInfos.Clear();
+        //    this.listItems.Clear();
+        //    if (Directory.Exists(directoryPath))
+        //    {
+        //        var paths = Directory.EnumerateFiles(directoryPath, this.fileNameFilter, SearchOption.TopDirectoryOnly);
+        //        var selectedFileName = Path.GetFileName(this.selectedFilePath);
+        //        foreach (var path in paths)
+        //        {
+        //            var fileInfo = new FileInfo(path);
+        //            this.capturedFileInfos.Add(fileInfo);
+        //            var item = new ListViewItem(new string[3]);
+        //            item.Name = fileInfo.FullName;
+        //            item.SubItems[0].Text = fileInfo.Name;
+        //            item.SubItems[1].Text = $"{fileInfo.Length / 1024:#,##0} KB";
+        //            item.SubItems[2].Text = fileInfo.LastWriteTime.ToString();
+        //            this.listItems.Add(item);
+        //        }
+        //        var index = (this.uxFileListView.SelectedIndices.Count) > 0 ? this.uxFileListView.SelectedIndices[0] : -1;
+        //        this.uxFileListView.Items.Clear();
+        //        this.uxFileListView.Items.AddRange(this.listItems.ToArray());
+        //        if (index >= 0)
+        //        {
+        //            this.uxFileListView.Items[index].Selected = true;
+        //        }
+        //        //this.uxFileListView.VirtualListSize = this.fileInfos.Count;
+        //    }
+        //    else
+        //    {
+        //        //this.uxFileListView.VirtualListSize = 0;
+        //        this.uxFileListView.Items.Clear();
+        //    }
 
-        void UpdateFileList()
-        {
-            Trace.TraceInformation("UpdateFileList");
-            var directoryPath = this.uxSaveDirectoryText.Text;
-            this.fileInfos.Clear();
-            this.listItems.Clear();
-            if (Directory.Exists(directoryPath))
-            {
-                var paths = Directory.EnumerateFiles(directoryPath, this.fileNameFilter, SearchOption.TopDirectoryOnly);
-                var selectedFileName = Path.GetFileName(this.selectedFilePath);
-                foreach (var path in paths)
-                {
-                    var fileInfo = new FileInfo(path);
-                    this.fileInfos.Add(fileInfo);
-                    var item = new ListViewItem(new string[3]);
-                    item.Name = fileInfo.FullName;
-                    item.SubItems[0].Text = fileInfo.Name;
-                    item.SubItems[1].Text = $"{fileInfo.Length / 1024:#,##0} KB";
-                    item.SubItems[2].Text = fileInfo.LastWriteTime.ToString();
-                    this.listItems.Add(item);
-                }
-                var index = (this.uxFileListView.SelectedIndices.Count) > 0 ? this.uxFileListView.SelectedIndices[0] : -1;
-                this.uxFileListView.Items.Clear();
-                this.uxFileListView.Items.AddRange(this.listItems.ToArray());
-                if (index >= 0)
-                {
-                    this.uxFileListView.Items[index].Selected = true;
-                }
-                //this.uxFileListView.VirtualListSize = this.fileInfos.Count;
-            }
-            else
-            {
-                //this.uxFileListView.VirtualListSize = 0;
-                this.uxFileListView.Items.Clear();
-            }
-
-            this.uxFileListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-        }
+        //    this.uxFileListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
+        //}
 
         void UxStartButton_Click(object sender, EventArgs e)
         {
-            if (!this.continuousCapturing)
+            if(this.captureContext == null || this.captureContext.Mode == CaptureContext.CaptureMode.Single)
             {
-                this.capturedCount = 0;
-                this.continuousCapturing = this.uxContinuousCheck.Checked;
-                if (this.continuousCapturing)
+                if (this.uxContinuousCheck.Checked)
                 {
-                    // 撮影枚数
-                    this.remainingCount = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : -1;
+                    var intervalMilliseconds = (int)this.uxIntervalNumeric.Value * 1000;
+                    var count = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : 0;
+                    var skipSame = this.uxSkipSameImageCheck.Checked;
+                    this.captureContext = CaptureContext.ContinuousCapture(this.deviceManager, intervalMilliseconds, skipSame, count);
                 }
-                this.StartCapture();
+                else
+                {
+                    this.captureContext = CaptureContext.SingleCapture(this.deviceManager);
+                }
+
+                if (this.captureContext != null)
+                {
+                    this.captureContext.Captured += (s, bitmap) =>
+                    {
+                        this.SaveCapture(bitmap);
+                        this.SafeInvoke(() =>
+                        {
+                            this.uxPreviewPicture.Image = bitmap;
+                            this.UpdateControlState();
+                        });
+                    };
+                    this.captureContext.Finished += (s, ee) =>
+                    {
+                        this.captureContext?.Dispose();
+                        this.captureContext = null;
+                        this.SafeInvoke(() => this.UpdateControlState());
+                    };
+                    this.captureContext.Start();
+                }
             }
             else
             {
-                this.StopCapture();
+                // 連続撮影中止
+                this.captureContext.Dispose();
+                this.captureContext = null;
             }
 
             this.UpdateControlState();
-        }
-
-        void StartCapture()
-        {
-            this.captureContext?.Cancel();
-            this.captureContext = null;
-
-            var device = this.deviceManager.ActiveDevice;
-            if (device == null) return;
-
-            this.captureStartedAt = DateTime.Now;
-            Trace.TraceInformation("StartCapture - CaptureAsync");
-
-            //var saveTo = $"{this.deviceSaveDirectory}/{this.GetNextFileName()}";
-            //this.captureContext = device.Screen.CaptureIntoDeviceAsync(saveTo, path =>
-            this.captureContext = device.Screen.CaptureAsync(this.Captured);
-
-            this.UpdateControlState();
-        }
-
-        void StopCapture()
-        {
-            this.captureContext?.Cancel();
-            this.captureContext = null;
-            Delay.ClearTimeout(this.timeoutId);
-            this.timeoutId = null;
-            this.remainingCount = 0;
-            this.capturedCount = 0;
-            this.continuousCapturing = false;
-            this.previousBitmapMd5 = null;
-
-            this.UpdateControlState();
-        }
-
-        void Captured(Bitmap bitmap)
-        {
-            this.captureContext = null;
-            if (bitmap == null) return;
-
-            var skip = false;
-            if (this.continuousCapturing && this.uxSkipCheck.Checked)
-            {
-                // 同一画像判定
-                var md5 = bitmap.ComputeMD5();
-                if (this.previousBitmapMd5 == md5)
-                {
-                    skip = true;
-                }
-                this.previousBitmapMd5 = md5;
-            }
-
-            if (!skip)
-            {
-                if (this.remainingCount > 0)
-                {
-                    this.remainingCount--;
-                }
-                this.capturedCount++;
-            }
-
-            if (this.continuousCapturing &&
-                (this.remainingCount > 0 || this.remainingCount == -1))
-            {
-                // 連続撮影中なら撮影に掛かった時間を勘案して次へ
-                var elapsed = (int)(DateTime.Now - this.captureStartedAt).TotalMilliseconds;
-                var nextInterval = (int)this.uxIntervalNumeric.Value * 1000;
-                nextInterval = Math.Max(1, nextInterval - elapsed);
-                Trace.TraceInformation($"StartCapture - elapsed: {elapsed} ms, nextInterval: {nextInterval} ms");
-                this.timeoutId = Delay.SetTimeout(() => this.StartCapture(), nextInterval, this);
-                this.SafeInvoke(() => this.UpdateControlState());
-            }
-            else
-            {
-                // 撮影終了
-                this.SafeInvoke(() => this.StopCapture());
-            }
-
-            if (!skip)
-            {
-                // SaveとPictureBoxの描画がかち合うとInvalidOperationException出るのでこの順番
-                this.SaveCapture(bitmap);
-                this.SafeInvoke(() => this.uxPreviewPicture.Image = bitmap);
-            }
         }
 
         void SaveCapture(Bitmap bitmap)
@@ -270,7 +189,7 @@ namespace Suconbu.Sumacon
                 if (!Directory.Exists(directoryPath))
                 {
                     Directory.CreateDirectory(directoryPath);
-                    this.watcher.EnableRaisingEvents = true;
+                    //this.watcher.EnableRaisingEvents = true;
                 }
                 var fileName = this.GetNextFileName();
                 var saveTo = Path.Combine(directoryPath, fileName);
@@ -285,18 +204,18 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
-            if (this.continuousCapturing)
+            if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
             {
                 this.uxSettingPanel.Enabled = false;
                 var sb = new StringBuilder();
                 sb.AppendLine(this.labelStop);
-                if (this.remainingCount >= 0)
+                if (this.captureContext.RemainingCount >= 0 && this.captureContext.RemainingCount != int.MaxValue)
                 {
-                    sb.Append($"({this.remainingCount} shots remains)");
+                    sb.Append($"({this.captureContext.RemainingCount} shots remains)");
                 }
                 else
                 {
-                    sb.Append($"({this.capturedCount} captured)");
+                    sb.Append($"({this.captureContext.CapturedCount} captured)");
                 }
                 this.uxStartButton.Text = sb.ToString();
             }
@@ -325,9 +244,137 @@ namespace Suconbu.Sumacon
                 name = name.Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"));
                 name = name.Replace("{time}", DateTime.Now.ToString("hh-mm-ss"));
                 name = name.Replace("{no}", this.sequenceNo.ToString("0000"));
-                this.sequenceNo = ++this.sequenceNo > this.sequenceNoMax ? this.sequenceNoStart : this.sequenceNo;
+                this.sequenceNo = ++this.sequenceNo > this.endOfNo ? this.startOfNo : this.sequenceNo;
             }
             return name;
         }
+
+        class CaptureContext : IDisposable
+        {
+            public enum CaptureMode { Single, Continuous }
+
+            public event EventHandler<Bitmap> Captured = delegate { };
+            public event EventHandler Finished = delegate { };
+
+            public CaptureMode Mode { get; private set; }
+            public int RemainingCount
+            {
+                get { return (this.Mode == CaptureMode.Continuous && this.continuousCaptureTo > 0) ? (this.continuousCaptureTo - this.capturedCount) : int.MaxValue; }
+            }
+            public int CapturedCount { get { return this.capturedCount; } }
+
+            DateTime startedAt;
+            int continuousCaptureTo;
+            int capturedCount;
+            int intervalMilliseconds;
+            bool skipSame;
+            public string previousImageHash;
+            public string continuousTimeoutId;
+            CommandContext commandContext;
+            DeviceManager deviceManager;
+
+            public static CaptureContext SingleCapture(DeviceManager deviceManager)
+            {
+                var instance = new CaptureContext();
+                instance.deviceManager = deviceManager;
+                instance.Mode = CaptureMode.Single;
+                return instance;
+            }
+
+            public static CaptureContext ContinuousCapture(DeviceManager deviceManager, int intervalMilliseconds, bool skipSame, int count = 0)
+            {
+                var instance = new CaptureContext();
+                instance.deviceManager = deviceManager ?? throw new ArgumentNullException(nameof(deviceManager));
+                instance.Mode = CaptureMode.Continuous;
+                instance.intervalMilliseconds = (intervalMilliseconds >= 1) ? intervalMilliseconds : 1;
+                instance.continuousCaptureTo = (count >= 0) ? count : 0;
+                instance.skipSame = skipSame;
+                return instance;
+            }
+
+            public void Start()
+            {
+                this.RunCapture();
+            }
+
+            void RunCapture()
+            {
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null)
+                {
+                    this.Finished(this, EventArgs.Empty);
+                    return;
+                }
+                this.startedAt = DateTime.Now;
+                Trace.TraceInformation("StartCapture - CaptureAsync");
+                this.commandContext = device.Screen.CaptureAsync(this.ScreenCaptured);
+                if (this.commandContext == null)
+                {
+                    this.Finished(this, EventArgs.Empty);
+                    return;
+                }
+            }
+
+            void ScreenCaptured(Bitmap bitmap)
+            {
+                if(bitmap == null || this.disposed)
+                {
+                    this.Finished(this, EventArgs.Empty);
+                    return;
+                }
+                this.commandContext = null;
+
+                var skip = false;
+                if(this.skipSame)
+                {
+                    var hash = bitmap.ComputeMD5();
+                    if(this.previousImageHash == hash)
+                    {
+                        skip = true;
+                    }
+                    this.previousImageHash = hash;
+                }
+
+                if(!skip)
+                {
+                    this.capturedCount++;
+                }
+
+                if (this.Mode == CaptureMode.Continuous && this.RemainingCount > 0)
+                {
+                    // 連続撮影中なら撮影に掛かった時間を勘案して次を予約しておく
+                    var elapsed = (int)(DateTime.Now - this.startedAt).TotalMilliseconds;
+                    var nextInterval = Math.Max(1, this.intervalMilliseconds - elapsed);
+                    Trace.TraceInformation($"StartCapture - elapsed: {elapsed} ms, nextInterval: {nextInterval} ms");
+                    this.continuousTimeoutId = Delay.SetTimeout(() => this.RunCapture(), nextInterval);
+                }
+                
+                if(!skip)
+                {
+                    this.Captured(this, bitmap);
+                }
+
+                if (this.Mode == CaptureMode.Single ||
+                    (this.Mode == CaptureMode.Continuous && this.RemainingCount == 0))
+                {
+                    this.Finished(this, EventArgs.Empty);
+                }
+            }
+
+            #region IDisposable Support
+            bool disposed = false;
+
+            public virtual void Dispose()
+            {
+                if (this.disposed) return;
+
+                this.commandContext?.Cancel();
+                this.commandContext = null;
+
+                this.disposed = true;
+            }
+            #endregion
+        }
+
     }
 }
