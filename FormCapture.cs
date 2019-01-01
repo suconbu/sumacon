@@ -15,12 +15,42 @@ namespace Suconbu.Sumacon
 {
     public partial class FormCapture : FormBase
     {
+        class CaptureFileInfo
+        {
+            public string Name { get; private set; }
+            public long KiroBytes { get; private set; }
+            public DateTime DateTime { get; private set; }
+
+            string fullPath;
+            Image cachedImage;
+
+            public CaptureFileInfo(string path)
+            {
+                var fileInfo = new FileInfo(path);
+                this.Name = fileInfo.Name;
+                this.KiroBytes = fileInfo.Length / 1024;
+                this.DateTime = fileInfo.LastWriteTime;
+                this.fullPath = fileInfo.FullName;
+                this.cachedImage = null;
+            }
+
+            public Image GetImage()
+            {
+                if (this.cachedImage == null)
+                {
+                    this.cachedImage = Image.FromFile(this.fullPath);
+                }
+                return this.cachedImage;
+            }
+        }
+
         DeviceManager deviceManager;
         CaptureContext captureContext;
+        GridPanel uxFileGridPanel;
+        BindingList<CaptureFileInfo> capturedFileInfos = new BindingList<CaptureFileInfo>();
+        List<List<PictureBox>> pictureBoxLists = new List<List<PictureBox>>();
+        List<TableLayoutPanel> pictureTablePanels = new List<TableLayoutPanel>();
         int sequenceNo;
-        List<FileInfo> capturedFileInfos = new List<FileInfo>();
-        List<ListViewItem> listItems = new List<ListViewItem>();
-        string selectedFilePath;
 
         readonly int defaultInterval = 5;
         readonly int defaultCount = 10;
@@ -31,8 +61,7 @@ namespace Suconbu.Sumacon
         readonly int startOfNo = 1;
         readonly int endOfNo = 9999;
         readonly string patternToolTipText;
-        //readonly string fileNameFilter = "*.png";
-        //readonly string deviceSaveDirectory = "/sdcard/Pictures/Screenshots";
+        readonly int picturePreviewCountMax = 4;
 
         public FormCapture(DeviceManager deviceManager)
         {
@@ -40,13 +69,6 @@ namespace Suconbu.Sumacon
 
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
-
-            //this.watcher.Filter = this.fileNameFilter;
-            //this.watcher.Changed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            //this.watcher.Created += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            //this.watcher.Renamed += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            //this.watcher.Deleted += (s, e) => Delay.SetTimeout(() => this.UpdateFileList(), 100, this, Util.GetCurrentMethodName(true));
-            //this.watcher.SynchronizingObject = this;
 
             this.sequenceNo = this.startOfNo;
             var sb = new StringBuilder();
@@ -64,7 +86,7 @@ namespace Suconbu.Sumacon
         {
             base.OnLoad(e);
 
-            this.uxPreviewPicture.BackColor = Color.Black;
+            this.SetupPicturePreview();
 
             this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
             this.uxPatternText.Text = this.defaultPattern;
@@ -82,58 +104,112 @@ namespace Suconbu.Sumacon
             this.uxStartButton.Enabled = (this.deviceManager.ActiveDevice != null);
             this.uxStartButton.Click += this.UxStartButton_Click;
 
-            this.uxFileListView.FullRowSelect = true;
-            this.uxFileListView.Columns.Add("Name");
-            this.uxFileListView.Columns.Add("Date");
-            this.uxFileListView.Columns.Add("Size");
-            //this.uxFileListView.RetrieveVirtualItem += (s, ee) =>
-            //{
-            //    ee.Item = (ee.ItemIndex < this.listItems.Count) ? this.listItems[ee.ItemIndex] : ee.Item;
-            //    ee.Item.Selected = (ee.Item.Name == this.selectedFilePath);
-            //};
-            //this.uxFileListView.VirtualMode = true;
+            this.uxFileGridPanel = new GridPanel();
+            this.uxSplitContainer.Panel1.Controls.Add(this.uxFileGridPanel);
+            this.uxFileGridPanel.Dock = DockStyle.Fill;
+            this.uxFileGridPanel.AutoGenerateColumns = false;
+            this.uxFileGridPanel.DataSource = this.capturedFileInfos;
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Name", nameof(CaptureFileInfo.Name), 220));
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Size", nameof(CaptureFileInfo.KiroBytes), 60, "#,##0 KB"));
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Date", nameof(CaptureFileInfo.DateTime), 100));
+            this.uxFileGridPanel.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            this.uxFileGridPanel.SelectionChanged += this.FileGridPanel_SelectionChanged;
 
             this.UpdateControlState();
         }
 
-        //void UpdateFileList()
-        //{
-        //    Trace.TraceInformation("UpdateFileList");
-        //    var directoryPath = this.uxSaveDirectoryText.Text;
-        //    this.capturedFileInfos.Clear();
-        //    this.listItems.Clear();
-        //    if (Directory.Exists(directoryPath))
-        //    {
-        //        var paths = Directory.EnumerateFiles(directoryPath, this.fileNameFilter, SearchOption.TopDirectoryOnly);
-        //        var selectedFileName = Path.GetFileName(this.selectedFilePath);
-        //        foreach (var path in paths)
-        //        {
-        //            var fileInfo = new FileInfo(path);
-        //            this.capturedFileInfos.Add(fileInfo);
-        //            var item = new ListViewItem(new string[3]);
-        //            item.Name = fileInfo.FullName;
-        //            item.SubItems[0].Text = fileInfo.Name;
-        //            item.SubItems[1].Text = $"{fileInfo.Length / 1024:#,##0} KB";
-        //            item.SubItems[2].Text = fileInfo.LastWriteTime.ToString();
-        //            this.listItems.Add(item);
-        //        }
-        //        var index = (this.uxFileListView.SelectedIndices.Count) > 0 ? this.uxFileListView.SelectedIndices[0] : -1;
-        //        this.uxFileListView.Items.Clear();
-        //        this.uxFileListView.Items.AddRange(this.listItems.ToArray());
-        //        if (index >= 0)
-        //        {
-        //            this.uxFileListView.Items[index].Selected = true;
-        //        }
-        //        //this.uxFileListView.VirtualListSize = this.fileInfos.Count;
-        //    }
-        //    else
-        //    {
-        //        //this.uxFileListView.VirtualListSize = 0;
-        //        this.uxFileListView.Items.Clear();
-        //    }
+        void SetupPicturePreview()
+        {
+            for (var i = 1; i <= this.picturePreviewCountMax; i++)
+            {
+                var tablePanel = new TableLayoutPanel();
+                tablePanel.ColumnCount = i;
+                tablePanel.RowCount = i;
+                tablePanel.Dock = DockStyle.Fill;
+                tablePanel.Visible = false;
+                tablePanel.BackColor = Color.Black;
+                tablePanel.Margin = new Padding(1);
+                var boxes = new List<PictureBox>();
+                for (var y = 0; y < i; y++)
+                {
+                    tablePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100.0f));
+                    tablePanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100.0f));
+                }
+                for (var y = 0; y < i; y++)
+                {
+                    for (var x = 0; x < i; x++)
+                    {
+                        var pictureBox = new PictureBox();
+                        pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+                        pictureBox.Dock = DockStyle.Fill;
+                        tablePanel.Controls.Add(pictureBox, x, y);
+                        boxes.Add(pictureBox);
+                    }
+                }
+                this.pictureBoxLists.Add(boxes);
+                this.pictureTablePanels.Add(tablePanel);
+                this.uxSplitContainer.Panel2.Controls.Add(tablePanel);
+            }
+        }
 
-        //    this.uxFileListView.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-        //}
+        private void FileGridPanel_SelectionChanged(object sender, EventArgs e)
+        {
+            var selectedCount = this.uxFileGridPanel.SelectedRows.Count;
+            if (selectedCount <= 0) return;
+
+            var visibleIndex = 0;
+            for (var i = 1; i <= this.picturePreviewCountMax; i++)
+            {
+                if (selectedCount <= i * i || i == this.picturePreviewCountMax)
+                {
+                    var boxes = this.pictureBoxLists[i - 1];
+                    for(var boxIndex = 0; boxIndex < (i * i); boxIndex++)
+                    {
+                        if (boxIndex < selectedCount)
+                        {
+                            var rowIndex = this.uxFileGridPanel.SelectedRows[selectedCount - boxIndex - 1].Index;
+                            boxes[boxIndex].Image = this.capturedFileInfos[rowIndex].GetImage();
+                        }
+                        else
+                        {
+                            boxes[boxIndex].Image = null;
+                        }
+                    }
+                    visibleIndex = i - 1;
+                    break;
+                }
+            }
+
+            this.pictureTablePanels[visibleIndex].Visible = true;
+            for (var i = 0; i < this.picturePreviewCountMax; i++)
+            {
+                if(i != visibleIndex)
+                {
+                    this.pictureTablePanels[i].Visible = false;
+                }
+            }
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            this.uxSplitContainer.SplitterDistance = 400;
+            this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
+        }
+
+        DataGridViewColumn CreateColumn(string name, string propertyName, int minimulWidth = -1, string format = null)
+        {
+            var column = new DataGridViewTextBoxColumn();
+            column.Name = name;
+            column.DataPropertyName = propertyName;
+            column.MinimumWidth = minimulWidth;
+            if (format != null)
+            {
+                column.DefaultCellStyle.Format = format;
+            }
+            return column;
+        }
 
         void UxStartButton_Click(object sender, EventArgs e)
         {
@@ -153,21 +229,8 @@ namespace Suconbu.Sumacon
 
                 if (this.captureContext != null)
                 {
-                    this.captureContext.Captured += (s, bitmap) =>
-                    {
-                        this.SaveCapture(bitmap);
-                        this.SafeInvoke(() =>
-                        {
-                            this.uxPreviewPicture.Image = bitmap;
-                            this.UpdateControlState();
-                        });
-                    };
-                    this.captureContext.Finished += (s, ee) =>
-                    {
-                        this.captureContext?.Dispose();
-                        this.captureContext = null;
-                        this.SafeInvoke(() => this.UpdateControlState());
-                    };
+                    this.captureContext.Captured += this.CaptureContext_Captured;
+                    this.captureContext.Finished += this.CaptureContext_Finished;
                     this.captureContext.Start();
                 }
             }
@@ -181,7 +244,37 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        void SaveCapture(Bitmap bitmap)
+        void CaptureContext_Captured(object sender, Bitmap bitmap)
+        {
+            var filePath = this.SaveCapture(bitmap);
+            this.SafeInvoke(() =>
+            {
+                var lastRowSelected = false;
+                var rowCount = this.uxFileGridPanel.Rows.Count;
+                if (rowCount > 0)
+                {
+                    lastRowSelected = this.uxFileGridPanel.Rows[rowCount - 1].Selected;
+                }
+                this.capturedFileInfos.Add(new CaptureFileInfo(filePath));
+                rowCount++;
+                if (lastRowSelected)
+                {
+                    this.uxFileGridPanel.ClearSelection();
+                    this.uxFileGridPanel.Rows[rowCount - 1].Selected = true;
+                    this.uxFileGridPanel.FirstDisplayedScrollingRowIndex = rowCount - 1;
+                }
+                this.UpdateControlState();
+            });
+        }
+
+        void CaptureContext_Finished(object sender, EventArgs e)
+        {
+            this.captureContext?.Dispose();
+            this.captureContext = null;
+            this.SafeInvoke(() => this.UpdateControlState());
+        }
+
+        string SaveCapture(Bitmap bitmap)
         {
             try
             {
@@ -191,13 +284,14 @@ namespace Suconbu.Sumacon
                     Directory.CreateDirectory(directoryPath);
                 }
                 var fileName = this.GetNextFileName();
-                var saveTo = Path.Combine(directoryPath, fileName);
-                bitmap.Save(saveTo);
-                this.selectedFilePath = Path.GetFullPath(saveTo);
+                var filePath = Path.Combine(directoryPath, fileName);
+                bitmap.Save(filePath);
+                return filePath;
             }
             catch(Exception ex)
             {
                 Trace.TraceError(ex.ToString());
+                return null;
             }
         }
 
@@ -205,7 +299,6 @@ namespace Suconbu.Sumacon
         {
             if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
             {
-                this.uxSettingPanel.Enabled = false;
                 var sb = new StringBuilder();
                 sb.AppendLine(this.labelStop);
                 if (this.captureContext.RemainingCount >= 0 && this.captureContext.RemainingCount != int.MaxValue)
@@ -217,18 +310,24 @@ namespace Suconbu.Sumacon
                     sb.Append($"({this.captureContext.CapturedCount} captured)");
                 }
                 this.uxStartButton.Text = sb.ToString();
+                this.uxStartButton.Enabled = true;
+                this.uxSettingPanel.Enabled = false;
             }
             else
             {
-                this.uxSettingPanel.Enabled = true;
                 this.uxStartButton.Text = this.labelStart;
                 this.uxStartButton.Enabled = (this.captureContext == null);
+                this.uxSettingPanel.Enabled = true;
+            }
+
+            if (this.deviceManager.ActiveDevice == null)
+            {
+                this.uxStartButton.Enabled = false;
+                this.uxSettingPanel.Enabled = false;
             }
 
             this.uxConinuousPanel.Enabled = this.uxContinuousCheck.Checked;
             this.uxCountNumeric.Enabled = this.uxCountCheck.Checked;
-
-            this.uxOuterPanel.Enabled = (this.deviceManager.ActiveDevice != null);
         }
 
         string GetNextFileName()

@@ -30,9 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             this.uxOuterPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.uxFileListView = new System.Windows.Forms.ListView();
-            this.uxPreviewPicture = new System.Windows.Forms.PictureBox();
+            this.uxSplitContainer = new System.Windows.Forms.SplitContainer();
             this.uxStartButton = new System.Windows.Forms.Button();
             this.uxSettingPanel = new System.Windows.Forms.TableLayoutPanel();
             this.uxContinuousCheck = new System.Windows.Forms.CheckBox();
@@ -48,11 +46,8 @@
             this.uxCountCheck = new System.Windows.Forms.CheckBox();
             this.uxToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.uxOuterPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
-            this.splitContainer1.Panel1.SuspendLayout();
-            this.splitContainer1.Panel2.SuspendLayout();
-            this.splitContainer1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.uxPreviewPicture)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).BeginInit();
+            this.uxSplitContainer.SuspendLayout();
             this.uxSettingPanel.SuspendLayout();
             this.uxConinuousPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxCountNumeric)).BeginInit();
@@ -64,7 +59,7 @@
             this.uxOuterPanel.ColumnCount = 2;
             this.uxOuterPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 82.27666F));
             this.uxOuterPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 17.72334F));
-            this.uxOuterPanel.Controls.Add(this.splitContainer1, 0, 1);
+            this.uxOuterPanel.Controls.Add(this.uxSplitContainer, 0, 1);
             this.uxOuterPanel.Controls.Add(this.uxStartButton, 1, 0);
             this.uxOuterPanel.Controls.Add(this.uxSettingPanel, 0, 0);
             this.uxOuterPanel.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -76,43 +71,15 @@
             this.uxOuterPanel.Size = new System.Drawing.Size(800, 450);
             this.uxOuterPanel.TabIndex = 4;
             // 
-            // splitContainer1
+            // uxSplitContainer
             // 
-            this.uxOuterPanel.SetColumnSpan(this.splitContainer1, 2);
-            this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer1.Location = new System.Drawing.Point(3, 97);
-            this.splitContainer1.Name = "splitContainer1";
-            // 
-            // splitContainer1.Panel1
-            // 
-            this.splitContainer1.Panel1.Controls.Add(this.uxFileListView);
-            // 
-            // splitContainer1.Panel2
-            // 
-            this.splitContainer1.Panel2.Controls.Add(this.uxPreviewPicture);
-            this.splitContainer1.Size = new System.Drawing.Size(794, 350);
-            this.splitContainer1.SplitterDistance = 260;
-            this.splitContainer1.TabIndex = 16;
-            // 
-            // uxFileListView
-            // 
-            this.uxFileListView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxFileListView.Location = new System.Drawing.Point(0, 0);
-            this.uxFileListView.Name = "uxFileListView";
-            this.uxFileListView.Size = new System.Drawing.Size(260, 350);
-            this.uxFileListView.TabIndex = 0;
-            this.uxFileListView.UseCompatibleStateImageBehavior = false;
-            this.uxFileListView.View = System.Windows.Forms.View.Details;
-            // 
-            // uxPreviewPicture
-            // 
-            this.uxPreviewPicture.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxPreviewPicture.Location = new System.Drawing.Point(0, 0);
-            this.uxPreviewPicture.Name = "uxPreviewPicture";
-            this.uxPreviewPicture.Size = new System.Drawing.Size(530, 350);
-            this.uxPreviewPicture.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.uxPreviewPicture.TabIndex = 0;
-            this.uxPreviewPicture.TabStop = false;
+            this.uxOuterPanel.SetColumnSpan(this.uxSplitContainer, 2);
+            this.uxSplitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxSplitContainer.Location = new System.Drawing.Point(3, 97);
+            this.uxSplitContainer.Name = "uxSplitContainer";
+            this.uxSplitContainer.Size = new System.Drawing.Size(794, 350);
+            this.uxSplitContainer.SplitterDistance = 260;
+            this.uxSplitContainer.TabIndex = 16;
             // 
             // uxStartButton
             // 
@@ -218,12 +185,12 @@
             this.uxConinuousPanel.Size = new System.Drawing.Size(537, 30);
             this.uxConinuousPanel.TabIndex = 3;
             // 
-            // uxSkipCheck
+            // uxSkipSameImageCheck
             // 
             this.uxSkipSameImageCheck.AutoSize = true;
             this.uxSkipSameImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxSkipSameImageCheck.Location = new System.Drawing.Point(329, 3);
-            this.uxSkipSameImageCheck.Name = "uxSkipCheck";
+            this.uxSkipSameImageCheck.Name = "uxSkipSameImageCheck";
             this.uxSkipSameImageCheck.Size = new System.Drawing.Size(107, 24);
             this.uxSkipSameImageCheck.TabIndex = 22;
             this.uxSkipSameImageCheck.Text = "Skip duplicated";
@@ -275,11 +242,8 @@
             this.Name = "FormCapture";
             this.Text = "FormCapture";
             this.uxOuterPanel.ResumeLayout(false);
-            this.splitContainer1.Panel1.ResumeLayout(false);
-            this.splitContainer1.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
-            this.splitContainer1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.uxPreviewPicture)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).EndInit();
+            this.uxSplitContainer.ResumeLayout(false);
             this.uxSettingPanel.ResumeLayout(false);
             this.uxSettingPanel.PerformLayout();
             this.uxConinuousPanel.ResumeLayout(false);
@@ -293,9 +257,7 @@
         #endregion
 
         private System.Windows.Forms.TableLayoutPanel uxOuterPanel;
-        private System.Windows.Forms.SplitContainer splitContainer1;
-        private System.Windows.Forms.ListView uxFileListView;
-        private System.Windows.Forms.PictureBox uxPreviewPicture;
+        private System.Windows.Forms.SplitContainer uxSplitContainer;
         private System.Windows.Forms.Button uxStartButton;
         private System.Windows.Forms.TableLayoutPanel uxSettingPanel;
         private System.Windows.Forms.CheckBox uxContinuousCheck;
