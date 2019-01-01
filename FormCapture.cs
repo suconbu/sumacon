@@ -48,6 +48,7 @@ namespace Suconbu.Sumacon
         CaptureContext captureContext;
         GridPanel uxFileGridPanel;
         BindingList<CaptureFileInfo> capturedFileInfos = new BindingList<CaptureFileInfo>();
+        // PictureBox.TagにはCaptureFileInfoを設定
         List<List<PictureBox>> pictureBoxLists = new List<List<PictureBox>>();
         List<TableLayoutPanel> pictureTablePanels = new List<TableLayoutPanel>();
         int sequenceNo;
@@ -59,9 +60,9 @@ namespace Suconbu.Sumacon
         readonly string labelStart = "Capture";
         readonly string labelStop = "Stop";
         readonly int startOfNo = 1;
-        readonly int endOfNo = 9999;
+        readonly int endOfSequenceNo = 9999;
         readonly string patternToolTipText;
-        readonly int picturePreviewCountMax = 4;
+        readonly int picturePreviewCountMax = 5;
 
         public FormCapture(DeviceManager deviceManager)
         {
@@ -118,6 +119,14 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+
+            this.captureContext.Stop();
+            this.captureContext = null;
+        }
+
         void SetupPicturePreview()
         {
             for (var i = 1; i <= this.picturePreviewCountMax; i++)
@@ -129,7 +138,7 @@ namespace Suconbu.Sumacon
                 tablePanel.Visible = false;
                 tablePanel.BackColor = Color.Black;
                 tablePanel.Margin = new Padding(1);
-                var boxes = new List<PictureBox>();
+                var pictureBoxList = new List<PictureBox>();
                 for (var y = 0; y < i; y++)
                 {
                     tablePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100.0f));
@@ -142,17 +151,32 @@ namespace Suconbu.Sumacon
                         var pictureBox = new PictureBox();
                         pictureBox.SizeMode = PictureBoxSizeMode.Zoom;
                         pictureBox.Dock = DockStyle.Fill;
+                        pictureBox.Click += PictureBox_Click;
                         tablePanel.Controls.Add(pictureBox, x, y);
-                        boxes.Add(pictureBox);
+                        pictureBoxList.Add(pictureBox);
                     }
                 }
-                this.pictureBoxLists.Add(boxes);
+                this.pictureBoxLists.Add(pictureBoxList);
                 this.pictureTablePanels.Add(tablePanel);
                 this.uxSplitContainer.Panel2.Controls.Add(tablePanel);
             }
         }
 
-        private void FileGridPanel_SelectionChanged(object sender, EventArgs e)
+        void PictureBox_Click(object sender, EventArgs e)
+        {
+            var pictureBox = sender as PictureBox;
+            if (pictureBox == null) return;
+            var fileInfo = pictureBox.Tag as CaptureFileInfo;
+            if (fileInfo == null) return;
+            this.uxFileGridPanel.ClearSelection();
+            var index = this.capturedFileInfos.IndexOf(fileInfo);
+            if(index >= 0)
+            {
+                this.uxFileGridPanel.Rows[index].Selected = true;
+            }
+        }
+
+        void FileGridPanel_SelectionChanged(object sender, EventArgs e)
         {
             var selectedCount = this.uxFileGridPanel.SelectedRows.Count;
             if (selectedCount <= 0) return;
@@ -162,17 +186,19 @@ namespace Suconbu.Sumacon
             {
                 if (selectedCount <= i * i || i == this.picturePreviewCountMax)
                 {
-                    var boxes = this.pictureBoxLists[i - 1];
+                    var pictureBoxList = this.pictureBoxLists[i - 1];
                     for(var boxIndex = 0; boxIndex < (i * i); boxIndex++)
                     {
                         if (boxIndex < selectedCount)
                         {
                             var rowIndex = this.uxFileGridPanel.SelectedRows[selectedCount - boxIndex - 1].Index;
-                            boxes[boxIndex].Image = this.capturedFileInfos[rowIndex].GetImage();
+                            pictureBoxList[boxIndex].Image = this.capturedFileInfos[rowIndex].GetImage();
+                            pictureBoxList[boxIndex].Tag = this.capturedFileInfos[rowIndex];
                         }
                         else
                         {
-                            boxes[boxIndex].Image = null;
+                            pictureBoxList[boxIndex].Image = null;
+                            pictureBoxList[boxIndex].Tag = null;
                         }
                     }
                     visibleIndex = i - 1;
@@ -237,7 +263,7 @@ namespace Suconbu.Sumacon
             else
             {
                 // 連続撮影中止
-                this.captureContext.Dispose();
+                this.captureContext.Stop();
                 this.captureContext = null;
             }
 
@@ -269,7 +295,7 @@ namespace Suconbu.Sumacon
 
         void CaptureContext_Finished(object sender, EventArgs e)
         {
-            this.captureContext?.Dispose();
+            this.captureContext?.Stop();
             this.captureContext = null;
             this.SafeInvoke(() => this.UpdateControlState());
         }
@@ -341,8 +367,17 @@ namespace Suconbu.Sumacon
                 name = name.Replace("{device-name}", device?.Name ?? "-");
                 name = name.Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"));
                 name = name.Replace("{time}", DateTime.Now.ToString("hh-mm-ss"));
-                name = name.Replace("{no}", this.sequenceNo.ToString("0000"));
-                this.sequenceNo = ++this.sequenceNo > this.endOfNo ? this.startOfNo : this.sequenceNo;
+                var mainNo = this.sequenceNo.ToString("0000");
+                if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
+                {
+                    var subNo = (this.captureContext.CapturedCount % (this.endOfSequenceNo + 1)).ToString("0000");
+                    name = name.Replace("{no}", $"{mainNo}-{subNo}");
+                }
+                else
+                {
+                    name = name.Replace("{no}", mainNo);
+                }
+                this.sequenceNo = ++this.sequenceNo > this.endOfSequenceNo ? this.startOfNo : this.sequenceNo;
             }
             return name;
         }

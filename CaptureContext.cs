@@ -57,6 +57,11 @@ namespace Suconbu.Sumacon
             this.RunCapture();
         }
 
+        public void Stop()
+        {
+            this.Dispose();
+        }
+
         void RunCapture()
         {
             var device = this.deviceManager.ActiveDevice;
