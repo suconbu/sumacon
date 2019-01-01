@@ -22,9 +22,8 @@ namespace Suconbu.Sumacon
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
         FileSystemWatcher watcher = new FileSystemWatcher();
-
-        readonly string directoryPath = "command";
-        readonly string fileNameFilter = "*.txt";
+        readonly string directoryPath = Properties.Resources.CommandDirectoryPath;
+        readonly string fileNameFilter = Properties.Resources.CommandFileNameFilter;
 
         public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
@@ -45,18 +44,15 @@ namespace Suconbu.Sumacon
             }
         }
 
-        private void Watcher_Changed(object sender, FileSystemEventArgs e)
-        {
-            this.LoadCommandFiles(this.directoryPath);
-            this.UpdateList();
-        }
-
         public void NotifyKeyDown(KeyEventArgs e)
         {
-            var keyName = e.KeyCode.ToString();
-            if(this.commandSets.TryGetValue(keyName, out var command))
+            if(Keys.F1 <= e.KeyCode && e.KeyCode <= Keys.F24)
             {
-                command.RunAsync(this.deviceManager.ActiveDevice, this.commandReceiver);
+                var keyName = e.KeyCode.ToString();
+                if (this.commandSets.TryGetValue(keyName, out var command))
+                {
+                    command.RunAsync(this.deviceManager.ActiveDevice, this.commandReceiver);
+                }
             }
         }
 
@@ -66,6 +62,17 @@ namespace Suconbu.Sumacon
 
             this.SetupList();
 
+            this.LoadCommandFiles(this.directoryPath);
+            this.UpdateList();
+
+            this.uxCommandText.ReadOnly = true;
+            this.uxCommandText.BackColor = Color.Black;
+            this.uxCommandText.ForeColor = Color.White;
+            this.uxCommandText.Font = new Font(Properties.Resources.MonospaceFontName, this.uxCommandText.Font.Size);
+        }
+
+        void Watcher_Changed(object sender, FileSystemEventArgs e)
+        {
             this.LoadCommandFiles(this.directoryPath);
             this.UpdateList();
         }
@@ -81,17 +88,13 @@ namespace Suconbu.Sumacon
             {
                 try
                 {
-                    var keyName = Path.GetFileNameWithoutExtension(path);
-                    // ファンクションキーに限定
-                    if (Regex.IsMatch(keyName, @"^F\d+$") && Enum.TryParse<Keys>(keyName, out var key))
+                    var name = Path.GetFileNameWithoutExtension(path);
+                    var shortcutKey = Keys.None;
+                    if (Regex.IsMatch(name, @"^F\d+$"))
                     {
-                        var command = new CommandSet(path, key);
-                        this.commandSets.Add(keyName, command);
+                        Enum.TryParse(name, out shortcutKey);
                     }
-                    else
-                    {
-                        Trace.TraceWarning($"Unsupported key name. ignored '{Path.GetFileName(path)}'.");
-                    }
+                    this.commandSets.Add(name, new CommandSet(path, shortcutKey));
                 }
                 catch (Exception ex)
                 {
@@ -103,8 +106,8 @@ namespace Suconbu.Sumacon
         void SetupList()
         {
             this.uxShortcutList.MultiSelect = false;
-            this.uxShortcutList.Columns.Add("Key");
             this.uxShortcutList.Columns.Add("Name");
+            this.uxShortcutList.Columns.Add("Description");
             this.uxShortcutList.ItemSelectionChanged += (s, e) =>
             {
                 this.uxCommandText.Lines = e.IsSelected ? this.commandSets[e.Item.Text].Commands : null;
@@ -123,10 +126,9 @@ namespace Suconbu.Sumacon
         {
             this.uxShortcutList.Items.Clear();
             var sets = this.commandSets.Values.OrderBy(v => v.KeyCode);
-            foreach (var command in sets)
+            foreach (var set in sets)
             {
-                var item = new ListViewItem(command.KeyCode.ToString());
-                item.SubItems.Add(command.Name);
+                var item = new ListViewItem(new string[] { set.Name, set.Description });
                 this.uxShortcutList.Items.Add(item);
             }
             this.uxShortcutList.AutoResizeColumn(1, ColumnHeaderAutoResizeStyle.ColumnContent);
@@ -134,24 +136,26 @@ namespace Suconbu.Sumacon
 
         class CommandSet
         {
-            public Keys KeyCode;
-            public string Name;
-            public string[] Commands = new string[0];
+            public Keys KeyCode { get; private set; }
+            public string Name { get; private set; }
+            public string Description { get; private set; }
+            public string[] Commands { get; private set; } = new string[0];
 
-            public CommandSet(string path, Keys keyCode)
+            public CommandSet(string path, Keys keyCode = Keys.None)
             {
                 var lines = File.ReadAllLines(path);
                 var first = lines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))?.Trim() ?? string.Empty;
                 this.KeyCode = keyCode;
-                this.Name = first.StartsWith("#") ? first.Substring(1).Trim() : first;
+                this.Name = Path.GetFileNameWithoutExtension(path);
+                this.Description = first.StartsWith("#") ? first.Substring(1).Trim() : first;
                 this.Commands = lines;
             }
 
             public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
             {
-                var sw = Stopwatch.StartNew();
-                var label = $"{this.KeyCode.ToString()} - {this.Name}";
-                var context = device.RunCommandAsync("shell", output =>
+                var stopwatch = Stopwatch.StartNew();
+                var label = $"{this.Name} - {this.Description}";
+                var context = device?.RunCommandAsync("shell", output =>
                 {
                     if (output != null)
                     {
@@ -159,17 +163,20 @@ namespace Suconbu.Sumacon
                     }
                     else
                     {
-                        commandReceiver?.WriteOutput($"# Finish '{label}' ({sw.ElapsedMilliseconds} ms)");
-                        sw = null;
+                        commandReceiver?.WriteOutput($"# Finish '{label}' ({stopwatch.ElapsedMilliseconds} ms)");
+                        stopwatch = null;
                     }
                 });
-                commandReceiver?.WriteOutput($"# Run '{label}'");
-                foreach (var command in this.Commands)
+                if (context != null)
                 {
-                    context.PushInput($"echo '> {command}'");
-                    context.PushInput(command);
+                    commandReceiver?.WriteOutput($"# Run '{label}'");
+                    foreach (var command in this.Commands)
+                    {
+                        context.PushInput($"echo '> {command}'");
+                        context.PushInput(command);
+                    }
+                    context.PushInput("exit");
                 }
-                context.PushInput("exit");
                 return context;
             }
         } // class CommandSet

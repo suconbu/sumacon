@@ -59,5 +59,32 @@ namespace Suconbu.Sumacon.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   .\command に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string CommandDirectoryPath {
+            get {
+                return ResourceManager.GetString("CommandDirectoryPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   *.txt に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string CommandFileNameFilter {
+            get {
+                return ResourceManager.GetString("CommandFileNameFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Consolas に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string MonospaceFontName {
+            get {
+                return ResourceManager.GetString("MonospaceFontName", resourceCulture);
+            }
+        }
     }
 }

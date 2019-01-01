@@ -40,10 +40,10 @@ namespace Suconbu.Sumacon
         {
             base.OnLoad(e);
 
-            this.uxInputText.Font = new Font("Consolas", SystemFonts.MessageBoxFont.Size);
+            this.uxInputText.Font = new Font(Properties.Resources.MonospaceFontName, SystemFonts.MessageBoxFont.Size);
             this.uxInputText.BackColor = Color.Black;
             this.uxInputText.ForeColor = Color.White;
-            this.uxOutputText.Font = new Font("Consolas", SystemFonts.MessageBoxFont.Size);
+            this.uxOutputText.Font = new Font(Properties.Resources.MonospaceFontName, SystemFonts.MessageBoxFont.Size);
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
         }
