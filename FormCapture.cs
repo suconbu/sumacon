@@ -1,4 +1,5 @@
-﻿using Suconbu.Toolbox;
+﻿using Microsoft.VisualBasic.FileIO;
+using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,41 +18,34 @@ namespace Suconbu.Sumacon
     {
         class CaptureFileInfo
         {
+            public string FullPath { get; private set; }
             public string Name { get; private set; }
             public long KiroBytes { get; private set; }
             public DateTime DateTime { get; private set; }
 
-            string fullPath;
-            Image cachedImage;
-
             public CaptureFileInfo(string path)
             {
                 var fileInfo = new FileInfo(path);
+                this.FullPath = fileInfo.FullName;
                 this.Name = fileInfo.Name;
                 this.KiroBytes = fileInfo.Length / 1024;
                 this.DateTime = fileInfo.LastWriteTime;
-                this.fullPath = fileInfo.FullName;
-                this.cachedImage = null;
-            }
-
-            public Image GetImage()
-            {
-                if (this.cachedImage == null)
-                {
-                    this.cachedImage = Image.FromFile(this.fullPath);
-                }
-                return this.cachedImage;
             }
         }
+        enum FileGridContextMenuItems { OpenFile, OpenDirectory, Copy, Delete }
 
         DeviceManager deviceManager;
         CaptureContext captureContext;
         GridPanel uxFileGridPanel;
         BindingList<CaptureFileInfo> capturedFileInfos = new BindingList<CaptureFileInfo>();
+        List<CaptureFileInfo> selectedCapturedFileInfos = new List<CaptureFileInfo>();
         // PictureBox.TagにはCaptureFileInfoを設定
         List<List<PictureBox>> pictureBoxLists = new List<List<PictureBox>>();
         List<TableLayoutPanel> pictureTablePanels = new List<TableLayoutPanel>();
         int sequenceNo;
+        ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
+        // Image.Tagにはファイルフルパスを設定
+        LinkedList<Image> previewImageCache = new LinkedList<Image>();
 
         readonly int defaultInterval = 5;
         readonly int defaultCount = 10;
@@ -63,6 +57,8 @@ namespace Suconbu.Sumacon
         readonly int endOfSequenceNo = 9999;
         readonly string patternToolTipText;
         readonly int picturePreviewCountMax = 5;
+        readonly int previewImageCacheCapacity = (int)(5 * 5 * 1.2);
+        readonly int previewImageSizeLimit = 800;
 
         public FormCapture(DeviceManager deviceManager)
         {
@@ -77,7 +73,7 @@ namespace Suconbu.Sumacon
             sb.AppendLine("{device-model} : 'Nexus_9'");
             sb.AppendLine("{device-name} : 'MyTablet'");
             sb.AppendLine("{date} : '2018-12-31'");
-            sb.AppendLine("{time} : '12-34-56'");
+            sb.AppendLine("{time} : '123456'");
             sb.AppendLine("{no} : '0001' (Single shot) / '0002-0034' (Continuous mode)");
             sb.AppendLine("* {no} is reset in application start.");
             this.patternToolTipText = sb.ToString();
@@ -87,12 +83,11 @@ namespace Suconbu.Sumacon
         {
             base.OnLoad(e);
 
+            this.SetupContextMenu();
             this.SetupPicturePreview();
 
             this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
             this.uxPatternText.Text = this.defaultPattern;
-            this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
-            this.uxToolTip.AutoPopDelay = 30000;
 
             this.uxIntervalNumeric.Minimum = 1;
             this.uxIntervalNumeric.Value = this.defaultInterval;
@@ -106,17 +101,35 @@ namespace Suconbu.Sumacon
             this.uxStartButton.Click += this.UxStartButton_Click;
 
             this.uxFileGridPanel = new GridPanel();
-            this.uxSplitContainer.Panel1.Controls.Add(this.uxFileGridPanel);
             this.uxFileGridPanel.Dock = DockStyle.Fill;
             this.uxFileGridPanel.AutoGenerateColumns = false;
             this.uxFileGridPanel.DataSource = this.capturedFileInfos;
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Name", nameof(CaptureFileInfo.Name), 220));
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Size", nameof(CaptureFileInfo.KiroBytes), 60, "#,##0 KB"));
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Date", nameof(CaptureFileInfo.DateTime), 100));
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Name", nameof(CaptureFileInfo.Name), 240));
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Size", nameof(CaptureFileInfo.KiroBytes), 50, "#,##0 KB"));
+            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Date", nameof(CaptureFileInfo.DateTime), 120, "G"));
+            foreach(DataGridViewColumn column in this.uxFileGridPanel.Columns)
+            {
+                column.SortMode = DataGridViewColumnSortMode.NotSortable;
+            }
             this.uxFileGridPanel.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            this.uxFileGridPanel.ContextMenuStrip = this.fileGridContextMenu;
             this.uxFileGridPanel.SelectionChanged += this.FileGridPanel_SelectionChanged;
+            this.uxFileGridPanel.KeyDown += this.UxFileGridPanel_KeyDown;
+            this.uxFileGridPanel.CellDoubleClick += (s, ee) => this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.OpenFile)].PerformClick();
+            this.uxSplitContainer.Panel1.Controls.Add(this.uxFileGridPanel);
+
+            this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
+            this.uxToolTip.AutoPopDelay = 30000;
 
             this.UpdateControlState();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+
+            this.uxSplitContainer.SplitterDistance = 420;
+            this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -125,6 +138,78 @@ namespace Suconbu.Sumacon
 
             this.captureContext.Stop();
             this.captureContext = null;
+        }
+
+        void SetupContextMenu()
+        {
+            this.fileGridContextMenu.Items.Add("Open file", this.uxImageList.Images["page.png"],
+                (s, e) => this.OpenSelectedFile()).Name = nameof(FileGridContextMenuItems.OpenFile);
+            this.fileGridContextMenu.Items.Add("Open directory", this.uxImageList.Images["folder.png"],
+                (s, e) => this.OpenSelectedFileDirectory()).Name = nameof(FileGridContextMenuItems.OpenDirectory);
+            this.fileGridContextMenu.Items.Add("Copy image to clipboard", this.uxImageList.Images["page_copy.png"],
+                (s, e) => this.CopyImageToClipboard()).Name = nameof(FileGridContextMenuItems.Copy);
+            this.fileGridContextMenu.Items.Add(new ToolStripSeparator());
+            this.fileGridContextMenu.Items.Add("Delete", this.uxImageList.Images["cross.png"],
+                (s, e) => this.DeleteSelectedFile()).Name = nameof(FileGridContextMenuItems.Delete);
+
+            this.fileGridContextMenu.Opening += (s, e) =>
+            {
+                var count = this.uxFileGridPanel.SelectedRows.Count;
+                this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.OpenFile)].Enabled = (count == 1);
+                this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.Copy)].Enabled = (count == 1);
+                e.Cancel = (count <= 0);
+            };
+        }
+
+        void OpenSelectedFile()
+        {
+            var fileInfo = this.selectedCapturedFileInfos.FirstOrDefault();
+            if (fileInfo == null) return;
+            Process.Start(fileInfo.FullPath);
+        }
+
+        void OpenSelectedFileDirectory()
+        {
+            var fileInfo = this.selectedCapturedFileInfos.FirstOrDefault();
+            if (fileInfo == null) return;
+            Process.Start("EXPLORER.EXE", $"/select,\"{fileInfo.FullPath}\"");
+        }
+
+        void CopyImageToClipboard()
+        {
+            var fileInfo = this.selectedCapturedFileInfos.FirstOrDefault();
+            if (fileInfo == null) return;
+            try
+            {
+                var image = Image.FromFile(fileInfo.FullPath);
+                Clipboard.SetImage(image);
+                image.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError(ex.ToString());
+            }
+        }
+
+        void DeleteSelectedFile()
+        {
+            var result = MessageBox.Show($"Are you sure you want to delete {this.selectedCapturedFileInfos.Count} files?", "Delete", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (result != DialogResult.OK) return;
+
+            var removedFileInfos = this.selectedCapturedFileInfos.ToList();
+            // 削除中に描画されないよう先にグリッドビューから消しとく
+            removedFileInfos.ForEach(f => this.capturedFileInfos.Remove(f));
+            foreach (var fileInfo in removedFileInfos)
+            {
+                try
+                {
+                    FileSystem.DeleteFile(fileInfo.FullPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError(ex.ToString());
+                }
+            }
         }
 
         void SetupPicturePreview()
@@ -160,6 +245,67 @@ namespace Suconbu.Sumacon
                 this.pictureTablePanels.Add(tablePanel);
                 this.uxSplitContainer.Panel2.Controls.Add(tablePanel);
             }
+            var blackPanel = new Panel();
+            blackPanel.BackColor = Color.Black;
+            blackPanel.Dock = DockStyle.Fill;
+            this.uxSplitContainer.Panel2.Controls.Add(blackPanel);
+        }
+
+        Image GetPreviewImage(string path)
+        {
+            var cachedImage = this.previewImageCache.FirstOrDefault(i => (string)i.Tag == path);
+            if(cachedImage != null)
+            {
+                this.previewImageCache.Remove(cachedImage);
+            }
+            else
+            {
+                try
+                {
+                    var originalImage = Image.FromFile(path);
+                    var size = originalImage.Size;
+                    var ratio = (float)size.Width / size.Height;
+                    if (size.Width > this.previewImageSizeLimit)
+                    {
+                        size.Height = size.Height * this.previewImageSizeLimit / size.Width;
+                        size.Width = this.previewImageSizeLimit;
+                    }
+                    if (size.Height > this.previewImageSizeLimit)
+                    {
+                        size.Width = size.Width * this.previewImageSizeLimit / size.Height;
+                        size.Height = this.previewImageSizeLimit;
+                    }
+                    cachedImage = originalImage.GetThumbnailImage(size.Width, size.Height, null, IntPtr.Zero);
+                    cachedImage.Tag = path;
+                    originalImage.Dispose();
+                    if (this.previewImageCache.Count >= this.previewImageCacheCapacity)
+                    {
+                        this.previewImageCache.RemoveFirst();
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Trace.TraceError(ex.ToString());
+                    return null;
+                }
+            }
+
+            this.previewImageCache.AddLast(cachedImage);
+            return cachedImage;
+        }
+
+        private void UxFileGridPanel_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.KeyCode == Keys.Enter)
+            {
+                this.OpenSelectedFile();
+                e.SuppressKeyPress = true;
+            }
+            else if(e.KeyCode == Keys.Delete)
+            {
+                this.DeleteSelectedFile();
+                e.SuppressKeyPress = true;
+            }
         }
 
         void PictureBox_Click(object sender, EventArgs e)
@@ -178,22 +324,40 @@ namespace Suconbu.Sumacon
 
         void FileGridPanel_SelectionChanged(object sender, EventArgs e)
         {
+            this.selectedCapturedFileInfos.Clear();
+            foreach (DataGridViewRow row in this.uxFileGridPanel.SelectedRows)
+            {
+                this.selectedCapturedFileInfos.Add(this.capturedFileInfos[row.Index]);
+            }
+
             var selectedCount = this.uxFileGridPanel.SelectedRows.Count;
-            if (selectedCount <= 0) return;
+            if (selectedCount <= 0)
+            {
+                for (var i = 0; i < this.picturePreviewCountMax; i++)
+                {
+                    this.pictureTablePanels[i].Visible = false;
+                }
+                return;
+            }
 
             var visibleIndex = 0;
             for (var i = 1; i <= this.picturePreviewCountMax; i++)
             {
-                if (selectedCount <= i * i || i == this.picturePreviewCountMax)
+                var boxCount = i * i;
+                if (selectedCount <= boxCount || i == this.picturePreviewCountMax)
                 {
                     var pictureBoxList = this.pictureBoxLists[i - 1];
-                    for(var boxIndex = 0; boxIndex < (i * i); boxIndex++)
+                    var offset = (selectedCount > boxCount) ? selectedCount - boxCount : 0;
+                    for(var boxIndex = 0; boxIndex < boxCount; boxIndex++)
                     {
                         if (boxIndex < selectedCount)
                         {
-                            var rowIndex = this.uxFileGridPanel.SelectedRows[selectedCount - boxIndex - 1].Index;
-                            pictureBoxList[boxIndex].Image = this.capturedFileInfos[rowIndex].GetImage();
-                            pictureBoxList[boxIndex].Tag = this.capturedFileInfos[rowIndex];
+                            // SelectedRowsには最後に選ばれた項目から順に入ってる
+                            var rowIndex = this.uxFileGridPanel.SelectedRows[(selectedCount- offset) - boxIndex - 1].Index;
+                            var fileInfo = this.capturedFileInfos[rowIndex];
+                            var image = this.GetPreviewImage(fileInfo.FullPath);
+                            pictureBoxList[boxIndex].Image = image;
+                            pictureBoxList[boxIndex].Tag = (image != null) ? fileInfo : null;
                         }
                         else
                         {
@@ -214,14 +378,6 @@ namespace Suconbu.Sumacon
                     this.pictureTablePanels[i].Visible = false;
                 }
             }
-        }
-
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-
-            this.uxSplitContainer.SplitterDistance = 400;
-            this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
         }
 
         DataGridViewColumn CreateColumn(string name, string propertyName, int minimulWidth = -1, string format = null)
@@ -272,20 +428,21 @@ namespace Suconbu.Sumacon
 
         void CaptureContext_Captured(object sender, Bitmap bitmap)
         {
-            var filePath = this.SaveCapture(bitmap);
+            var filePath = this.SaveCaptureToFile(bitmap);
             this.SafeInvoke(() =>
             {
-                var lastRowSelected = false;
-                var rowCount = this.uxFileGridPanel.Rows.Count;
-                if (rowCount > 0)
-                {
-                    lastRowSelected = this.uxFileGridPanel.Rows[rowCount - 1].Selected;
-                }
                 this.capturedFileInfos.Add(new CaptureFileInfo(filePath));
-                rowCount++;
-                if (lastRowSelected)
+                bitmap.Dispose();
+                bitmap = null;
+
+                var rowCount = this.uxFileGridPanel.Rows.Count;
+                var lastBeforeRow = (rowCount >= 2) ? this.uxFileGridPanel.Rows[rowCount - 2] : null;
+                if (lastBeforeRow != null && lastBeforeRow.Selected)
                 {
-                    this.uxFileGridPanel.ClearSelection();
+                    if(this.uxFileGridPanel.SelectedRows.Count == 1)
+                    {
+                        lastBeforeRow.Selected = false;
+                    }
                     this.uxFileGridPanel.Rows[rowCount - 1].Selected = true;
                     this.uxFileGridPanel.FirstDisplayedScrollingRowIndex = rowCount - 1;
                 }
@@ -300,7 +457,7 @@ namespace Suconbu.Sumacon
             this.SafeInvoke(() => this.UpdateControlState());
         }
 
-        string SaveCapture(Bitmap bitmap)
+        string SaveCaptureToFile(Bitmap bitmap)
         {
             try
             {
@@ -366,7 +523,7 @@ namespace Suconbu.Sumacon
                 name = name.Replace("{device-model}", device?.Model ?? "-");
                 name = name.Replace("{device-name}", device?.Name ?? "-");
                 name = name.Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"));
-                name = name.Replace("{time}", DateTime.Now.ToString("hh-mm-ss"));
+                name = name.Replace("{time}", DateTime.Now.ToString("HHmmss"));
                 var mainNo = this.sequenceNo.ToString("0000");
                 if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
                 {

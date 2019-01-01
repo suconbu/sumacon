@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormCapture));
             this.uxOuterPanel = new System.Windows.Forms.TableLayoutPanel();
             this.uxSplitContainer = new System.Windows.Forms.SplitContainer();
             this.uxStartButton = new System.Windows.Forms.Button();
@@ -45,6 +46,7 @@
             this.uxIntervalNumeric = new System.Windows.Forms.NumericUpDown();
             this.uxCountCheck = new System.Windows.Forms.CheckBox();
             this.uxToolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.uxImageList = new System.Windows.Forms.ImageList(this.components);
             this.uxOuterPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).BeginInit();
             this.uxSplitContainer.SuspendLayout();
@@ -232,6 +234,15 @@
             this.uxCountCheck.Text = "# of shots";
             this.uxCountCheck.UseVisualStyleBackColor = true;
             // 
+            // uxImageList
+            // 
+            this.uxImageList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("uxImageList.ImageStream")));
+            this.uxImageList.TransparentColor = System.Drawing.Color.Transparent;
+            this.uxImageList.Images.SetKeyName(0, "page.png");
+            this.uxImageList.Images.SetKeyName(1, "folder.png");
+            this.uxImageList.Images.SetKeyName(2, "page_copy.png");
+            this.uxImageList.Images.SetKeyName(3, "cross.png");
+            // 
             // FormCapture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -272,5 +283,6 @@
         private System.Windows.Forms.CheckBox uxCountCheck;
         private System.Windows.Forms.CheckBox uxSkipSameImageCheck;
         private System.Windows.Forms.ToolTip uxToolTip;
+        private System.Windows.Forms.ImageList uxImageList;
     }
 }
