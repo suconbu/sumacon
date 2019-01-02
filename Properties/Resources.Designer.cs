@@ -91,9 +91,9 @@ namespace Suconbu.Sumacon.Properties {
         ///   Stop
         ///({0} shots remains) に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string FormCapture_CaptureButtonLabel_ContinousLimited {
+        internal static string FormCapture_ButtonLabel_ContinousLimited {
             get {
-                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_ContinousLimited", resourceCulture);
+                return ResourceManager.GetString("FormCapture_ButtonLabel_ContinousLimited", resourceCulture);
             }
         }
         
@@ -101,18 +101,18 @@ namespace Suconbu.Sumacon.Properties {
         ///   Stop
         ///({0} captured) に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string FormCapture_CaptureButtonLabel_ContinousLimitless {
+        internal static string FormCapture_ButtonLabel_ContinousLimitless {
             get {
-                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_ContinousLimitless", resourceCulture);
+                return ResourceManager.GetString("FormCapture_ButtonLabel_ContinousLimitless", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Start に類似しているローカライズされた文字列を検索します。
+        ///   Capture に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string FormCapture_CaptureButtonLabel_Start {
+        internal static string FormCapture_ButtonLabel_Start {
             get {
-                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_Start", resourceCulture);
+                return ResourceManager.GetString("FormCapture_ButtonLabel_Start", resourceCulture);
             }
         }
         
@@ -177,6 +177,25 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   Record に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_ButtonLabel_Start {
+            get {
+                return ResourceManager.GetString("FormRecord_ButtonLabel_Start", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Stop
+        ///({0} sec.) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_ButtonLabel_Stop {
+            get {
+                return ResourceManager.GetString("FormRecord_ButtonLabel_Stop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   .\command に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormShortcut_DirectoryPath {
@@ -227,6 +246,15 @@ namespace Suconbu.Sumacon.Properties {
         internal static string General_Size {
             get {
                 return ResourceManager.GetString("General_Size", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Time (sec) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string General_TimeSecondsLength {
+            get {
+                return ResourceManager.GetString("General_TimeSecondsLength", resourceCulture);
             }
         }
         

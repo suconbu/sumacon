@@ -126,16 +126,16 @@
   <data name="DialogTitle_DeleteFile" xml:space="preserve">
     <value>Delete file</value>
   </data>
-  <data name="FormCapture_CaptureButtonLabel_ContinousLimited" xml:space="preserve">
+  <data name="FormCapture_ButtonLabel_ContinousLimited" xml:space="preserve">
     <value>Stop
 ({0} shots remains)</value>
   </data>
-  <data name="FormCapture_CaptureButtonLabel_ContinousLimitless" xml:space="preserve">
+  <data name="FormCapture_ButtonLabel_ContinousLimitless" xml:space="preserve">
     <value>Stop
 ({0} captured)</value>
   </data>
-  <data name="FormCapture_CaptureButtonLabel_Start" xml:space="preserve">
-    <value>Start</value>
+  <data name="FormCapture_ButtonLabel_Start" xml:space="preserve">
+    <value>Capture</value>
   </data>
   <data name="FormCapture_DefaultFileNamePattern" xml:space="preserve">
     <value>{device-model}_{date}_{time}_{no}.png</value>
@@ -161,6 +161,13 @@
   <data name="FormMain_StatusScreenFormat" xml:space="preserve">
     <value>{screen-width}x{screen-height} ({screen-density} dpi)</value>
   </data>
+  <data name="FormRecord_ButtonLabel_Start" xml:space="preserve">
+    <value>Record</value>
+  </data>
+  <data name="FormRecord_ButtonLabel_Stop" xml:space="preserve">
+    <value>Stop
+({0} sec.)</value>
+  </data>
   <data name="FormShortcut_DirectoryPath" xml:space="preserve">
     <value>.\command</value>
   </data>
@@ -178,6 +185,9 @@
   </data>
   <data name="General_Size" xml:space="preserve">
     <value>Size</value>
+  </data>
+  <data name="General_TimeSecondsLength" xml:space="preserve">
+    <value>Time (sec)</value>
   </data>
   <data name="Menu_CopyImageToClipboard" xml:space="preserve">
     <value>Copy image to clipboard</value>

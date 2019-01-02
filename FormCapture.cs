@@ -486,13 +486,13 @@ namespace Suconbu.Sumacon
                 if (this.captureContext.RemainingCount >= 0 && this.captureContext.RemainingCount != int.MaxValue)
                 {
                     this.uxStartButton.Text = string.Format(
-                        Properties.Resources.FormCapture_CaptureButtonLabel_ContinousLimited,
+                        Properties.Resources.FormCapture_ButtonLabel_ContinousLimited,
                         this.captureContext.RemainingCount);
                 }
                 else
                 {
                     this.uxStartButton.Text = string.Format(
-                        Properties.Resources.FormCapture_CaptureButtonLabel_ContinousLimitless,
+                        Properties.Resources.FormCapture_ButtonLabel_ContinousLimitless,
                         this.captureContext.CapturedCount);
                 }
                 this.uxStartButton.Enabled = true;
@@ -500,7 +500,7 @@ namespace Suconbu.Sumacon
             }
             else
             {
-                this.uxStartButton.Text = Properties.Resources.FormCapture_CaptureButtonLabel_Start;
+                this.uxStartButton.Text = Properties.Resources.FormCapture_ButtonLabel_Start;
                 this.uxStartButton.Enabled = (this.captureContext == null);
                 this.uxSettingPanel.Enabled = true;
             }

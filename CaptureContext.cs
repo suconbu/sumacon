@@ -33,6 +33,7 @@ namespace Suconbu.Sumacon
         CommandContext commandContext;
         DeviceManager deviceManager;
 
+        //TODO: DeviceManagerじゃなくてDevice渡すべき
         public static CaptureContext SingleCapture(DeviceManager deviceManager)
         {
             var instance = new CaptureContext();

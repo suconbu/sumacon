@@ -18,6 +18,7 @@ namespace Suconbu.Sumacon
         FormConsole consoleForm;
         FormShortcut shortcutForm;
         FormCapture captureForm;
+        FormRecord recordForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripItem deviceInfoLabel;
 
@@ -57,6 +58,8 @@ namespace Suconbu.Sumacon
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
             this.captureForm = new FormCapture(this.deviceManager);
             this.captureForm.Show(this.dockPanel, DockState.Document);
+            this.recordForm = new FormRecord(this.deviceManager);
+            this.recordForm.Show(this.dockPanel, DockState.Document);
 
             this.deviceManager.StartDeviceWatching();
         }
