@@ -32,7 +32,6 @@ namespace Suconbu.Sumacon
                 this.DateTime = fileInfo.LastWriteTime;
             }
         }
-        enum FileGridContextMenuItems { OpenFile, OpenDirectory, Copy, Delete }
 
         DeviceManager deviceManager;
         CaptureContext captureContext;
@@ -106,7 +105,7 @@ namespace Suconbu.Sumacon
             this.uxFileGridPanel.ContextMenuStrip = this.fileGridContextMenu;
             this.uxFileGridPanel.SelectionChanged += this.FileGridPanel_SelectionChanged;
             this.uxFileGridPanel.KeyDown += this.UxFileGridPanel_KeyDown;
-            this.uxFileGridPanel.CellDoubleClick += (s, ee) => this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.OpenFile)].PerformClick();
+            this.uxFileGridPanel.CellDoubleClick += (s, ee) => this.OpenSelectedFile();
             this.uxSplitContainer.Panel1.Controls.Add(this.uxFileGridPanel);
 
             this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
@@ -133,33 +132,34 @@ namespace Suconbu.Sumacon
 
         void SetupContextMenu()
         {
-            this.fileGridContextMenu.Items.Add(
+            var openFileItem = this.fileGridContextMenu.Items.Add(
                 Properties.Resources.Menu_OpenFile,
                 this.uxImageList.Images["page.png"],
-                (s, e) => this.OpenSelectedFile())
-                .Name = nameof(FileGridContextMenuItems.OpenFile);
+                (s, e) => this.OpenSelectedFile()) as ToolStripMenuItem;
+
             this.fileGridContextMenu.Items.Add(
                 Properties.Resources.Menu_OpenDirectory,
                 this.uxImageList.Images["folder.png"],
-                (s, e) => this.OpenSelectedFileDirectory())
-                .Name = nameof(FileGridContextMenuItems.OpenDirectory);
-            this.fileGridContextMenu.Items.Add(
+                (s, e) => this.OpenSelectedFileDirectory());
+
+            var copyImaegItem = this.fileGridContextMenu.Items.Add(
                 Properties.Resources.Menu_CopyImageToClipboard,
                 this.uxImageList.Images["page_copy.png"],
-                (s, e) => this.CopyImageToClipboard())
-                .Name = nameof(FileGridContextMenuItems.Copy);
+                (s, e) => this.CopyImageToClipboard()) as ToolStripMenuItem;
+
             this.fileGridContextMenu.Items.Add(new ToolStripSeparator());
-            this.fileGridContextMenu.Items.Add(
-                Properties.Resources.Menu_Delete,
+
+            var deleteItem = this.fileGridContextMenu.Items.Add(
+                Properties.Resources.Menu_Delete + " (Del)",
                 this.uxImageList.Images["cross.png"],
-                (s, e) => this.DeleteSelectedFile())
-                .Name = nameof(FileGridContextMenuItems.Delete);
+                (s, e) => this.DeleteSelectedFile()) as ToolStripMenuItem;
+            deleteItem.ShortcutKeys = Keys.Delete;
 
             this.fileGridContextMenu.Opening += (s, e) =>
             {
                 var count = this.uxFileGridPanel.SelectedRows.Count;
-                this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.OpenFile)].Enabled = (count == 1);
-                this.fileGridContextMenu.Items[nameof(FileGridContextMenuItems.Copy)].Enabled = (count == 1);
+                openFileItem.Enabled = (count == 1);
+                copyImaegItem.Enabled = (count == 1);
                 e.Cancel = (count <= 0);
             };
         }
@@ -305,11 +305,6 @@ namespace Suconbu.Sumacon
             if(e.KeyCode == Keys.Enter)
             {
                 this.OpenSelectedFile();
-                e.SuppressKeyPress = true;
-            }
-            else if(e.KeyCode == Keys.Delete)
-            {
-                this.DeleteSelectedFile();
                 e.SuppressKeyPress = true;
             }
         }
