@@ -16,6 +16,7 @@ namespace Suconbu.Sumacon
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
         Dictionary<string, CommandContext> contexts = new Dictionary<string, CommandContext>();
+        LruCache<string, string> commandHistory = new LruCache<string, string>(10);
 
         public FormConsole(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
@@ -25,25 +26,26 @@ namespace Suconbu.Sumacon
             this.commandReceiver = commandReceiver;
             this.commandReceiver.InputReceived += (s, input) =>
             {
-                this.SafeInvoke(() => this.uxOutputText.AppendText(input + Environment.NewLine));
+                this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + input));
             };
             this.commandReceiver.OutputReceived += (s, output) =>
             {
-                this.SafeInvoke(() => this.uxOutputText.AppendText(output + Environment.NewLine));
+                this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + output));
             };
 
-            this.uxInputText.KeyDown += this.UxInputText_KeyDown;
-            //this.uxInputText.PreviewKeyDown += this.UxInputText_PreviewKeyDown;
+            this.uxInputCombo.KeyDown += this.UxInputText_KeyDown;
+            this.uxInputCombo.PreviewKeyDown += this.UxInputCombo_PreviewKeyDown;
+            this.uxInputCombo.AutoCompleteMode = AutoCompleteMode.Append;
         }
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
 
-            this.uxInputText.Font = new Font(Properties.Resources.MonospaceFontName, SystemFonts.MessageBoxFont.Size);
-            this.uxInputText.BackColor = Color.Black;
-            this.uxInputText.ForeColor = Color.White;
-            this.uxOutputText.Font = new Font(Properties.Resources.MonospaceFontName, SystemFonts.MessageBoxFont.Size);
+            this.uxInputCombo.Font = new Font(Properties.Resources.MonospaceFontName, this.uxInputCombo.Font.Size);
+            this.uxInputCombo.BackColor = Color.Black;
+            this.uxInputCombo.ForeColor = Color.White;
+            this.uxOutputText.Font = new Font(Properties.Resources.MonospaceFontName, this.uxOutputText.Font.Size);
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
         }
@@ -58,6 +60,21 @@ namespace Suconbu.Sumacon
             }
         }
 
+        private void UxInputCombo_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            if (e.KeyCode == Keys.Tab)
+            {
+                foreach (var c in this.commandHistory.GetValues())
+                {
+                    if(c.StartsWith(this.uxInputCombo.Text))
+                    {
+                        this.uxInputCombo.Text = c;
+                        break;
+                    }
+                }
+            }
+        }
+
         void UxInputText_KeyDown(object sender, KeyEventArgs e)
         {
             var device = this.deviceManager.ActiveDevice;
@@ -67,28 +84,26 @@ namespace Suconbu.Sumacon
                 e.SuppressKeyPress = true;
                 if (device == null) return;
 
-                var command = this.uxInputText.Text;
-                if(!string.IsNullOrEmpty(command))
+                var command = this.uxInputCombo.Text;
+                if (!this.contexts.TryGetValue(device.Id, out var context))
                 {
-                    if (!this.contexts.TryGetValue(device.Id, out var context))
+                    context = device.RunCommandAsync("shell", output =>
                     {
-                        context = device.RunCommandAsync("shell", output =>
+                        if (output != null)
                         {
-                            if (output != null)
-                            {
-                               this.commandReceiver?.WriteOutput(output);
-                            }
-                            else
-                            {
-                                this.SafeInvoke(() => this.contexts.Remove(device.Id));
-                            }
-                        });
-                        this.contexts.Add(device.Id, context);
-                    }
-                    context.PushInput($"echo '> {command}'");
-                    context.PushInput(command);
-                    this.uxInputText.Text = string.Empty;
+                            this.commandReceiver?.WriteOutput(output);
+                        }
+                        else
+                        {
+                            this.SafeInvoke(() => this.contexts.Remove(device.Id));
+                        }
+                    });
+                    this.contexts.Add(device.Id, context);
                 }
+                context.PushInput($"echo '> {command}'");
+                context.PushInput(command);
+                this.PushCommandHistory(command);
+                this.uxInputCombo.Text = string.Empty;
             }
             else if(e.KeyCode == Keys.C && e.Modifiers.HasFlag(Keys.Control))
             {
@@ -100,6 +115,16 @@ namespace Suconbu.Sumacon
                     this.contexts.Remove(device.Id);
                     context.Cancel();
                 }
+            }
+        }
+
+        void PushCommandHistory(string command)
+        {
+            this.commandHistory.Add(command, command);
+            this.uxInputCombo.Items.Clear();
+            foreach(var c in this.commandHistory.GetValues())
+            {
+                this.uxInputCombo.Items.Add(c);
             }
         }
     }

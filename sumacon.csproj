@@ -105,6 +105,7 @@
     <Compile Include="toolbox\GridPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="toolbox\LruCache.cs" />
     <Compile Include="toolbox\Util.cs" />
     <EmbeddedResource Include="FormCapture.resx">
       <DependentUpon>FormCapture.cs</DependentUpon>
