@@ -60,7 +60,8 @@ namespace Suconbu.Sumacon
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
 
-            this.uxOutputText.AppendText($"# {DateTime.Now.ToString()}");
+            this.uxOutputText.AppendText($"# Hello. {DateTime.Now.ToString()}" + Environment.NewLine);
+            CommandContext.StartNewText("adb", "version", output => this.SafeInvoke(() => this.commandReceiver.WriteOutput(output)));
         }
 
         protected override void OnClosing(CancelEventArgs e)
