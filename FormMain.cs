@@ -106,8 +106,8 @@ namespace Suconbu.Sumacon
             var devices = this.deviceManager.ConnectedDevices.ToArray();
             foreach (var device in devices)
             {
-                var t = $"{device.Model} ({device.Name}) - {device.Id}";
-                var item = this.deviceDropDown.DropDownItems.Add(t);
+                var label = device.ToString(Properties.Resources.DeviceStringFormat);
+                var item = this.deviceDropDown.DropDownItems.Add(label);
                 item.Image = this.imageList1.Images["phone.png"];
                 item.Click += (s, e) => this.deviceManager.ActiveDevice = device;
             }

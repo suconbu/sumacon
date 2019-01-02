@@ -1,4 +1,5 @@
-﻿using Suconbu.Toolbox;
+﻿using Suconbu.Mobile;
+using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -22,7 +23,6 @@ namespace Suconbu.Sumacon
         {
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
             this.commandReceiver = commandReceiver;
             this.commandReceiver.InputReceived += (s, input) =>
             {
@@ -31,6 +31,17 @@ namespace Suconbu.Sumacon
             this.commandReceiver.OutputReceived += (s, output) =>
             {
                 this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + output));
+            };
+
+            this.deviceManager = deviceManager;
+            this.deviceManager.DeviceConnected += (s, device) =>
+            {
+                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceStringFormat)}' is connected.");
+            };
+            this.deviceManager.DeviceDisconnecting += (s, device) =>
+            {
+                this.CancelCommandRun(device.Id);
+                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceStringFormat)}' is disconnected.");
             };
 
             this.uxInputCombo.KeyDown += this.UxInputText_KeyDown;
@@ -48,6 +59,8 @@ namespace Suconbu.Sumacon
             this.uxOutputText.Font = new Font(Properties.Resources.MonospaceFontName, this.uxOutputText.Font.Size);
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
+
+            this.uxOutputText.AppendText($"# {DateTime.Now.ToString()}");
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -85,36 +98,50 @@ namespace Suconbu.Sumacon
                 if (device == null) return;
 
                 var command = this.uxInputCombo.Text;
-                if (!this.contexts.TryGetValue(device.Id, out var context))
+                if (this.StartCommandRun(device, command))
                 {
-                    context = device.RunCommandAsync("shell", output =>
-                    {
-                        if (output != null)
-                        {
-                            this.commandReceiver?.WriteOutput(output);
-                        }
-                        else
-                        {
-                            this.SafeInvoke(() => this.contexts.Remove(device.Id));
-                        }
-                    });
-                    this.contexts.Add(device.Id, context);
+                    this.PushCommandHistory(command);
+                    this.uxInputCombo.Text = string.Empty;
                 }
-                context.PushInput($"echo '> {command}'");
-                context.PushInput(command);
-                this.PushCommandHistory(command);
-                this.uxInputCombo.Text = string.Empty;
             }
             else if(e.KeyCode == Keys.C && e.Modifiers.HasFlag(Keys.Control))
             {
                 e.SuppressKeyPress = true;
-                if (device == null) return;
+                this.CancelCommandRun(device?.Id);
+            }
+        }
 
-                if (this.contexts.TryGetValue(device.Id, out var context))
+        bool StartCommandRun(Device device, string command)
+        {
+            if (device == null) return false;
+            if (!this.contexts.TryGetValue(device.Id, out var context))
+            {
+                // まだshellを開いてなかったら開く
+                context = device.RunCommandAsync("shell", output =>
                 {
-                    this.contexts.Remove(device.Id);
-                    context.Cancel();
-                }
+                    if (output != null)
+                    {
+                        this.commandReceiver?.WriteOutput(output);
+                    }
+                    else
+                    {
+                        // 終了
+                        this.SafeInvoke(() => this.contexts.Remove(device.Id));
+                    }
+                });
+                this.contexts.Add(device.Id, context);
+            }
+            context.PushInput($"echo '> {command}'");
+            context.PushInput(command);
+            return true;
+        }
+
+        void CancelCommandRun(string deviceId)
+        {
+            if (this.contexts.TryGetValue(deviceId, out var context))
+            {
+                this.contexts.Remove(deviceId);
+                context.Cancel();
             }
         }
 

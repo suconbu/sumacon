@@ -10,8 +10,12 @@ namespace Suconbu.Sumacon
 {
     public class DeviceManager : IDisposable
     {
-        public event EventHandler<Device> ActiveDeviceChanged = delegate { };
         public event EventHandler ConnectedDevicesChanged = delegate { };
+        // ConnectedDevicesChangedの後に通知します(対象はConnectedDevicesにすでに存在します)
+        public event EventHandler<Device> DeviceConnected = delegate { };
+        // ConnectedDevicesChangedの前に通知します(対象はConnectedDevicesにまだ存在します)
+        public event EventHandler<Device> DeviceDisconnecting = delegate { };
+        public event EventHandler<Device> ActiveDeviceChanged = delegate { };
         public event EventHandler<IReadOnlyList<Property>> PropertyChanged = delegate { };
 
         public Device ActiveDevice
@@ -64,13 +68,14 @@ namespace Suconbu.Sumacon
         {
             if (this.connectedDevices.Find(d => d.Id == deviceId) != null) return;
 
-            var newDevice = new Device(deviceId);
-            this.connectedDevices.Add(newDevice);
+            var device = new Device(deviceId);
+            this.connectedDevices.Add(device);
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
+            this.DeviceConnected(this, device);
 
             if (this.activeDevice == null)
             {
-                this.ChangeActiveDevice(newDevice);
+                this.ChangeActiveDevice(device);
             }
         }
 
@@ -79,6 +84,7 @@ namespace Suconbu.Sumacon
             var device = this.connectedDevices.Find(d => d.Id == deviceId);
             if (device == null) return;
 
+            this.DeviceDisconnecting(this, device);
             this.connectedDevices.Remove(device);
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
             if (this.activeDevice == device)

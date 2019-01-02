@@ -519,11 +519,12 @@ namespace Suconbu.Sumacon
             var name = this.uxPatternText.Text;
             lock (this)
             {
-                name = name.Replace("{device-id}", device?.Id ?? "-");
-                name = name.Replace("{device-model}", device?.Model ?? "-");
-                name = name.Replace("{device-name}", device?.Name ?? "-");
-                name = name.Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"));
-                name = name.Replace("{time}", DateTime.Now.ToString("HHmmss"));
+                name = name
+                    .Replace("{device-id}", device?.Id ?? "-")
+                    .Replace("{device-model}", device?.Model ?? "-")
+                    .Replace("{device-name}", device?.Name ?? "-")
+                    .Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"))
+                    .Replace("{time}", DateTime.Now.ToString("HHmmss"));
                 var mainNo = this.sequenceNo.ToString("0000");
                 if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
                 {

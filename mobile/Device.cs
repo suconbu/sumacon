@@ -108,13 +108,6 @@ namespace Suconbu.Mobile
             Delay.ClearTimeout(this.timeoutId);
         }
 
-        void TimerElapsed()
-        {
-            Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
-            if (!this.observeActivated) return;
-            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
-        }
-
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
         {
             return CommandContext.StartNew("adb", $"-s {this.Id} {command}", onOutputReceived, onErrorReceived);
@@ -128,6 +121,21 @@ namespace Suconbu.Mobile
         public CommandContext RunCommandOutputBinaryAsync(string command, Action<Stream> onFinished)
         {
             return CommandContext.StartNewBinary("adb", $"-s {this.Id} {command}", stream => onFinished?.Invoke(stream));
+        }
+
+        public string ToString(string format)
+        {
+            return format
+                .Replace("{id}", this.Id)
+                .Replace("{model}", this.Model)
+                .Replace("{name}", this.Name);
+        }
+
+        void TimerElapsed()
+        {
+            Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
+            if (!this.observeActivated) return;
+            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
         }
 
         #region IDisposable Support

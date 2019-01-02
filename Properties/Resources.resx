@@ -123,6 +123,9 @@
   <data name="CommandFileNameFilter" xml:space="preserve">
     <value>*.txt</value>
   </data>
+  <data name="DeviceStringFormat" xml:space="preserve">
+    <value>{model} ({name}) - {id}</value>
+  </data>
   <data name="MonospaceFontName" xml:space="preserve">
     <value>Consolas</value>
   </data>

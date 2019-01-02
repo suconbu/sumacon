@@ -79,6 +79,15 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   {model} ({name}) - {id} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DeviceStringFormat {
+            get {
+                return ResourceManager.GetString("DeviceStringFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Consolas に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string MonospaceFontName {
