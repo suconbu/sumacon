@@ -22,8 +22,8 @@ namespace Suconbu.Sumacon
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
         FileSystemWatcher watcher = new FileSystemWatcher();
-        readonly string directoryPath = Properties.Resources.CommandDirectoryPath;
-        readonly string fileNameFilter = Properties.Resources.CommandFileNameFilter;
+        readonly string directoryPath = Properties.Resources.FormShortcut_DirectoryPath;
+        readonly string fileNameFilter = Properties.Resources.FormShortcut_FileNameFilter;
 
         public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
@@ -106,8 +106,8 @@ namespace Suconbu.Sumacon
         void SetupList()
         {
             this.uxShortcutList.MultiSelect = false;
-            this.uxShortcutList.Columns.Add("Name");
-            this.uxShortcutList.Columns.Add("Description");
+            this.uxShortcutList.Columns.Add(Properties.Resources.General_Name);
+            this.uxShortcutList.Columns.Add(Properties.Resources.General_Description);
             this.uxShortcutList.ItemSelectionChanged += (s, e) =>
             {
                 this.uxCommandText.Lines = e.IsSelected ? this.commandSets[e.Item.Text].Commands : null;

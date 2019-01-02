@@ -117,14 +117,79 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CommandDirectoryPath" xml:space="preserve">
+  <data name="DeviceLabelFormat" xml:space="preserve">
+    <value>{model} ({name}) - {id}</value>
+  </data>
+  <data name="DialogMessage_DeleteXFiles" xml:space="preserve">
+    <value>Are you sure you want to delete {0} files?</value>
+  </data>
+  <data name="DialogTitle_DeleteFile" xml:space="preserve">
+    <value>Delete file</value>
+  </data>
+  <data name="FormCapture_CaptureButtonLabel_ContinousLimited" xml:space="preserve">
+    <value>Stop
+({0} shots remains)</value>
+  </data>
+  <data name="FormCapture_CaptureButtonLabel_ContinousLimitless" xml:space="preserve">
+    <value>Stop
+({0} captured)</value>
+  </data>
+  <data name="FormCapture_CaptureButtonLabel_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="FormCapture_DefaultFileNamePattern" xml:space="preserve">
+    <value>{device-model}_{date}_{time}_{no}.png</value>
+  </data>
+  <data name="FormCapture_DefaultSaveDirectoryPath" xml:space="preserve">
+    <value>.\screencapture</value>
+  </data>
+  <data name="FormCapture_FileNamePatternHelp" xml:space="preserve">
+    <value>{device-id} : 'HXC8KSKL99XYZ'
+{device-model} : 'Nexus_9'
+{device-name} : 'MyTablet'
+{date} : '2018-12-31'
+{time} : '123456'
+{no} : '0001' (Single shot) / '0002-0034' (Continuous mode)
+* {no} is reset in application start.</value>
+  </data>
+  <data name="FormMain_StatusBatteryFormat" xml:space="preserve">
+    <value>🔋 {battery-level} % ({battery-status})</value>
+  </data>
+  <data name="FormMain_StatusDeviceFormat" xml:space="preserve">
+    <value>{model} ({name})</value>
+  </data>
+  <data name="FormMain_StatusScreenFormat" xml:space="preserve">
+    <value>{screen-width}x{screen-height} ({screen-density} dpi)</value>
+  </data>
+  <data name="FormShortcut_DirectoryPath" xml:space="preserve">
     <value>.\command</value>
   </data>
-  <data name="CommandFileNameFilter" xml:space="preserve">
+  <data name="FormShortcut_FileNameFilter" xml:space="preserve">
     <value>*.txt</value>
   </data>
-  <data name="DeviceStringFormat" xml:space="preserve">
-    <value>{model} ({name}) - {id}</value>
+  <data name="General_DateTime" xml:space="preserve">
+    <value>Date time</value>
+  </data>
+  <data name="General_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="General_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="General_Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Menu_CopyImageToClipboard" xml:space="preserve">
+    <value>Copy image to clipboard</value>
+  </data>
+  <data name="Menu_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Menu_OpenDirectory" xml:space="preserve">
+    <value>Open directory</value>
+  </data>
+  <data name="Menu_OpenFile" xml:space="preserve">
+    <value>Open file</value>
   </data>
   <data name="MonospaceFontName" xml:space="preserve">
     <value>Consolas</value>

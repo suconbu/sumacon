@@ -106,7 +106,7 @@ namespace Suconbu.Sumacon
             var devices = this.deviceManager.ConnectedDevices.ToArray();
             foreach (var device in devices)
             {
-                var label = device.ToString(Properties.Resources.DeviceStringFormat);
+                var label = device.ToString(Properties.Resources.DeviceLabelFormat);
                 var item = this.deviceDropDown.DropDownItems.Add(label);
                 item.Image = this.imageList1.Images["phone.png"];
                 item.Click += (s, e) => this.deviceManager.ActiveDevice = device;
@@ -119,11 +119,13 @@ namespace Suconbu.Sumacon
 
             if (device != null)
             {
-                this.deviceDropDown.Text = $"{device.Model} ({device.Name})";
+                this.deviceDropDown.Text = device.ToString(Properties.Resources.FormMain_StatusDeviceFormat);
                 this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
 
-                this.deviceInfoLabel.Text = $"{device.ScreenSize.Width}x{device.ScreenSize.Height} ({device.ScreenDensity} DPI) " +
-                    $"🔋 {device.ChargeLevel} % ({device.Status})";
+                this.deviceInfoLabel.Text =
+                    device.ToString(Properties.Resources.FormMain_StatusScreenFormat) +
+                    " " +
+                    device.ToString(Properties.Resources.FormMain_StatusBatteryFormat);
             }
             else
             {

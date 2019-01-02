@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -125,10 +126,20 @@ namespace Suconbu.Mobile
 
         public string ToString(string format)
         {
-            return format
-                .Replace("{id}", this.Id)
-                .Replace("{model}", this.Model)
-                .Replace("{name}", this.Name);
+            return Regex.Replace(format, "{[^}]+}", match =>
+            {
+                var s = match.Value;
+                return
+                    s == "{id}" ? this.Id :
+                    s == "{model}" ? this.Model :
+                    s == "{name}" ? this.Name :
+                    s == "{screen-width}" ? this.ScreenSize.Width.ToString() :
+                    s == "{screen-height}" ? this.ScreenSize.Height.ToString() :
+                    s == "{screen-density}" ? this.ScreenDensity.ToString() :
+                    s == "{battery-level}" ? ((int)this.ChargeLevel).ToString() :
+                    s == "{battery-status}" ? this.Status.ToString() :
+                    s;
+            });
         }
 
         void TimerElapsed()

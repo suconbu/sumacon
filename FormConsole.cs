@@ -36,12 +36,12 @@ namespace Suconbu.Sumacon
             this.deviceManager = deviceManager;
             this.deviceManager.DeviceConnected += (s, device) =>
             {
-                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceStringFormat)}' is connected.");
+                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is connected.");
             };
             this.deviceManager.DeviceDisconnecting += (s, device) =>
             {
                 this.CancelCommandRun(device.Id);
-                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceStringFormat)}' is disconnected.");
+                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is disconnected.");
             };
 
             this.uxInputCombo.KeyDown += this.UxInputText_KeyDown;

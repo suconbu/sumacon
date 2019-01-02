@@ -61,29 +61,208 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   {model} ({name}) - {id} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DeviceLabelFormat {
+            get {
+                return ResourceManager.GetString("DeviceLabelFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Are you sure you want to delete {0} files? に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DialogMessage_DeleteXFiles {
+            get {
+                return ResourceManager.GetString("DialogMessage_DeleteXFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Delete file に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string DialogTitle_DeleteFile {
+            get {
+                return ResourceManager.GetString("DialogTitle_DeleteFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Stop
+        ///({0} shots remains) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_CaptureButtonLabel_ContinousLimited {
+            get {
+                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_ContinousLimited", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Stop
+        ///({0} captured) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_CaptureButtonLabel_ContinousLimitless {
+            get {
+                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_ContinousLimitless", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Start に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_CaptureButtonLabel_Start {
+            get {
+                return ResourceManager.GetString("FormCapture_CaptureButtonLabel_Start", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {device-model}_{date}_{time}_{no}.png に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_DefaultFileNamePattern {
+            get {
+                return ResourceManager.GetString("FormCapture_DefaultFileNamePattern", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   .\screencapture に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_DefaultSaveDirectoryPath {
+            get {
+                return ResourceManager.GetString("FormCapture_DefaultSaveDirectoryPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {device-id} : &apos;HXC8KSKL99XYZ&apos;
+        ///{device-model} : &apos;Nexus_9&apos;
+        ///{device-name} : &apos;MyTablet&apos;
+        ///{date} : &apos;2018-12-31&apos;
+        ///{time} : &apos;123456&apos;
+        ///{no} : &apos;0001&apos; (Single shot) / &apos;0002-0034&apos; (Continuous mode)
+        ///* {no} is reset in application start. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormCapture_FileNamePatternHelp {
+            get {
+                return ResourceManager.GetString("FormCapture_FileNamePatternHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   🔋 {battery-level} % ({battery-status}) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormMain_StatusBatteryFormat {
+            get {
+                return ResourceManager.GetString("FormMain_StatusBatteryFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {model} ({name}) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormMain_StatusDeviceFormat {
+            get {
+                return ResourceManager.GetString("FormMain_StatusDeviceFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {screen-width}x{screen-height} ({screen-density} dpi) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormMain_StatusScreenFormat {
+            get {
+                return ResourceManager.GetString("FormMain_StatusScreenFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   .\command に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string CommandDirectoryPath {
+        internal static string FormShortcut_DirectoryPath {
             get {
-                return ResourceManager.GetString("CommandDirectoryPath", resourceCulture);
+                return ResourceManager.GetString("FormShortcut_DirectoryPath", resourceCulture);
             }
         }
         
         /// <summary>
         ///   *.txt に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string CommandFileNameFilter {
+        internal static string FormShortcut_FileNameFilter {
             get {
-                return ResourceManager.GetString("CommandFileNameFilter", resourceCulture);
+                return ResourceManager.GetString("FormShortcut_FileNameFilter", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   {model} ({name}) - {id} に類似しているローカライズされた文字列を検索します。
+        ///   Date time に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string DeviceStringFormat {
+        internal static string General_DateTime {
             get {
-                return ResourceManager.GetString("DeviceStringFormat", resourceCulture);
+                return ResourceManager.GetString("General_DateTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Description に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string General_Description {
+            get {
+                return ResourceManager.GetString("General_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Name に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string General_Name {
+            get {
+                return ResourceManager.GetString("General_Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Size に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string General_Size {
+            get {
+                return ResourceManager.GetString("General_Size", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Copy image to clipboard に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string Menu_CopyImageToClipboard {
+            get {
+                return ResourceManager.GetString("Menu_CopyImageToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Delete に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string Menu_Delete {
+            get {
+                return ResourceManager.GetString("Menu_Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Open directory に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string Menu_OpenDirectory {
+            get {
+                return ResourceManager.GetString("Menu_OpenDirectory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Open file に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string Menu_OpenFile {
+            get {
+                return ResourceManager.GetString("Menu_OpenFile", resourceCulture);
             }
         }
         

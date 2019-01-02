@@ -49,10 +49,6 @@ namespace Suconbu.Sumacon
 
         readonly int defaultInterval = 5;
         readonly int defaultCount = 10;
-        readonly string defaultSaveDirectory = @".\screencapture";
-        readonly string defaultPattern = "{device-model}_{date}_{time}_{no}.png";
-        readonly string labelStart = "Capture";
-        readonly string labelStop = "Stop";
         readonly int startOfNo = 1;
         readonly int endOfSequenceNo = 9999;
         readonly string patternToolTipText;
@@ -68,15 +64,7 @@ namespace Suconbu.Sumacon
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
 
             this.sequenceNo = this.startOfNo;
-            var sb = new StringBuilder();
-            sb.AppendLine("{device-id} : 'HXC8KSKL99XYZ'");
-            sb.AppendLine("{device-model} : 'Nexus_9'");
-            sb.AppendLine("{device-name} : 'MyTablet'");
-            sb.AppendLine("{date} : '2018-12-31'");
-            sb.AppendLine("{time} : '123456'");
-            sb.AppendLine("{no} : '0001' (Single shot) / '0002-0034' (Continuous mode)");
-            sb.AppendLine("* {no} is reset in application start.");
-            this.patternToolTipText = sb.ToString();
+            this.patternToolTipText = Properties.Resources.FormCapture_FileNamePatternHelp;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -86,8 +74,8 @@ namespace Suconbu.Sumacon
             this.SetupContextMenu();
             this.SetupPicturePreview();
 
-            this.uxSaveDirectoryText.Text = this.defaultSaveDirectory;
-            this.uxPatternText.Text = this.defaultPattern;
+            this.uxSaveDirectoryText.Text = Properties.Resources.FormCapture_DefaultSaveDirectoryPath;
+            this.uxPatternText.Text = Properties.Resources.FormCapture_DefaultFileNamePattern;
 
             this.uxIntervalNumeric.Minimum = 1;
             this.uxIntervalNumeric.Value = this.defaultInterval;
@@ -104,9 +92,12 @@ namespace Suconbu.Sumacon
             this.uxFileGridPanel.Dock = DockStyle.Fill;
             this.uxFileGridPanel.AutoGenerateColumns = false;
             this.uxFileGridPanel.DataSource = this.capturedFileInfos;
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Name", nameof(CaptureFileInfo.Name), 240));
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Size", nameof(CaptureFileInfo.KiroBytes), 50, "#,##0 KB"));
-            this.uxFileGridPanel.Columns.Add(this.CreateColumn("Date", nameof(CaptureFileInfo.DateTime), 120, "G"));
+            this.uxFileGridPanel.Columns.Add(
+                this.CreateColumn(Properties.Resources.General_Name, nameof(CaptureFileInfo.Name), 240));
+            this.uxFileGridPanel.Columns.Add(
+                this.CreateColumn(Properties.Resources.General_Size, nameof(CaptureFileInfo.KiroBytes), 50, "#,##0 KB"));
+            this.uxFileGridPanel.Columns.Add(
+                this.CreateColumn(Properties.Resources.General_DateTime, nameof(CaptureFileInfo.DateTime), 120, "G"));
             foreach(DataGridViewColumn column in this.uxFileGridPanel.Columns)
             {
                 column.SortMode = DataGridViewColumnSortMode.NotSortable;
@@ -142,15 +133,27 @@ namespace Suconbu.Sumacon
 
         void SetupContextMenu()
         {
-            this.fileGridContextMenu.Items.Add("Open file", this.uxImageList.Images["page.png"],
-                (s, e) => this.OpenSelectedFile()).Name = nameof(FileGridContextMenuItems.OpenFile);
-            this.fileGridContextMenu.Items.Add("Open directory", this.uxImageList.Images["folder.png"],
-                (s, e) => this.OpenSelectedFileDirectory()).Name = nameof(FileGridContextMenuItems.OpenDirectory);
-            this.fileGridContextMenu.Items.Add("Copy image to clipboard", this.uxImageList.Images["page_copy.png"],
-                (s, e) => this.CopyImageToClipboard()).Name = nameof(FileGridContextMenuItems.Copy);
+            this.fileGridContextMenu.Items.Add(
+                Properties.Resources.Menu_OpenFile,
+                this.uxImageList.Images["page.png"],
+                (s, e) => this.OpenSelectedFile())
+                .Name = nameof(FileGridContextMenuItems.OpenFile);
+            this.fileGridContextMenu.Items.Add(
+                Properties.Resources.Menu_OpenDirectory,
+                this.uxImageList.Images["folder.png"],
+                (s, e) => this.OpenSelectedFileDirectory())
+                .Name = nameof(FileGridContextMenuItems.OpenDirectory);
+            this.fileGridContextMenu.Items.Add(
+                Properties.Resources.Menu_CopyImageToClipboard,
+                this.uxImageList.Images["page_copy.png"],
+                (s, e) => this.CopyImageToClipboard())
+                .Name = nameof(FileGridContextMenuItems.Copy);
             this.fileGridContextMenu.Items.Add(new ToolStripSeparator());
-            this.fileGridContextMenu.Items.Add("Delete", this.uxImageList.Images["cross.png"],
-                (s, e) => this.DeleteSelectedFile()).Name = nameof(FileGridContextMenuItems.Delete);
+            this.fileGridContextMenu.Items.Add(
+                Properties.Resources.Menu_Delete,
+                this.uxImageList.Images["cross.png"],
+                (s, e) => this.DeleteSelectedFile())
+                .Name = nameof(FileGridContextMenuItems.Delete);
 
             this.fileGridContextMenu.Opening += (s, e) =>
             {
@@ -193,7 +196,10 @@ namespace Suconbu.Sumacon
 
         void DeleteSelectedFile()
         {
-            var result = MessageBox.Show($"Are you sure you want to delete {this.selectedCapturedFileInfos.Count} files?", "Delete", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            var result = MessageBox.Show(
+                string.Format(Properties.Resources.DialogMessage_DeleteXFiles, this.selectedCapturedFileInfos.Count),
+                Properties.Resources.DialogTitle_DeleteFile,
+                MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
             if (result != DialogResult.OK) return;
 
             var removedFileInfos = this.selectedCapturedFileInfos.ToList();
@@ -482,23 +488,24 @@ namespace Suconbu.Sumacon
         {
             if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
             {
-                var sb = new StringBuilder();
-                sb.AppendLine(this.labelStop);
                 if (this.captureContext.RemainingCount >= 0 && this.captureContext.RemainingCount != int.MaxValue)
                 {
-                    sb.Append($"({this.captureContext.RemainingCount} shots remains)");
+                    this.uxStartButton.Text = string.Format(
+                        Properties.Resources.FormCapture_CaptureButtonLabel_ContinousLimited,
+                        this.captureContext.RemainingCount);
                 }
                 else
                 {
-                    sb.Append($"({this.captureContext.CapturedCount} captured)");
+                    this.uxStartButton.Text = string.Format(
+                        Properties.Resources.FormCapture_CaptureButtonLabel_ContinousLimitless,
+                        this.captureContext.CapturedCount);
                 }
-                this.uxStartButton.Text = sb.ToString();
                 this.uxStartButton.Enabled = true;
                 this.uxSettingPanel.Enabled = false;
             }
             else
             {
-                this.uxStartButton.Text = this.labelStart;
+                this.uxStartButton.Text = Properties.Resources.FormCapture_CaptureButtonLabel_Start;
                 this.uxStartButton.Enabled = (this.captureContext == null);
                 this.uxSettingPanel.Enabled = true;
             }
