@@ -121,6 +121,9 @@ namespace Suconbu.Sumacon
             {
                 this.deviceDropDown.Text = device.ToString(Properties.Resources.FormMain_StatusDeviceFormat);
                 this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
+                var color = Util.ColorFromHsv(Math.Abs(device.Model.GetHashCode()) % 360, 1.0f, 1.0f);
+                this.deviceDropDown.BackColor = color;
+                this.deviceDropDown.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
 
                 this.deviceInfoLabel.Text =
                     device.ToString(Properties.Resources.FormMain_StatusScreenFormat) +
@@ -131,6 +134,8 @@ namespace Suconbu.Sumacon
             {
                 this.deviceDropDown.Text = "-";
                 this.deviceInfoLabel.Text = string.Empty;
+                this.deviceDropDown.BackColor = SystemColors.Control;
+                this.deviceDropDown.ForeColor = SystemColors.ControlText;
             }
         }
     }
