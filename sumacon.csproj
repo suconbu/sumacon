@@ -88,7 +88,7 @@
     <Compile Include="CommandContext.cs" />
     <Compile Include="mobile\DeviceComponentBase.cs" />
     <Compile Include="mobile\Device.cs" />
-    <Compile Include="mobile\DeviceWatcher.cs" />
+    <Compile Include="mobile\DeviceDetector.cs" />
     <Compile Include="FormShortcut.cs">
       <SubType>Form</SubType>
     </Compile>

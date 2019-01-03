@@ -61,7 +61,7 @@ namespace Suconbu.Sumacon
             this.recordForm = new FormRecord(this.deviceManager);
             this.recordForm.Show(this.dockPanel, DockState.Document);
 
-            this.deviceManager.StartDeviceWatching();
+            this.deviceManager.StartDeviceDetection();
         }
 
         protected override void OnClosing(CancelEventArgs e)

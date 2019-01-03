@@ -27,22 +27,22 @@ namespace Suconbu.Sumacon
 
         Device activeDevice;
         List<Device> connectedDevices = new List<Device>();
-        DeviceWatcher watcher = new DeviceWatcher();
+        DeviceDetector detector = new DeviceDetector();
 
         public DeviceManager()
         {
-            this.watcher.Connected += this.Watcher_Connected;
-            this.watcher.Disconnected += this.Watcher_Disconnected;
+            this.detector.Connected += this.Detector_Connected;
+            this.detector.Disconnected += this.Detector_Disconnected;
         }
 
-        public void StartDeviceWatching()
+        public void StartDeviceDetection()
         {
-            this.watcher.Start();
+            this.detector.Start();
         }
 
-        public void StopDeviceWatching()
+        public void StopDeviceDetection()
         {
-            this.watcher.Stop();
+            this.detector.Stop();
         }
 
         void ChangeActiveDevice(Device nextActiveDevice)
@@ -64,7 +64,7 @@ namespace Suconbu.Sumacon
             this.ActiveDeviceChanged(this, previousDevice);
         }
 
-        private void Watcher_Connected(object sender, string deviceId)
+        private void Detector_Connected(object sender, string deviceId)
         {
             if (this.connectedDevices.Find(d => d.Id == deviceId) != null) return;
 
@@ -79,7 +79,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        private void Watcher_Disconnected(object sender, string deviceId)
+        private void Detector_Disconnected(object sender, string deviceId)
         {
             var device = this.connectedDevices.Find(d => d.Id == deviceId);
             if (device == null) return;
@@ -107,7 +107,7 @@ namespace Suconbu.Sumacon
         {
             if (this.disposed) return;
 
-            this.StopDeviceWatching();
+            this.StopDeviceDetection();
             this.connectedDevices.ForEach(d => d.Dispose());
 
             this.disposed = true;
