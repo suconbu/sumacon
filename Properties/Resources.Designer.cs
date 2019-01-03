@@ -88,6 +88,20 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   {device-id} : &apos;HXC8KSKL99XYZ&apos;
+        ///{device-model} : &apos;Nexus_9&apos;
+        ///{device-name} : &apos;flounder&apos;
+        ///{date} : &apos;2018-12-31&apos;
+        ///{time} : &apos;132436&apos;
+        ///{no} : Sequence no which based on application start. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FileNamePatternHelp {
+            get {
+                return ResourceManager.GetString("FileNamePatternHelp", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Stop
         ///({0} shots remains) に類似しているローカライズされた文字列を検索します。
         /// </summary>
@@ -131,21 +145,6 @@ namespace Suconbu.Sumacon.Properties {
         internal static string FormCapture_DefaultSaveDirectoryPath {
             get {
                 return ResourceManager.GetString("FormCapture_DefaultSaveDirectoryPath", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   {device-id} : &apos;HXC8KSKL99XYZ&apos;
-        ///{device-model} : &apos;Nexus_9&apos;
-        ///{device-name} : &apos;MyTablet&apos;
-        ///{date} : &apos;2018-12-31&apos;
-        ///{time} : &apos;123456&apos;
-        ///{no} : &apos;0001&apos; (Single shot) / &apos;0002-0034&apos; (Continuous mode)
-        ///* {no} is reset in application start. に類似しているローカライズされた文字列を検索します。
-        /// </summary>
-        internal static string FormCapture_FileNamePatternHelp {
-            get {
-                return ResourceManager.GetString("FormCapture_FileNamePatternHelp", resourceCulture);
             }
         }
         
@@ -219,6 +218,15 @@ namespace Suconbu.Sumacon.Properties {
         internal static string FormRecord_DefaultFileNamePattern {
             get {
                 return ResourceManager.GetString("FormRecord_DefaultFileNamePattern", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   .\screenrecord に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_DefaultSaveDirectoryPath {
+            get {
+                return ResourceManager.GetString("FormRecord_DefaultSaveDirectoryPath", resourceCulture);
             }
         }
         

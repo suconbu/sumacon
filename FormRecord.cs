@@ -18,8 +18,8 @@ namespace Suconbu.Sumacon
 {
     public partial class FormRecord : FormBase
     {
-        RecordContext recordContext;
         DeviceManager deviceManager;
+        RecordContext recordContext;
         GridPanel uxFileGridPanel;
         ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
         BindingList<FileInfo> fileInfos = new BindingList<FileInfo>();
@@ -27,6 +27,7 @@ namespace Suconbu.Sumacon
         Timer timer = new Timer();
         int sequenceNo = 1;
 
+        readonly string patternToolTipText;
         readonly int baseBitrateNormal = 4_000_000;
         readonly int baseBitrateEconomy = 1_000_000;
 
@@ -37,7 +38,9 @@ namespace Suconbu.Sumacon
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
 
-            this.uxSaveDirectoryText.Text = @".\screenrecord";
+            this.SetupContextMenu();
+
+            this.uxSaveDirectoryText.Text = Properties.Resources.FormRecord_DefaultSaveDirectoryPath;
             this.uxPatternText.Text = Properties.Resources.FormRecord_DefaultFileNamePattern;
 
             this.uxSize1.Checked = true;
@@ -61,7 +64,7 @@ namespace Suconbu.Sumacon
             this.uxQualityNormal.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
             this.uxQuarityEconomy.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
 
-            this.SetupContextMenu();
+            this.uxStartButton.Click += this.UxStartButton_Click;
 
             this.uxFileGridPanel = new GridPanel();
             this.uxFileGridPanel.Dock = DockStyle.Fill;
@@ -95,7 +98,10 @@ namespace Suconbu.Sumacon
             this.timer.Interval = 1000;
             this.timer.Tick += (s, e) => this.UpdateControlState();
 
-            this.uxStartButton.Click += this.UxStartButton_Click;
+            this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
+            this.uxToolTip.AutoPopDelay = 30000;
+
+            this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
         protected override void OnShown(EventArgs e)
@@ -263,7 +269,7 @@ namespace Suconbu.Sumacon
             setting.SequenceNo = this.sequenceNo;
 
             setting.TimeLimitSeconds = this.GetLimitTimeSeconds();
-            setting.SizeMultiply = this.GetViewSizeMultiply();
+            setting.ViewSizeMultiply = this.GetViewSizeMultiply();
             setting.Bitrate = this.GetBitrate();
 
             return setting;

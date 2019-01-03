@@ -125,15 +125,14 @@
             this.uxSettingPanel.Controls.Add(this.label5, 0, 3);
             this.uxSettingPanel.Controls.Add(this.tableLayoutPanel2, 1, 2);
             this.uxSettingPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxSettingPanel.Location = new System.Drawing.Point(3, 4);
-            this.uxSettingPanel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.uxSettingPanel.Location = new System.Drawing.Point(3, 3);
             this.uxSettingPanel.Name = "uxSettingPanel";
             this.uxSettingPanel.RowCount = 4;
             this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.uxSettingPanel.Size = new System.Drawing.Size(682, 130);
+            this.uxSettingPanel.Size = new System.Drawing.Size(682, 132);
             this.uxSettingPanel.TabIndex = 5;
             // 
             // label3
@@ -180,7 +179,7 @@
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 1;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(575, 35);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(575, 37);
             this.tableLayoutPanel1.TabIndex = 32;
             // 
             // uxTimeNumeric
@@ -198,7 +197,7 @@
             this.uxTimeBar.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxTimeBar.Location = new System.Drawing.Point(69, 3);
             this.uxTimeBar.Name = "uxTimeBar";
-            this.uxTimeBar.Size = new System.Drawing.Size(503, 29);
+            this.uxTimeBar.Size = new System.Drawing.Size(503, 31);
             this.uxTimeBar.TabIndex = 1;
             // 
             // label5
@@ -207,7 +206,7 @@
             this.label5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.label5.Location = new System.Drawing.Point(3, 95);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(101, 35);
+            this.label5.Size = new System.Drawing.Size(101, 37);
             this.label5.TabIndex = 5;
             this.label5.Text = "Limit time (sec):";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -265,26 +264,26 @@
             this.label6.Text = "Quality:";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // uxBitrateNormal
+            // uxQualityNormal
             // 
             this.uxQualityNormal.Appearance = System.Windows.Forms.Appearance.Button;
             this.uxQualityNormal.AutoSize = true;
             this.uxQualityNormal.Location = new System.Drawing.Point(57, 4);
             this.uxQualityNormal.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.uxQualityNormal.Name = "uxBitrateNormal";
+            this.uxQualityNormal.Name = "uxQualityNormal";
             this.uxQualityNormal.Size = new System.Drawing.Size(56, 25);
             this.uxQualityNormal.TabIndex = 8;
             this.uxQualityNormal.TabStop = true;
             this.uxQualityNormal.Text = "Normal";
             this.uxQualityNormal.UseVisualStyleBackColor = true;
             // 
-            // uxBitrateEconomy
+            // uxQuarityEconomy
             // 
             this.uxQuarityEconomy.Appearance = System.Windows.Forms.Appearance.Button;
             this.uxQuarityEconomy.AutoSize = true;
             this.uxQuarityEconomy.Location = new System.Drawing.Point(119, 4);
             this.uxQuarityEconomy.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.uxQuarityEconomy.Name = "uxBitrateEconomy";
+            this.uxQuarityEconomy.Name = "uxQuarityEconomy";
             this.uxQuarityEconomy.Size = new System.Drawing.Size(66, 25);
             this.uxQuarityEconomy.TabIndex = 9;
             this.uxQuarityEconomy.TabStop = true;

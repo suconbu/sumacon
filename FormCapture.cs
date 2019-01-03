@@ -16,40 +16,21 @@ namespace Suconbu.Sumacon
 {
     public partial class FormCapture : FormBase
     {
-        class CaptureFileInfo
-        {
-            public string FullPath { get; private set; }
-            public string Name { get; private set; }
-            public long KiroBytes { get; private set; }
-            public DateTime DateTime { get; private set; }
-
-            public CaptureFileInfo(string path)
-            {
-                var fileInfo = new FileInfo(path);
-                this.FullPath = fileInfo.FullName;
-                this.Name = fileInfo.Name;
-                this.KiroBytes = fileInfo.Length / 1024;
-                this.DateTime = fileInfo.LastWriteTime;
-            }
-        }
-
         DeviceManager deviceManager;
         CaptureContext captureContext;
         GridPanel uxFileGridPanel;
-        BindingList<CaptureFileInfo> capturedFileInfos = new BindingList<CaptureFileInfo>();
-        List<CaptureFileInfo> selectedCapturedFileInfos = new List<CaptureFileInfo>();
-        // PictureBox.TagにはCaptureFileInfoを設定
+        BindingList<FileInfo> capturedFileInfos = new BindingList<FileInfo>();
+        List<FileInfo> selectedCapturedFileInfos = new List<FileInfo>();
+        // PictureBox.TagにはFileInfoを設定
         List<List<PictureBox>> pictureBoxLists = new List<List<PictureBox>>();
         List<TableLayoutPanel> pictureTablePanels = new List<TableLayoutPanel>();
-        int sequenceNo;
         ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
         // Image.Tagにはファイルフルパスを設定
         LinkedList<Image> previewImageCache = new LinkedList<Image>();
+        int sequenceNo = 1;
 
         readonly int defaultInterval = 5;
         readonly int defaultCount = 10;
-        readonly int startOfNo = 1;
-        readonly int endOfSequenceNo = 9999;
         readonly string patternToolTipText;
         readonly int picturePreviewCountMax = 5;
         readonly int previewImageCacheCapacity = (int)(5 * 5 * 1.2);
@@ -61,14 +42,6 @@ namespace Suconbu.Sumacon
 
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
-
-            this.sequenceNo = this.startOfNo;
-            this.patternToolTipText = Properties.Resources.FormCapture_FileNamePatternHelp;
-        }
-
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
 
             this.SetupContextMenu();
             this.SetupPicturePreview();
@@ -84,7 +57,6 @@ namespace Suconbu.Sumacon
             this.uxContinuousCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
             this.uxCountCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
 
-            this.uxStartButton.Enabled = (this.deviceManager.ActiveDevice != null);
             this.uxStartButton.Click += this.UxStartButton_Click;
 
             this.uxFileGridPanel = new GridPanel();
@@ -92,12 +64,19 @@ namespace Suconbu.Sumacon
             this.uxFileGridPanel.AutoGenerateColumns = false;
             this.uxFileGridPanel.DataSource = this.capturedFileInfos;
             this.uxFileGridPanel.Columns.Add(
-                this.CreateColumn(Properties.Resources.General_Name, nameof(CaptureFileInfo.Name), 240));
+                this.CreateColumn(Properties.Resources.General_Name, nameof(FileInfo.Name), 240));
             this.uxFileGridPanel.Columns.Add(
-                this.CreateColumn(Properties.Resources.General_Size, nameof(CaptureFileInfo.KiroBytes), 50, "#,##0 KB"));
+                this.CreateColumn(Properties.Resources.General_Size, nameof(FileInfo.Length), 50, "#,##0 KB", DataGridViewContentAlignment.MiddleRight));
             this.uxFileGridPanel.Columns.Add(
-                this.CreateColumn(Properties.Resources.General_DateTime, nameof(CaptureFileInfo.DateTime), 120, "G"));
-            foreach(DataGridViewColumn column in this.uxFileGridPanel.Columns)
+                this.CreateColumn(Properties.Resources.General_DateTime, nameof(FileInfo.LastWriteTime), 120, "G"));
+            this.uxFileGridPanel.CellFormatting += (s, e) =>
+            {
+                if (this.uxFileGridPanel.Columns[e.ColumnIndex].Name == Properties.Resources.General_Size)
+                {
+                    e.Value = (long)e.Value / 1024;
+                }
+            };
+            foreach (DataGridViewColumn column in this.uxFileGridPanel.Columns)
             {
                 column.SortMode = DataGridViewColumnSortMode.NotSortable;
             }
@@ -110,6 +89,13 @@ namespace Suconbu.Sumacon
 
             this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
             this.uxToolTip.AutoPopDelay = 30000;
+
+            this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
 
             this.UpdateControlState();
         }
@@ -168,14 +154,14 @@ namespace Suconbu.Sumacon
         {
             var fileInfo = this.selectedCapturedFileInfos.FirstOrDefault();
             if (fileInfo == null) return;
-            Process.Start(fileInfo.FullPath);
+            Process.Start(fileInfo.FullName);
         }
 
         void OpenSelectedFileDirectory()
         {
             var fileInfo = this.selectedCapturedFileInfos.FirstOrDefault();
             if (fileInfo == null) return;
-            Process.Start("EXPLORER.EXE", $"/select,\"{fileInfo.FullPath}\"");
+            Process.Start("EXPLORER.EXE", $"/select,\"{fileInfo.FullName}\"");
         }
 
         void CopyImageToClipboard()
@@ -184,7 +170,7 @@ namespace Suconbu.Sumacon
             if (fileInfo == null) return;
             try
             {
-                var image = Image.FromFile(fileInfo.FullPath);
+                var image = Image.FromFile(fileInfo.FullName);
                 Clipboard.SetImage(image);
                 image.Dispose();
             }
@@ -209,7 +195,7 @@ namespace Suconbu.Sumacon
             {
                 try
                 {
-                    FileSystem.DeleteFile(fileInfo.FullPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+                    FileSystem.DeleteFile(fileInfo.FullName, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
                 }
                 catch (Exception ex)
                 {
@@ -313,7 +299,7 @@ namespace Suconbu.Sumacon
         {
             var pictureBox = sender as PictureBox;
             if (pictureBox == null) return;
-            var fileInfo = pictureBox.Tag as CaptureFileInfo;
+            var fileInfo = pictureBox.Tag as FileInfo;
             if (fileInfo == null) return;
             this.uxFileGridPanel.ClearSelection();
             var index = this.capturedFileInfos.IndexOf(fileInfo);
@@ -356,7 +342,7 @@ namespace Suconbu.Sumacon
                             // SelectedRowsには最後に選ばれた項目から順に入ってる
                             var rowIndex = this.uxFileGridPanel.SelectedRows[(selectedCount- offset) - boxIndex - 1].Index;
                             var fileInfo = this.capturedFileInfos[rowIndex];
-                            var image = this.GetPreviewImage(fileInfo.FullPath);
+                            var image = this.GetPreviewImage(fileInfo.FullName);
                             pictureBoxList[boxIndex].Image = image;
                             pictureBoxList[boxIndex].Tag = (image != null) ? fileInfo : null;
                         }
@@ -381,7 +367,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        DataGridViewColumn CreateColumn(string name, string propertyName, int minimulWidth = -1, string format = null)
+        DataGridViewColumn CreateColumn(string name, string propertyName, int minimulWidth = -1, string format = null, DataGridViewContentAlignment alignment = DataGridViewContentAlignment.MiddleLeft)
         {
             var column = new DataGridViewTextBoxColumn();
             column.Name = name;
@@ -391,6 +377,7 @@ namespace Suconbu.Sumacon
             {
                 column.DefaultCellStyle.Format = format;
             }
+            column.DefaultCellStyle.Alignment = alignment;
             return column;
         }
 
@@ -398,23 +385,19 @@ namespace Suconbu.Sumacon
         {
             if(this.captureContext == null || this.captureContext.Mode == CaptureContext.CaptureMode.Single)
             {
+                var device = this.deviceManager.ActiveDevice;
+                if (device == null) return;
                 if (this.uxContinuousCheck.Checked)
                 {
-                    var intervalMilliseconds = (int)this.uxIntervalNumeric.Value * 1000;
-                    var count = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : 0;
-                    var skipSame = this.uxSkipSameImageCheck.Checked;
-                    this.captureContext = CaptureContext.ContinuousCapture(this.deviceManager, intervalMilliseconds, skipSame, count);
+                    var setting = new ContinuousCaptureSetting();
+                    setting.IntervalMilliseconds = (int)this.uxIntervalNumeric.Value * 1000;
+                    setting.LimitCount = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : 0;
+                    setting.SkipSameImage = this.uxSkipSameImageCheck.Checked;
+                    this.captureContext = CaptureContext.StartContinuousCapture(device, setting, this.OnCaptured, this.OnFinished);
                 }
                 else
                 {
-                    this.captureContext = CaptureContext.SingleCapture(this.deviceManager);
-                }
-
-                if (this.captureContext != null)
-                {
-                    this.captureContext.Captured += this.CaptureContext_Captured;
-                    this.captureContext.Finished += this.CaptureContext_Finished;
-                    this.captureContext.Start();
+                    this.captureContext = CaptureContext.StartSingleCapture(device, this.OnCaptured, this.OnFinished);
                 }
             }
             else
@@ -427,12 +410,13 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        void CaptureContext_Captured(object sender, Bitmap bitmap)
+        void OnCaptured(Bitmap bitmap)
         {
             var filePath = this.SaveCaptureToFile(bitmap);
+            if (filePath == null) return;
             this.SafeInvoke(() =>
             {
-                this.capturedFileInfos.Add(new CaptureFileInfo(filePath));
+                this.capturedFileInfos.Add(new FileInfo(filePath));
                 bitmap.Dispose();
                 bitmap = null;
 
@@ -451,7 +435,7 @@ namespace Suconbu.Sumacon
             });
         }
 
-        void CaptureContext_Finished(object sender, EventArgs e)
+        void OnFinished()
         {
             this.captureContext?.Stop();
             this.captureContext = null;
@@ -467,9 +451,10 @@ namespace Suconbu.Sumacon
                 {
                     Directory.CreateDirectory(directoryPath);
                 }
-                var fileName = this.GetNextFileName();
+                var fileName = this.GetFileName(bitmap);
                 var filePath = Path.Combine(directoryPath, fileName);
                 bitmap.Save(filePath);
+                this.sequenceNo++;
                 return filePath;
             }
             catch(Exception ex)
@@ -515,27 +500,23 @@ namespace Suconbu.Sumacon
             this.uxCountNumeric.Enabled = this.uxCountCheck.Checked;
         }
 
-        string GetNextFileName()
+        string GetFileName(Bitmap bitmap)
         {
+            var no = (this.sequenceNo % 10000).ToString("0000");
+            if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
+            {
+                var subNo = (this.captureContext.CapturedCount % 10000).ToString("0000");
+                no = $"{no}-{subNo}";
+            }
             var now = DateTime.Now;
             var replacer = new Dictionary<string, string>()
             {
                 { "date", now.ToString("yyyy-MM-dd") },
-                { "time", now.ToString("HHmmss") }
+                { "time", now.ToString("HHmmss") },
+                { "width", bitmap.Width.ToString() },
+                { "height", bitmap.Height.ToString() },
+                { "no", no }
             };
-            var mainNo = this.sequenceNo.ToString("0000");
-            if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
-            {
-                var subNo = (this.captureContext.CapturedCount % (this.endOfSequenceNo + 1)).ToString("0000");
-                replacer["no"] = $"{mainNo}-{subNo}";
-            }
-            else
-            {
-                replacer["no"] = mainNo;
-            }
-
-            this.sequenceNo = ++this.sequenceNo > this.endOfSequenceNo ? this.startOfNo : this.sequenceNo;
-
             var pattern = this.deviceManager.ActiveDevice.ToString(this.uxPatternText.Text);
             return pattern.Replace(replacer, "-");
         }

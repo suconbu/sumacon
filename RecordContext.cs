@@ -17,12 +17,10 @@ namespace Suconbu.Sumacon
         public string DirectoryPath;
         public string FileNamePattern;
         public int TimeLimitSeconds;
-        //public Size Size;
-        public float SizeMultiply;
+        public float ViewSizeMultiply;
         public int Bitrate;
     }
 
-    // Start -> (Recording...) -> Stop/Timeout -> (Copying...) -> Finished
     class RecordContext : IDisposable
     {
         public enum RecordState { Recording, Pulling, Finished, Aborted }
@@ -44,7 +42,6 @@ namespace Suconbu.Sumacon
         public string FilePath { get; private set; }
 
         Device device;
-        //string saveTo;
         RecordSetting setting;
         CommandContext recordCommandContext;
         CommandContext pullCommandContext;
@@ -84,9 +81,9 @@ namespace Suconbu.Sumacon
             {
                 size = size.Swapped();
             }
-            if (this.setting.SizeMultiply != 1.0f)
+            if (this.setting.ViewSizeMultiply != 1.0f)
             {
-                size = size.Multiplied(this.setting.SizeMultiply);
+                size = size.Multiplied(this.setting.ViewSizeMultiply);
             }
 
             this.fileName = this.GetFileName(this.setting.FileNamePattern, size);
@@ -194,7 +191,7 @@ namespace Suconbu.Sumacon
                 { "no", (this.setting.SequenceNo % 10000).ToString("0000") }
             };
             pattern = this.device.ToString(pattern);
-            return pattern.Replace(replacer);
+            return pattern.Replace(replacer, "-");
         }
 
         #region IDisposable Support
