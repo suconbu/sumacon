@@ -74,10 +74,11 @@ namespace Suconbu.Mobile
         public IReadOnlyList<DeviceComponentBase> Components;
         [Browsable(false)]
         public Dictionary<string, DeviceComponentBase> ComponentsByCategory = new Dictionary<string, DeviceComponentBase>();
+        [Browsable(false)]
+        public bool ObserveActivated { get; private set; }
 
         DeviceData deviceData;
         int observeIntervalMilliseconds = 1000;
-        bool observeActivated;
         string timeoutId;
 
         public Device(string id)
@@ -91,23 +92,20 @@ namespace Suconbu.Mobile
             this.ComponentsByCategory[ComponentCategory.Screen] = this.Screen;
         }
 
-        public void StartObserve(int intervalMilliseconds = 0)
+        public void StartObserve(int intervalMilliseconds, bool imidiate = true)
         {
-            if (intervalMilliseconds > 0)
-            {
-                this.observeIntervalMilliseconds = intervalMilliseconds;
-            }
-            if (this.observeActivated)
+            this.observeIntervalMilliseconds = intervalMilliseconds;
+            if (this.ObserveActivated)
             {
                 this.StopObserve();
             }
-            this.observeActivated = true;
-            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, 1);
+            this.ObserveActivated = true;
+            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, imidiate ? 1 : this.observeIntervalMilliseconds);
         }
 
         public void StopObserve()
         {
-            this.observeActivated = false;
+            this.ObserveActivated = false;
             Delay.ClearTimeout(this.timeoutId);
         }
 
@@ -145,7 +143,7 @@ namespace Suconbu.Mobile
         void TimerElapsed()
         {
             Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
-            if (!this.observeActivated) return;
+            if (!this.ObserveActivated) return;
             this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
         }
 

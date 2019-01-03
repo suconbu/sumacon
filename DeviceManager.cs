@@ -24,10 +24,12 @@ namespace Suconbu.Sumacon
             set { this.ChangeActiveDevice(value); }
         }
         public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices; } }
+        public int ObserveIntervalMilliseconds { get; set; } = 1000;
 
         Device activeDevice;
         List<Device> connectedDevices = new List<Device>();
         DeviceDetector detector = new DeviceDetector();
+        Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
 
         public DeviceManager()
         {
@@ -45,6 +47,27 @@ namespace Suconbu.Sumacon
             this.detector.Stop();
         }
 
+        public void SuspendObserve(Device device)
+        {
+            if (device == null) return;
+            int count = this.susupendRequestedCount[device.Id]++;
+            if (count == 0)
+            {
+                device.StartObserve(int.MaxValue);
+            }
+        }
+
+        public void ResumeObserve(Device device)
+        {
+            if (device == null) return;
+            int count = --this.susupendRequestedCount[device.Id];
+            if(count <= 0 && device == this.activeDevice && device.ObserveActivated)
+            {
+                device.StartObserve(this.ObserveIntervalMilliseconds);
+                this.susupendRequestedCount[device.Id] = 0;
+            }
+        }
+
         void ChangeActiveDevice(Device nextActiveDevice)
         {
             if (this.activeDevice == nextActiveDevice) return;
@@ -54,22 +77,25 @@ namespace Suconbu.Sumacon
             {
                 component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
             }
+            previousDevice?.StopObserve();
 
             this.activeDevice = nextActiveDevice;
             foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
             {
                 component.PropertyChanged += this.DeviceComponent_PropertyChanged;
             }
+            activeDevice?.StartObserve(this.ObserveIntervalMilliseconds);
 
             this.ActiveDeviceChanged(this, previousDevice);
         }
 
-        private void Detector_Connected(object sender, string deviceId)
+        void Detector_Connected(object sender, string deviceId)
         {
             if (this.connectedDevices.Find(d => d.Id == deviceId) != null) return;
 
             var device = new Device(deviceId);
             this.connectedDevices.Add(device);
+            this.susupendRequestedCount[deviceId] = 0;
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
             this.DeviceConnected(this, device);
 
@@ -79,7 +105,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        private void Detector_Disconnected(object sender, string deviceId)
+        void Detector_Disconnected(object sender, string deviceId)
         {
             var device = this.connectedDevices.Find(d => d.Id == deviceId);
             if (device == null) return;

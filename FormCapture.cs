@@ -182,11 +182,11 @@ namespace Suconbu.Sumacon
 
         void DeleteSelectedFile()
         {
-            var result = MessageBox.Show(
-                string.Format(Properties.Resources.DialogMessage_DeleteXFiles, this.selectedCapturedFileInfos.Count),
-                Properties.Resources.DialogTitle_DeleteFile,
-                MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
-            if (result != DialogResult.OK) return;
+            //var result = MessageBox.Show(
+            //    string.Format(Properties.Resources.DialogMessage_DeleteXFiles, this.selectedCapturedFileInfos.Count),
+            //    Properties.Resources.DialogTitle_DeleteFile,
+            //    MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            //if (result != DialogResult.OK) return;
 
             var removedFileInfos = this.selectedCapturedFileInfos.ToList();
             // 削除中に描画されないよう先にグリッドビューから消しとく
@@ -399,12 +399,13 @@ namespace Suconbu.Sumacon
                 {
                     this.captureContext = CaptureContext.StartSingleCapture(device, this.OnCaptured, this.OnFinished);
                 }
+                this.deviceManager.SuspendObserve(device);
             }
             else
             {
                 // 連続撮影中止
+                this.deviceManager.ResumeObserve(this.captureContext.Device);
                 this.captureContext.Stop();
-                this.captureContext = null;
             }
 
             this.UpdateControlState();
@@ -437,9 +438,14 @@ namespace Suconbu.Sumacon
 
         void OnFinished()
         {
+            var device = this.captureContext?.Device;
             this.captureContext?.Stop();
             this.captureContext = null;
-            this.SafeInvoke(() => this.UpdateControlState());
+            this.SafeInvoke(() =>
+            {
+                this.deviceManager.ResumeObserve(device);
+                this.UpdateControlState();
+            });
         }
 
         string SaveCaptureToFile(Bitmap bitmap)

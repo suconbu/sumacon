@@ -252,9 +252,11 @@ namespace Suconbu.Sumacon
                     this.SafeInvoke(() => this.OnRecordContextStateChanged(state));
                 });
                 this.timer.Start();
+                this.deviceManager.SuspendObserve(device);
             }
             else
             {
+                this.deviceManager.ResumeObserve(this.recordContext.Device);
                 this.timer.Stop();
                 this.recordContext.Stop();
             }
@@ -302,11 +304,15 @@ namespace Suconbu.Sumacon
             }
             else if (state == RecordContext.RecordState.Aborted)
             {
+                this.deviceManager.ResumeObserve(this.recordContext?.Device);
                 this.recordContext = null;
             }
             else if (state == RecordContext.RecordState.Finished)
             {
+                this.deviceManager.ResumeObserve(this.recordContext.Device);
+
                 this.fileInfos.Add(new FileInfo(this.recordContext.FilePath));
+
                 //TODO: これGridPanel側でできるようにしたい...
                 var rowCount = this.uxFileGridPanel.Rows.Count;
                 var lastBeforeRow = (rowCount >= 2) ? this.uxFileGridPanel.Rows[rowCount - 2] : null;

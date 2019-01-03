@@ -25,8 +25,6 @@ namespace Suconbu.Sumacon
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
 
-        readonly int observeIntervalMilliseconds = 300000;
-
         public FormMain()
         {
             InitializeComponent();
@@ -95,10 +93,6 @@ namespace Suconbu.Sumacon
             };
             this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
             {
-                previousActiveDevice?.StopObserve();
-                var activeDevice = this.deviceManager.ActiveDevice;
-                activeDevice?.StartObserve(this.observeIntervalMilliseconds);
-
                 this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
             };
         }

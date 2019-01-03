@@ -21,6 +21,7 @@ namespace Suconbu.Sumacon
     {
         public enum CaptureMode { Single, Continuous }
 
+        public Device Device { get; private set; }
         public CaptureMode Mode { get; private set; }
         public int RemainingCount
         {
@@ -34,7 +35,6 @@ namespace Suconbu.Sumacon
         }
         public int CapturedCount { get { return this.capturedCount; } }
 
-        Device device;
         CommandContext commandContext;
         ContinuousCaptureSetting continousSetting;
         DateTime startedAt;
@@ -48,7 +48,7 @@ namespace Suconbu.Sumacon
         public static CaptureContext StartSingleCapture(Device device, Action<Bitmap> onCaptured, Action onFinished)
         {
             var instance = new CaptureContext();
-            instance.device = device ?? throw new ArgumentNullException(nameof(device));
+            instance.Device = device ?? throw new ArgumentNullException(nameof(device));
             instance.Mode = CaptureMode.Single;
             instance.onCaptured = onCaptured;
             instance.onFinished = onFinished;
@@ -59,7 +59,7 @@ namespace Suconbu.Sumacon
         public static CaptureContext StartContinuousCapture(Device device, ContinuousCaptureSetting setting, Action<Bitmap> onCaptured, Action onFinished)
         {
             var instance = new CaptureContext();
-            instance.device = device ?? throw new ArgumentNullException(nameof(device));
+            instance.Device = device ?? throw new ArgumentNullException(nameof(device));
             instance.Mode = CaptureMode.Continuous;
             instance.continousSetting = setting;
             instance.onCaptured = onCaptured;
@@ -76,7 +76,7 @@ namespace Suconbu.Sumacon
         void RunCapture()
         {
             this.startedAt = DateTime.Now;
-            this.commandContext = this.device.Screen.CaptureAsync(this.ScreenCaptured);
+            this.commandContext = this.Device.Screen.CaptureAsync(this.ScreenCaptured);
             if (this.commandContext == null)
             {
                 this.onFinished();

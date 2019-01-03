@@ -25,6 +25,7 @@ namespace Suconbu.Sumacon
     {
         public enum RecordState { Recording, Pulling, Finished, Aborted }
 
+        public Device Device { get; private set; }
         public static int TimeLimitSecondsMax { get; } = 180;
         public RecordState State
         {
@@ -41,7 +42,6 @@ namespace Suconbu.Sumacon
         public DateTime StartedAt { get; private set; } = DateTime.MaxValue;
         public string FilePath { get; private set; }
 
-        Device device;
         RecordSetting setting;
         CommandContext recordCommandContext;
         CommandContext pullCommandContext;
@@ -59,7 +59,7 @@ namespace Suconbu.Sumacon
         public static RecordContext StartNew(Device device, RecordSetting setting, Action<RecordState> onStateChanged)
         {
             var instance = new RecordContext();
-            instance.device = device;
+            instance.Device = device;
             instance.setting = setting;
             instance.onStateChanged = onStateChanged;
             instance.StartRecord();
@@ -75,9 +75,9 @@ namespace Suconbu.Sumacon
                 Directory.CreateDirectory(this.setting.DirectoryPath);
             }
 
-            var size = this.device.ScreenSize;
-            if (this.device.CurrentRotation == Screen.RotationCode.Landscape ||
-                this.device.CurrentRotation == Screen.RotationCode.LandscapeReversed)
+            var size = this.Device.ScreenSize;
+            if (this.Device.CurrentRotation == Screen.RotationCode.Landscape ||
+                this.Device.CurrentRotation == Screen.RotationCode.LandscapeReversed)
             {
                 size = size.Swapped();
             }
@@ -95,7 +95,7 @@ namespace Suconbu.Sumacon
             {
                 option.Append($" --time-limit {this.setting.TimeLimitSeconds}");
             }
-            if(size != this.device.ScreenSize)
+            if(size != this.Device.ScreenSize)
             {
                 option.Append($" --size {size.Width}x{size.Height}");
             }
@@ -104,7 +104,7 @@ namespace Suconbu.Sumacon
             this.StartedAt = DateTime.Now;
 
             var command = $"shell screenrecord {option} {this.filePathInDevice}";
-            this.recordCommandContext = this.device.RunCommandOutputTextAsync(command, this.OnRecordCommandFinished);
+            this.recordCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnRecordCommandFinished);
         }
 
         public void Stop()
@@ -143,7 +143,7 @@ namespace Suconbu.Sumacon
             this.State = RecordState.Pulling;
 
             var command = $"pull {this.filePathInDevice} {this.filePathInPc}";
-            this.pullCommandContext = this.device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
+            this.pullCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
         }
 
         void OnPullCommandFinished(string output)
@@ -166,7 +166,7 @@ namespace Suconbu.Sumacon
             Debug.Assert(this.State == RecordState.Pulling);
 
             var command = $"shell rm {this.filePathInDevice}";
-            this.device.RunCommandAsync(command);
+            this.Device.RunCommandAsync(command);
 
             if(!File.Exists(this.filePathInPc))
             {
@@ -190,7 +190,7 @@ namespace Suconbu.Sumacon
                 { "height", size.Height.ToString() },
                 { "no", (this.setting.SequenceNo % 10000).ToString("0000") }
             };
-            pattern = this.device.ToString(pattern);
+            pattern = this.Device.ToString(pattern);
             return pattern.Replace(replacer, "-");
         }
 
