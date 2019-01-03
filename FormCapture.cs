@@ -517,29 +517,27 @@ namespace Suconbu.Sumacon
 
         string GetNextFileName()
         {
-            var device = this.deviceManager.ActiveDevice;
-            var name = this.uxPatternText.Text;
-            lock (this)
+            var now = DateTime.Now;
+            var replacer = new Dictionary<string, string>()
             {
-                name = name
-                    .Replace("{device-id}", device?.Id ?? "-")
-                    .Replace("{device-model}", device?.Model ?? "-")
-                    .Replace("{device-name}", device?.Name ?? "-")
-                    .Replace("{date}", DateTime.Now.ToString("yyyy-MM-dd"))
-                    .Replace("{time}", DateTime.Now.ToString("HHmmss"));
-                var mainNo = this.sequenceNo.ToString("0000");
-                if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
-                {
-                    var subNo = (this.captureContext.CapturedCount % (this.endOfSequenceNo + 1)).ToString("0000");
-                    name = name.Replace("{no}", $"{mainNo}-{subNo}");
-                }
-                else
-                {
-                    name = name.Replace("{no}", mainNo);
-                }
-                this.sequenceNo = ++this.sequenceNo > this.endOfSequenceNo ? this.startOfNo : this.sequenceNo;
+                { "date", now.ToString("yyyy-MM-dd") },
+                { "time", now.ToString("HHmmss") }
+            };
+            var mainNo = this.sequenceNo.ToString("0000");
+            if (this.captureContext != null && this.captureContext.Mode == CaptureContext.CaptureMode.Continuous)
+            {
+                var subNo = (this.captureContext.CapturedCount % (this.endOfSequenceNo + 1)).ToString("0000");
+                replacer["no"] = $"{mainNo}-{subNo}";
             }
-            return name;
+            else
+            {
+                replacer["no"] = mainNo;
+            }
+
+            this.sequenceNo = ++this.sequenceNo > this.endOfSequenceNo ? this.startOfNo : this.sequenceNo;
+
+            var pattern = this.deviceManager.ActiveDevice.ToString(this.uxPatternText.Text);
+            return pattern.Replace(replacer, "-");
         }
     }
 }

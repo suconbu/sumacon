@@ -60,7 +60,9 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Screen)]
         public bool AutoRotate { get { return this.Screen.AutoRotate; } set { this.Screen.AutoRotate = value; } }
         [Category(ComponentCategory.Screen)]
-        public Screen.UserRotationCode UserRotation { get { return this.Screen.UserRotation; } set { this.Screen.UserRotation = value; } }
+        public Screen.RotationCode UserRotation { get { return this.Screen.UserRotation; } set { this.Screen.UserRotation = value; } }
+        [Category(ComponentCategory.Screen)]
+        public Screen.RotationCode CurrentRotation { get { return this.Screen.CurrentRotation; } }
         [Category(ComponentCategory.Screen), Description("[s]")]
         public int OffTimeout { get { return this.Screen.OffTimeout / 1000; } set { this.Screen.OffTimeout = value * 1000; } }
 
@@ -126,20 +128,18 @@ namespace Suconbu.Mobile
 
         public string ToString(string format)
         {
-            return Regex.Replace(format, "{[^}]+}", match =>
+            var replacer = new Dictionary<string, string>()
             {
-                var s = match.Value;
-                return
-                    s == "{id}" ? this.Id :
-                    s == "{model}" ? this.Model :
-                    s == "{name}" ? this.Name :
-                    s == "{screen-width}" ? this.ScreenSize.Width.ToString() :
-                    s == "{screen-height}" ? this.ScreenSize.Height.ToString() :
-                    s == "{screen-density}" ? this.ScreenDensity.ToString() :
-                    s == "{battery-level}" ? ((int)this.ChargeLevel).ToString() :
-                    s == "{battery-status}" ? this.Status.ToString() :
-                    s;
-            });
+                { "device-id", this.Id},
+                { "device-model", this.Model},
+                { "device-name", this.Name},
+                { "screen-width", this.ScreenSize.Width.ToString()},
+                { "screen-height", this.ScreenSize.Height.ToString()},
+                { "screen-density", this.ScreenDensity.ToString()},
+                { "battery-level", ((int)this.ChargeLevel).ToString()},
+                { "battery-status", this.Status.ToString() }
+            };
+            return format.Replace(replacer);
         }
 
         void TimerElapsed()

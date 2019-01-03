@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="DeviceLabelFormat" xml:space="preserve">
-    <value>{model} ({name}) - {id}</value>
+    <value>{device-model} ({device-name}) - {device-id}</value>
   </data>
   <data name="DialogMessage_DeleteXFiles" xml:space="preserve">
     <value>Are you sure you want to delete {0} files?</value>
@@ -156,17 +156,26 @@
     <value>🔋 {battery-level} % ({battery-status})</value>
   </data>
   <data name="FormMain_StatusDeviceFormat" xml:space="preserve">
-    <value>{model} ({name})</value>
+    <value>{device-model} ({device-name})</value>
   </data>
   <data name="FormMain_StatusScreenFormat" xml:space="preserve">
     <value>{screen-width}x{screen-height} ({screen-density} dpi)</value>
+  </data>
+  <data name="FormRecord_ApproxFormat" xml:space="preserve">
+    <value>Approx\. 0 MB</value>
+  </data>
+  <data name="FormRecord_ButtonLabel_Recording" xml:space="preserve">
+    <value>Stop
+({0} sec.)</value>
   </data>
   <data name="FormRecord_ButtonLabel_Start" xml:space="preserve">
     <value>Record</value>
   </data>
   <data name="FormRecord_ButtonLabel_Stop" xml:space="preserve">
-    <value>Stop
-({0} sec.)</value>
+    <value>Stop</value>
+  </data>
+  <data name="FormRecord_DefaultFileNamePattern" xml:space="preserve">
+    <value>{device-model}_{date}_{time}_{width}x{height}_{no}.mp4</value>
   </data>
   <data name="FormShortcut_DirectoryPath" xml:space="preserve">
     <value>.\command</value>

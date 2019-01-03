@@ -5,5 +5,6 @@
   <property name="Brightness" type="Integer" pull="settings get system screen_brightness" pattern="(\d+)" push="settings put system screen_brightness {0}"/>
   <property name="AutoRotate" type="Integer" pull="settings get system accelerometer_rotation" pattern="(\d+)" push="settings put system accelerometer_rotation {0}"/>
   <property name="UserRotation" type="Integer" pull="settings get system user_rotation" pattern="(\d+)" push="settings put system user_rotation {0}"/>
+  <property name="CurrentRotation" type="Integer" pull="dumpsys display | grep mDefaultViewport" pattern="orientation=(\d+)"/>
   <property name="OffTimeout" type="Integer" pull="settings get system screen_off_timeout" pattern="(\d+)" push="settings put system screen_off_timeout {0}"/>
 </root>

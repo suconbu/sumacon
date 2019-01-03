@@ -61,7 +61,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {model} ({name}) - {id} に類似しているローカライズされた文字列を検索します。
+        ///   {device-model} ({device-name}) - {device-id} に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string DeviceLabelFormat {
             get {
@@ -159,7 +159,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {model} ({name}) に類似しているローカライズされた文字列を検索します。
+        ///   {device-model} ({device-name}) に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormMain_StatusDeviceFormat {
             get {
@@ -177,6 +177,25 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   Approx\. 0 MB に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_ApproxFormat {
+            get {
+                return ResourceManager.GetString("FormRecord_ApproxFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Stop
+        ///({0} sec.) に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_ButtonLabel_Recording {
+            get {
+                return ResourceManager.GetString("FormRecord_ButtonLabel_Recording", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Record に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormRecord_ButtonLabel_Start {
@@ -186,12 +205,20 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   Stop
-        ///({0} sec.) に類似しているローカライズされた文字列を検索します。
+        ///   Stop に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormRecord_ButtonLabel_Stop {
             get {
                 return ResourceManager.GetString("FormRecord_ButtonLabel_Stop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {device-model}_{date}_{time}_{width}x{height}_{no}.mp4 に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormRecord_DefaultFileNamePattern {
+            get {
+                return ResourceManager.GetString("FormRecord_DefaultFileNamePattern", resourceCulture);
             }
         }
         

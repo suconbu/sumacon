@@ -8,7 +8,7 @@ namespace Suconbu.Mobile
 {
     public class Screen : DeviceComponentBase
     {
-        public enum UserRotationCode { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
+        public enum RotationCode { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
 
         public Size Size
         {
@@ -30,10 +30,15 @@ namespace Suconbu.Mobile
             get { return (int)this.propertyGroup[nameof(this.AutoRotate)].Value != 0; }
             set { this.SetAndPushValue(nameof(this.AutoRotate), value ? 1 : 0); }
         }
-        public UserRotationCode UserRotation
+        public RotationCode UserRotation
         {
-            get { return (UserRotationCode)this.propertyGroup[nameof(this.UserRotation)].Value; }
+            get { return (RotationCode)this.propertyGroup[nameof(this.UserRotation)].Value; }
             set { this.SetAndPushValue(nameof(this.UserRotation), (int)value); }
+        }
+        public RotationCode CurrentRotation
+        {
+            get { return (RotationCode)this.propertyGroup[nameof(this.CurrentRotation)].Value; }
+            set { this.SetAndPushValue(nameof(this.CurrentRotation), (int)value); }
         }
         public int OffTimeout
         {
