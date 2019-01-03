@@ -38,6 +38,7 @@ namespace Suconbu.Sumacon
 
         public FormCapture(DeviceManager deviceManager)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.deviceManager = deviceManager;
@@ -95,6 +96,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnLoad(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
             this.UpdateControlState();
@@ -383,7 +385,9 @@ namespace Suconbu.Sumacon
 
         void UxStartButton_Click(object sender, EventArgs e)
         {
-            if(this.captureContext == null || this.captureContext.Mode == CaptureContext.CaptureMode.Single)
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+
+            if (this.captureContext == null || this.captureContext.Mode == CaptureContext.CaptureMode.Single)
             {
                 var device = this.deviceManager.ActiveDevice;
                 if (device == null) return;

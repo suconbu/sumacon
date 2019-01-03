@@ -27,6 +27,7 @@ namespace Suconbu.Sumacon
 
         public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.deviceManager = deviceManager;
@@ -48,6 +49,8 @@ namespace Suconbu.Sumacon
         {
             if(Keys.F1 <= e.KeyCode && e.KeyCode <= Keys.F24)
             {
+                Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {e.KeyCode}");
+
                 var keyName = e.KeyCode.ToString();
                 if (this.commandSets.TryGetValue(keyName, out var command))
                 {
@@ -58,6 +61,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnLoad(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
             this.SetupList();

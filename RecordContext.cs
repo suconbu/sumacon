@@ -68,7 +68,7 @@ namespace Suconbu.Sumacon
 
         void StartRecord()
         {
-            Debug.Print(Util.GetCurrentMethodName(true));
+            Debug.Print(Util.GetCurrentMethodName());
 
             if (!Directory.Exists(this.setting.DirectoryPath))
             {

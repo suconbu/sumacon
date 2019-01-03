@@ -26,6 +26,7 @@ namespace Suconbu.Mobile
         /// </summary>
         public virtual CommandContext PullAsync()
         {
+            Trace.TraceInformation($"{Util.GetCurrentMethodName()} - Name:{this.Name}");
             return CommandContext.StartNew(() =>
             {
                 Parallel.ForEach(this.propertyGroup.Properties, property =>
@@ -49,6 +50,7 @@ namespace Suconbu.Mobile
         /// </summary>
         public CommandContext ResetAsync(string propertyName = null)
         {
+            Trace.TraceInformation($"{Util.GetCurrentMethodName()} - Name:{this.Name} propertyName:{propertyName}");
             if (!string.IsNullOrEmpty(propertyName))
             {
                 return this.propertyGroup.Properties.Find(p => p.Name == propertyName)?.ResetAsync(this.device);

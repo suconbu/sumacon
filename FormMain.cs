@@ -27,6 +27,7 @@ namespace Suconbu.Sumacon
 
         public FormMain()
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.KeyPreview = true;
@@ -37,6 +38,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnLoad(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
             this.dockPanel = new DockPanel();
@@ -64,6 +66,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
             this.deviceManager.Dispose();
         }
@@ -80,11 +83,6 @@ namespace Suconbu.Sumacon
             this.deviceManager = new DeviceManager();
             this.deviceManager.PropertyChanged += (s, properties) =>
             {
-                Trace.TraceInformation("PropertyChanged");
-                Trace.Indent();
-                foreach (var p in properties) Trace.TraceInformation(p.ToString());
-                Trace.Unindent();
-
                 this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
             };
             this.deviceManager.ConnectedDevicesChanged += (s, ee) =>

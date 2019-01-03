@@ -22,6 +22,7 @@ namespace Suconbu.Sumacon
                 FileNameFormat = "{0:yyyy-MM-dd}_{1:0000}.log",
                 DatetimeFormat = "{0:yyyy-MM-dd HH:mm:ss.fff}:"
             });
+            Trace.TraceInformation("-------------------- Start --------------------");
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());

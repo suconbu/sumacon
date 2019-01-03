@@ -33,6 +33,7 @@ namespace Suconbu.Sumacon
 
         public FormRecord(DeviceManager deviceManager)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.deviceManager = deviceManager;
@@ -104,8 +105,17 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnLoad(e);
+
+            this.UpdateControlState();
+        }
+
         protected override void OnShown(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnShown(e);
 
             this.uxSplitContainer.SplitterDistance = 450;
@@ -233,15 +243,10 @@ namespace Suconbu.Sumacon
             return column;
         }
 
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
-
-            this.UpdateControlState();
-        }
-
         private void UxStartButton_Click(object sender, EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+
             if (this.recordContext == null)
             {
                 var device = this.deviceManager.ActiveDevice;

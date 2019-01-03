@@ -21,6 +21,7 @@ namespace Suconbu.Sumacon
 
         public FormProperty(DeviceManager deviceManager)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.deviceManager = deviceManager;

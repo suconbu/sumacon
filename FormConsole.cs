@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -21,6 +22,7 @@ namespace Suconbu.Sumacon
 
         public FormConsole(DeviceManager deviceManager, CommandReceiver commandReceiver)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
             this.commandReceiver = commandReceiver;
@@ -51,6 +53,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnLoad(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
             this.uxInputCombo.Font = new Font(Properties.Resources.MonospaceFontName, this.uxInputCombo.Font.Size);

@@ -2,6 +2,7 @@
 using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -123,6 +124,9 @@ namespace Suconbu.Sumacon
 
         void DeviceComponent_PropertyChanged(object sender, IReadOnlyList<Property> properties)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            foreach (var p in properties) Trace.TraceInformation($"- {p.ToString()}");
+
             this.PropertyChanged(sender, properties);
         }
 
