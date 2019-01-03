@@ -29,18 +29,13 @@ namespace Suconbu.Mobile
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - Name:{this.Name}");
             return CommandContext.StartNew(() =>
             {
-                Parallel.ForEach(this.propertyGroup.Properties, property =>
+                foreach(var property in this.propertyGroup.Properties)
                 {
                     if (!property.Pushing)
                     {
-                        var latest = property.Value?.ToString();
-                        property.PullAsync(this.device).Wait();
-                        if (latest != property.Value?.ToString())
-                        {
-                            this.OnPropertyChanged(new List<Property>() { property });
-                        }
+                        property.PullAsync(this.device, this.OnPullFinished);
                     }
-                });
+                }
             });
         }
 
@@ -83,6 +78,14 @@ namespace Suconbu.Mobile
         protected void OnPropertyChanged(List<Property> properties)
         {
             this.PropertyChanged(this, properties);
+        }
+
+        void OnPullFinished(object sender, bool valueChanged)
+        {
+            if (valueChanged)
+            {
+                this.OnPropertyChanged(new List<Property>() { sender as Property });
+            }
         }
     }
 }

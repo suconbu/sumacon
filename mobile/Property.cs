@@ -1,4 +1,5 @@
 ﻿using Suconbu.Toolbox;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -93,13 +94,14 @@ namespace Suconbu.Mobile
                 this.internalValue;
         }
 
-        public CommandContext PullAsync(Device device)
+        public CommandContext PullAsync(Device device, EventHandler<bool> onFinished = null)
         {
             return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {this.PullCommand}", output =>
             {
-                if (this.TrySetValueFromString(output.Trim()))
+                var previous = this.Value.ToString();
+                if(this.TrySetValueFromString(output.Trim()))
                 {
-                    this.OriginalValue = this.internalValue;
+                    onFinished?.Invoke(this, previous != this.Value.ToString());
                 }
             });
         }
