@@ -68,29 +68,31 @@ namespace Suconbu.Mobile
 
         public Battery(Device device, string xmlPath) : base(device, xmlPath) { }
 
-        /// <summary>
-        /// すべてのプロパティを最新の値に更新します。
-        /// </summary>
-        public override CommandContext PullAsync()
-        {
-            var changedProperties = new List<Property>();
-            return this.device.RunCommandAsync("shell dumpsys battery", output =>
-            {
-                if (output == null)
-                {
-                    if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
-                    return;
-                }
+        ///// <summary>
+        ///// すべてのプロパティを最新の値に更新します。
+        ///// </summary>
+        //public override CommandContext PullAsync()
+        //{
+        //    base.PullAsync();
 
-                this.propertyGroup.Properties.ForEach(p =>
-                {
-                    var latest = p.Value?.ToString();
-                    if(p.TrySetValueFromString(output.Trim()))
-                    {
-                        if (latest != p.Value?.ToString()) changedProperties.Add(p);
-                    }
-                });
-            });
-        }
+        //    var changedProperties = new List<Property>();
+        //    return this.device.RunCommandAsync("shell dumpsys battery", output =>
+        //    {
+        //        if (output == null)
+        //        {
+        //            if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
+        //            return;
+        //        }
+
+        //        this.propertyGroup.Properties.ForEach(p =>
+        //        {
+        //            var latest = p.Value?.ToString();
+        //            if(p.TrySetValueFromString(output.Trim()))
+        //            {
+        //                if (latest != p.Value?.ToString()) changedProperties.Add(p);
+        //            }
+        //        });
+        //    });
+        //}
     }
 }

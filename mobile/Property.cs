@@ -14,8 +14,8 @@ namespace Suconbu.Mobile
     {
         [XmlAttribute("name")]
         public string Name;
-        [XmlAttribute("prefix")]
-        public string CommandPrefix;
+        [XmlAttribute("pull")]
+        public string PullCommand;
         [XmlElement("property")]
         public List<Property> Properties;
 
@@ -27,7 +27,6 @@ namespace Suconbu.Mobile
                 var group = serializer.Deserialize(reader) as PropertyGroup;
                 group.Properties.ForEach(p =>
                 {
-                    p.CommandPrefix = group.CommandPrefix;
                     p.InitializeValue();
                 });
                 return group;
@@ -74,8 +73,6 @@ namespace Suconbu.Mobile
         public object OriginalValue { get; private set; }
         [XmlIgnore]
         public bool Overridden { get; private set; }
-        [XmlIgnore]
-        public string CommandPrefix { get; internal set; }
         // PushAsyncを呼び出した後、値がデバイスに反映されるまでの間はtrue
         [XmlIgnore]
         public bool Pushing { get; private set; }
@@ -96,7 +93,9 @@ namespace Suconbu.Mobile
 
         public CommandContext PullAsync(Device device, EventHandler<bool> onFinished = null)
         {
-            return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {this.PullCommand}", output =>
+            if (string.IsNullOrEmpty(this.PullCommand)) return null;
+
+            return device.RunCommandOutputTextAsync(this.PullCommand, output =>
             {
                 var previous = this.Value.ToString();
                 if(this.TrySetValueFromString(output.Trim()))
@@ -106,9 +105,9 @@ namespace Suconbu.Mobile
             });
         }
 
-        public CommandContext PushAsync(Device device, bool force = false)
+        public CommandContext PushAsync(Device device)
         {
-            if (!force && this.Value?.ToString() == this.OriginalValue?.ToString()) return null;
+            if (string.IsNullOrEmpty(this.PushCommand)) return null;
 
             this.Pushing = true;
 
@@ -127,7 +126,7 @@ namespace Suconbu.Mobile
             {
                 command = string.Format(this.PushCommand, this.internalValue.ToString());
             }
-            return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {command}", output => this.Pushing = false);
+            return device.RunCommandOutputTextAsync(command, output => this.Pushing = false);
         }
 
         public CommandContext ResetAsync(Device device)
@@ -135,7 +134,7 @@ namespace Suconbu.Mobile
             if (!string.IsNullOrEmpty(this.ResetCommand))
             {
                 this.Overridden = false;
-                return device.RunCommandOutputTextAsync($"{this.CommandPrefix} {this.ResetCommand}", output =>
+                return device.RunCommandOutputTextAsync(this.ResetCommand, output =>
                 {
                     this.PullAsync(device).Wait();
                 });

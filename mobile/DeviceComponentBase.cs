@@ -1,5 +1,6 @@
 ﻿using Suconbu.Toolbox;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -29,7 +30,11 @@ namespace Suconbu.Mobile
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - Name:{this.Name}");
             return CommandContext.StartNew(() =>
             {
-                foreach(var property in this.propertyGroup.Properties)
+                // グループ一括
+                this.PullGroupAsync();
+
+                // 個別
+                foreach (var property in this.propertyGroup.Properties)
                 {
                     if (!property.Pushing)
                     {
@@ -78,6 +83,34 @@ namespace Suconbu.Mobile
         protected void OnPropertyChanged(List<Property> properties)
         {
             this.PropertyChanged(this, properties);
+        }
+
+        CommandContext PullGroupAsync()
+        {
+            if (string.IsNullOrEmpty(this.propertyGroup.PullCommand)) return null;
+
+            var changedProperties = new List<Property>();
+            return this.device.RunCommandAsync(this.propertyGroup.PullCommand, output =>
+            {
+                if (output == null)
+                {
+                    if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
+                    return;
+                }
+
+                foreach(var p in this.propertyGroup.Properties)
+                {
+                    // 個別のpullコマンドを持ってたらそれにお任せするのでここでは対象外
+                    if (string.IsNullOrEmpty(p.PullCommand))
+                    {
+                        var previous = p.Value?.ToString();
+                        if (p.TrySetValueFromString(output.Trim()))
+                        {
+                            if (previous != p.Value?.ToString()) changedProperties.Add(p);
+                        }
+                    }
+                }
+            });
         }
 
         void OnPullFinished(object sender, bool valueChanged)
