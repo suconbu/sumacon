@@ -61,7 +61,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {device-model} ({device-name}) - {device-id} に類似しているローカライズされた文字列を検索します。
+        ///   {device-id} - {device-model} ({device-name}) に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string DeviceLabelFormat {
             get {
