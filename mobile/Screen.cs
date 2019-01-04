@@ -62,13 +62,16 @@ namespace Suconbu.Mobile
             return this.device.RunCommandOutputBinaryAsync("shell screencap -p", stream =>
             {
                 Bitmap bitmap = null;
-                try
+                if (stream != null)
                 {
-                    bitmap = Image.FromStream(stream) as Bitmap;
-                }
-                catch (Exception ex)
-                {
-                    Trace.TraceError(ex.ToString());
+                    try
+                    {
+                        bitmap = Image.FromStream(stream) as Bitmap;
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.TraceError(ex.ToString());
+                    }
                 }
                 onCaptured?.Invoke(bitmap);
             });

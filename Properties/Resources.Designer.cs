@@ -194,7 +194,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   Reset &apos;{0}&apos; to {1} に類似しているローカライズされた文字列を検索します。
+        ///   Reset &apos;{0}&apos; に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormProperty_MenuItemLabel_ResetOne {
             get {

@@ -16,6 +16,8 @@ namespace Suconbu.Mobile
         protected readonly Device device;
         protected readonly PropertyGroup propertyGroup;
 
+        readonly HashSet<string> pushing = new HashSet<string>();
+
         public DeviceComponentBase(Device device, string xmlPath)
         {
             this.device = device;
@@ -36,7 +38,7 @@ namespace Suconbu.Mobile
                 // 個別
                 foreach (var property in this.propertyGroup.Properties)
                 {
-                    if (!property.Pushing)
+                    if (!this.pushing.Contains(property.Name))
                     {
                         property.PullAsync(this.device, this.OnPullFinished);
                     }
@@ -74,8 +76,9 @@ namespace Suconbu.Mobile
             var property = this.propertyGroup[name];
             if (property != null && property.Value?.ToString() != value?.ToString())
             {
+                this.pushing.Add(property.Name);
                 property.Value = value;
-                property.PushAsync(this.device);
+                property.PushAsync(this.device, this.OnPushFinished);
                 this.OnPropertyChanged(new List<Property>() { property });
             }
         }
@@ -101,7 +104,7 @@ namespace Suconbu.Mobile
                 foreach(var p in this.propertyGroup.Properties)
                 {
                     // 個別のpullコマンドを持ってたらそれにお任せするのでここでは対象外
-                    if (string.IsNullOrEmpty(p.PullCommand))
+                    if (string.IsNullOrEmpty(p.PullCommand) && !this.pushing.Contains(p.Name))
                     {
                         var previous = p.Value?.ToString();
                         if (p.TrySetValueFromString(output.Trim()))
@@ -119,6 +122,12 @@ namespace Suconbu.Mobile
             {
                 this.OnPropertyChanged(new List<Property>() { sender as Property });
             }
+        }
+
+        void OnPushFinished(object sender, EventArgs e)
+        {
+            var property = sender as Property;
+            this.pushing.Add(property.Name);
         }
     }
 }

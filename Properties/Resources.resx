@@ -167,7 +167,7 @@
     <value>Reset '{0}' properties</value>
   </data>
   <data name="FormProperty_MenuItemLabel_ResetOne" xml:space="preserve">
-    <value>Reset '{0}' to {1}</value>
+    <value>Reset '{0}'</value>
   </data>
   <data name="FormRecord_ApproxFormat" xml:space="preserve">
     <value>Approx\. 0 MB</value>

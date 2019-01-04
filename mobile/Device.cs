@@ -42,9 +42,9 @@ namespace Suconbu.Mobile
         public Battery.StatusCode Status { get { return this.Battery.Status; } set { this.Battery.Status = value; } }
         [Category(ComponentCategory.Battery)]
         public Battery.HealthCode Health { get { return this.Battery.Health; } }
-        [Category(ComponentCategory.Battery), Description("[V]")]
+        [Category(ComponentCategory.Battery), Description("(V)")]
         public float Voltage { get { return this.Battery.Voltage / 1000.0f; } }
-        [Category(ComponentCategory.Battery), Description("[℃]")]
+        [Category(ComponentCategory.Battery), Description("(℃)")]
         public float Temperature { get { return this.Battery.Temperature / 10.0f; } }
         [Category(ComponentCategory.Battery)]
         public int ChargeCounter { get { return this.Battery.ChargeCounter; } }
@@ -58,11 +58,11 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Screen)]
         public string ScreenDensityClass { get { return this.Screen.DensityClass; } }
         [Category(ComponentCategory.Screen)]
-        public Size PhysicalDpi { get { return this.Screen.Dpi; } }
-        [Category(ComponentCategory.Screen)]
-        public SizeF ScreenInchSize { get { return new SizeF((float)this.Screen.Size.Width / this.Screen.Dpi.Width, (float)this.Screen.Size.Height / this.Screen.Dpi.Height); } }
-        [Category(ComponentCategory.Screen)]
-        public float ScreenInchLength { get { return (float)Math.Sqrt(this.ScreenInchSize.Width * this.ScreenInchSize.Width + this.ScreenInchSize.Height * this.ScreenInchSize.Height); } }
+        public Size PhysicalScreenDpi { get { return this.Screen.Dpi; } }
+        [Category(ComponentCategory.Screen), Description("Width/Height (inch)")]
+        public SizeF PhysicalScreenSize { get { return new SizeF((float)this.Screen.Size.Width / this.Screen.Dpi.Width, (float)this.Screen.Size.Height / this.Screen.Dpi.Height); } }
+        [Category(ComponentCategory.Screen), Description("Diagonal length (inch)")]
+        public float PhysicalScreenLength { get { return (float)Math.Sqrt(this.PhysicalScreenSize.Width * this.PhysicalScreenSize.Width + this.PhysicalScreenSize.Height * this.PhysicalScreenSize.Height); } }
         [Category(ComponentCategory.Screen), Description("0-255")]
         public int Brightness { get { return this.Screen.Brightness; } set { this.Screen.Brightness = value; } }
         [Category(ComponentCategory.Screen)]
@@ -161,12 +161,6 @@ namespace Suconbu.Mobile
         public virtual void Dispose()
         {
             if (this.disposed) return;
-
-            foreach (var component in this.Components)
-            {
-                component.ResetAsync();
-            }
-
             this.disposed = true;
         }
         #endregion

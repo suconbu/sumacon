@@ -81,7 +81,6 @@ namespace Suconbu.Sumacon
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
-
             this.shortcutForm.NotifyKeyDown(e);
         }
 

@@ -74,8 +74,8 @@ namespace Suconbu.Mobile
         [XmlIgnore]
         public bool Overridden { get; private set; }
         // PushAsyncを呼び出した後、値がデバイスに反映されるまでの間はtrue
-        [XmlIgnore]
-        public bool Pushing { get; private set; }
+        //[XmlIgnore]
+        //public bool Pushing { get; private set; }
 
         object internalValue;
 
@@ -105,11 +105,10 @@ namespace Suconbu.Mobile
             });
         }
 
-        public CommandContext PushAsync(Device device)
+        public CommandContext PushAsync(Device device, EventHandler onFinished = null)
         {
             if (string.IsNullOrEmpty(this.PushCommand)) return null;
-
-            this.Pushing = true;
+            if (this.internalValue == null) return null;
 
             string command;
             if (this.Type == DataType.Size)
@@ -126,7 +125,7 @@ namespace Suconbu.Mobile
             {
                 command = string.Format(this.PushCommand, this.internalValue.ToString());
             }
-            return device.RunCommandOutputTextAsync(command, output => this.Pushing = false);
+            return device.RunCommandOutputTextAsync(command, output => onFinished?.Invoke(this, EventArgs.Empty));
         }
 
         public CommandContext ResetAsync(Device device)

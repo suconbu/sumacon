@@ -58,8 +58,7 @@ namespace Suconbu.Sumacon
             var resetAllMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
                 var device = this.deviceManager.ActiveDevice;
-                if (device == null) return;
-                foreach (var component in device.Components)
+                foreach (var component in device.Components.OrEmptyIfNull())
                 {
                     component.ResetAsync();
                 }
@@ -80,21 +79,17 @@ namespace Suconbu.Sumacon
                 var findLabel = label.StartsWith(component.Name) ? label.Substring(component.Name.Length) : label;
                 var property = component?.Find(findLabel);
 
-                if(property != null)
+                resetPropertyMenuItem.Enabled = (property != null && property.PushCommand != null);
+                resetPropertyMenuItem.Text = string.Format(Properties.Resources.FormProperty_MenuItemLabel_ResetOne, label);
+                if(resetPropertyMenuItem.Enabled)
                 {
-                    resetPropertyMenuItem.Enabled = (property.PushCommand != null);
-                    resetPropertyMenuItem.Text = string.Format(
-                        Properties.Resources.FormProperty_MenuItemLabel_ResetOne, label, property.OriginalValue.ToString());
+                    resetPropertyMenuItem.Text += $" (={property.OriginalValue.ToString()})";
                 }
-                else
-                {
-                    resetPropertyMenuItem.Visible = false;
-                    resetPropertyMenuItem.Text = string.Empty;
 
-                }
                 resetCategoryMenuItem.Enabled = (component != null);
                 resetCategoryMenuItem.Text = string.Format(
                     Properties.Resources.FormProperty_MenuItemLabel_ResetGroup, category);
+
                 resetAllMenuItem.Text = Properties.Resources.FormProperty_MenuItemLabel_ResetAll;
             };
 

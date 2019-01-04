@@ -85,7 +85,7 @@
       <DependentUpon>FormRecord.cs</DependentUpon>
     </Compile>
     <Compile Include="mobile\Battery.cs" />
-    <Compile Include="CommandContext.cs" />
+    <Compile Include="mobile\CommandContext.cs" />
     <Compile Include="mobile\DeviceComponentBase.cs" />
     <Compile Include="mobile\Device.cs" />
     <Compile Include="mobile\DeviceDetector.cs" />

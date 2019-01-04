@@ -17,6 +17,7 @@ namespace Suconbu.Toolbox
         Task task;
         Process process;
         StringBuilder outputBuffer;
+        bool finished;
 
         /// <summary>
         /// 標準出力、標準エラーを逐次出力します。
@@ -112,6 +113,7 @@ namespace Suconbu.Toolbox
                     {
                         instance.process?.CancelOutputRead();
                         instance.process?.CancelErrorRead();
+                        instance.finished = true;
                         onFinished?.Invoke(instance);
                     }
                 };
@@ -125,7 +127,11 @@ namespace Suconbu.Toolbox
             }
             else
             {
-                instance.task = Task.Run(() => onFinished(instance));
+                instance.task = Task.Run(() =>
+                {
+                    instance.finished = true;
+                    onFinished(instance);
+                });
             }
 
             return instance;
@@ -154,7 +160,10 @@ namespace Suconbu.Toolbox
 
         public void Cancel()
         {
-            this.process?.Kill();
+            if (!finished)
+            {
+                this.process?.Kill();
+            }
             this.process = null;
             this.task = null;
         }
