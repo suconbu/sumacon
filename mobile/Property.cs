@@ -136,7 +136,7 @@ namespace Suconbu.Mobile
                 this.Overridden = false;
                 return device.RunCommandOutputTextAsync(this.ResetCommand, output =>
                 {
-                    this.PullAsync(device).Wait();
+                    this.PullAsync(device)?.Wait();
                 });
             }
             else
