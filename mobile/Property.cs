@@ -152,9 +152,11 @@ namespace Suconbu.Mobile
             if (!match.Success) return false;
 
             this.internalValue =
-                (this.Type == DataType.Size) ? new Size(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value)) :
+                (this.Type == DataType.Size) ? new Size(
+                    (int)Math.Round(double.Parse(match.Groups[1].Value)),
+                    (int)Math.Round(double.Parse(match.Groups[2].Value))) :
                 (this.Type == DataType.Bool) ? bool.Parse(match.Groups[1].Value) :
-                (this.Type == DataType.Integer) ? int.Parse(match.Groups[1].Value) :
+                (this.Type == DataType.Integer) ? (int)Math.Round(double.Parse(match.Groups[1].Value)) :
                 (this.Type == DataType.String) ? match.Groups[1].Value :
                 this.internalValue;
             this.OriginalValue = this.OriginalValue ?? this.internalValue;

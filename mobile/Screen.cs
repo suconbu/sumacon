@@ -20,6 +20,15 @@ namespace Suconbu.Mobile
             get { return (int)this.propertyGroup[nameof(this.Density)].Value; }
             set { this.SetAndPushValue(nameof(this.Density), value); }
         }
+        public string DensityClass
+        {
+            get { return this.GetDensityClass(this.Density); }
+        }
+        public Size Dpi
+        {
+            get { return (Size)this.propertyGroup[nameof(this.Dpi)].Value; }
+            set { this.SetAndPushValue(nameof(this.Dpi), value); }
+        }
         public int Brightness
         {
             get { return (int)this.propertyGroup[nameof(this.Brightness)].Value; }
@@ -68,6 +77,25 @@ namespace Suconbu.Mobile
         public CommandContext CaptureIntoDeviceAsync(string saveTo, Action<string> onCaptured)
         {
             return this.device.RunCommandOutputTextAsync($"shell screencap -p > {saveTo}", output => onCaptured(saveTo));
+        }
+
+        string GetDensityClass(int density)
+        {
+            var classes = new Dictionary<int,string>()
+            {
+                { 120, "ldpi" },
+                { 160, "mdpi" },
+                { 213, "tvdpi" },
+                { 240, "hdpi" },
+                { 320, "xhdpi" },
+                { 480, "xxhdpi" },
+                { 640, "xxxhdpi" },
+            };
+            if(!classes.TryGetValue(density, out var name))
+            {
+                name = $"{density}dpi";
+            }
+            return name;
         }
     }
 }

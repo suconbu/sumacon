@@ -160,6 +160,15 @@
   <data name="FormMain_StatusScreenFormat" xml:space="preserve">
     <value>{screen-width}x{screen-height} ({screen-density} dpi)</value>
   </data>
+  <data name="FormProperty_MenuItemLabel_ResetAll" xml:space="preserve">
+    <value>Reset ALL properties</value>
+  </data>
+  <data name="FormProperty_MenuItemLabel_ResetGroup" xml:space="preserve">
+    <value>Reset '{0}' properties</value>
+  </data>
+  <data name="FormProperty_MenuItemLabel_ResetOne" xml:space="preserve">
+    <value>Reset '{0}' to {1}</value>
+  </data>
   <data name="FormRecord_ApproxFormat" xml:space="preserve">
     <value>Approx\. 0 MB</value>
     <comment>ToString</comment>

@@ -37,7 +37,7 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Battery)]
         public bool WirelessPowered { get { return this.Battery.WirelessPowered; } set { this.Battery.WirelessPowered = value; } }
         [Category(ComponentCategory.Battery), Description("0-100")]
-        public float ChargeLevel { get { return 100.0f * this.Battery.Level / this.Battery.Scale; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
+        public float BatteryLevel { get { return 100.0f * this.Battery.Level / this.Battery.Scale; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
         [Category(ComponentCategory.Battery)]
         public Battery.StatusCode Status { get { return this.Battery.Status; } set { this.Battery.Status = value; } }
         [Category(ComponentCategory.Battery)]
@@ -55,6 +55,14 @@ namespace Suconbu.Mobile
         public Size ScreenSize { get { return this.Screen.Size; } set { this.Screen.Size = value; } }
         [Category(ComponentCategory.Screen)]
         public int ScreenDensity { get { return this.Screen.Density; } set { this.Screen.Density = value; } }
+        [Category(ComponentCategory.Screen)]
+        public string ScreenDensityClass { get { return this.Screen.DensityClass; } }
+        [Category(ComponentCategory.Screen)]
+        public Size PhysicalDpi { get { return this.Screen.Dpi; } }
+        [Category(ComponentCategory.Screen)]
+        public SizeF ScreenInchSize { get { return new SizeF((float)this.Screen.Size.Width / this.Screen.Dpi.Width, (float)this.Screen.Size.Height / this.Screen.Dpi.Height); } }
+        [Category(ComponentCategory.Screen)]
+        public float ScreenInchLength { get { return (float)Math.Sqrt(this.ScreenInchSize.Width * this.ScreenInchSize.Width + this.ScreenInchSize.Height * this.ScreenInchSize.Height); } }
         [Category(ComponentCategory.Screen), Description("0-255")]
         public int Brightness { get { return this.Screen.Brightness; } set { this.Screen.Brightness = value; } }
         [Category(ComponentCategory.Screen)]
@@ -134,7 +142,7 @@ namespace Suconbu.Mobile
                 { "screen-width", this.ScreenSize.Width.ToString()},
                 { "screen-height", this.ScreenSize.Height.ToString()},
                 { "screen-density", this.ScreenDensity.ToString()},
-                { "battery-level", ((int)this.ChargeLevel).ToString()},
+                { "battery-level", ((int)this.BatteryLevel).ToString()},
                 { "battery-status", this.Status.ToString() }
             };
             return format.Replace(replacer);

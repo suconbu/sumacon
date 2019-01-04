@@ -2,6 +2,7 @@
 <root name="Screen" pull="shell dumpsys display">
   <property name="Size" type="Size" pattern="PhysicalDisplayInfo{(\d+) x (\d+)" push="shell wm size {0}x{1}" reset="shell wm size reset"/>
   <property name="Density" type="Integer" pattern="DisplayDeviceInfo.+density (\d+)" push="shell wm density {0}" reset="shell wm density reset"/>
+  <property name="Dpi" type="Size" pattern="PhysicalDisplayInfo.+, ([\d\.]+) x ([\d\.]+) dpi"/>
   <property name="Brightness" type="Integer" pattern="mPowerRequest=.+screenBrightness=(\d+)" push="shell settings put system screen_brightness {0}"/>
   <property name="AutoBrightness" type="Bool" pattern="mPowerRequest=.+useAutoBrightness=(\w+)"/>
   <property name="AutoRotate" type="Integer" pull="shell settings get system accelerometer_rotation" pattern="(\d+)" push="shell settings put system accelerometer_rotation {0}"/>

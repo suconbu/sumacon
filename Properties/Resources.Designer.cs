@@ -176,6 +176,33 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   Reset ALL properties に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormProperty_MenuItemLabel_ResetAll {
+            get {
+                return ResourceManager.GetString("FormProperty_MenuItemLabel_ResetAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Reset &apos;{0}&apos; properties に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormProperty_MenuItemLabel_ResetGroup {
+            get {
+                return ResourceManager.GetString("FormProperty_MenuItemLabel_ResetGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Reset &apos;{0}&apos; to {1} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string FormProperty_MenuItemLabel_ResetOne {
+            get {
+                return ResourceManager.GetString("FormProperty_MenuItemLabel_ResetOne", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Approx\. 0 MB に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormRecord_ApproxFormat {
