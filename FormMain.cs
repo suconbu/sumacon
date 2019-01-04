@@ -21,6 +21,8 @@ namespace Suconbu.Sumacon
         FormRecord recordForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripItem deviceInfoLabel;
+        ToolStripItem memoryInfoLabel;
+        Timer memoryTimer = new Timer() { Interval = 1000 };
 
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
@@ -49,6 +51,8 @@ namespace Suconbu.Sumacon
             this.deviceDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
             this.statusStrip1.Items.Add(this.deviceDropDown);
             this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
+            this.statusStrip1.Items.Add(new ToolStripStatusLabel() { Spring = true });
+            this.memoryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
 
             this.consoleForm = new FormConsole(this.deviceManager, this.commandReceiver);
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
@@ -62,6 +66,9 @@ namespace Suconbu.Sumacon
             this.recordForm.Show(this.dockPanel, DockState.Document);
 
             this.deviceManager.StartDeviceDetection();
+
+            this.memoryTimer.Tick += this.MemoryTimer_Tick;
+            this.memoryTimer.Start();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -132,6 +139,11 @@ namespace Suconbu.Sumacon
                 this.deviceDropDown.BackColor = SystemColors.Control;
                 this.deviceDropDown.ForeColor = SystemColors.ControlText;
             }
+        }
+
+        void MemoryTimer_Tick(object sender, EventArgs e)
+        {
+            this.memoryInfoLabel.Text = $"{GC.GetTotalMemory(false):#,##0} byte";
         }
     }
 }

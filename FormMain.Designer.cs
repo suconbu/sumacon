@@ -49,7 +49,7 @@
             // 
             this.toolStripContainer1.ContentPanel.Font = new System.Drawing.Font("Yu Gothic UI", 9F);
             this.toolStripContainer1.ContentPanel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(915, 398);
+            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(915, 404);
             this.toolStripContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.toolStripContainer1.Font = new System.Drawing.Font("Yu Gothic UI", 9F);
             // 
