@@ -5,9 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace Suconbu.Mobile
 {
@@ -88,6 +86,7 @@ namespace Suconbu.Mobile
         DeviceData deviceData;
         int observeIntervalMilliseconds = 1000;
         string timeoutId;
+        CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
 
         public Device(string id)
         {
@@ -98,6 +97,10 @@ namespace Suconbu.Mobile
             this.ComponentsByCategory[ComponentCategory.Device] = null;
             this.ComponentsByCategory[ComponentCategory.Battery] = this.Battery;
             this.ComponentsByCategory[ComponentCategory.Screen] = this.Screen;
+            this.RunCommandOutputBinaryAsync("shell echo \\\\r", stream =>
+            {
+                this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
+            });
         }
 
         public void StartObserve(int intervalMilliseconds, bool imidiate = true)
@@ -129,7 +132,7 @@ namespace Suconbu.Mobile
 
         public CommandContext RunCommandOutputBinaryAsync(string command, Action<Stream> onFinished)
         {
-            return CommandContext.StartNewBinary("adb", $"-s {this.Id} {command}", stream => onFinished?.Invoke(stream));
+            return CommandContext.StartNewBinary("adb", $"-s {this.Id} {command}", this.newLineMode, stream => onFinished?.Invoke(stream));
         }
 
         public string ToString(string format)
