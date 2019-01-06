@@ -19,6 +19,7 @@ namespace Suconbu.Sumacon
         FormShortcut shortcutForm;
         FormCapture captureForm;
         FormRecord recordForm;
+        FormLog logForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripItem deviceInfoLabel;
         ToolStripItem memoryInfoLabel;
@@ -26,6 +27,7 @@ namespace Suconbu.Sumacon
 
         DeviceManager deviceManager;
         CommandReceiver commandReceiver;
+        LogReceiverManager logReceiverManager;
 
         public FormMain()
         {
@@ -36,6 +38,7 @@ namespace Suconbu.Sumacon
 
             this.commandReceiver = new CommandReceiver();
             this.SetupDeviceManager();
+            this.logReceiverManager = new LogReceiverManager();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -64,6 +67,8 @@ namespace Suconbu.Sumacon
             this.captureForm.Show(this.dockPanel, DockState.Document);
             this.recordForm = new FormRecord(this.deviceManager);
             this.recordForm.Show(this.dockPanel, DockState.Document);
+            this.logForm = new FormLog(this.deviceManager, this.logReceiverManager);
+            this.logForm.Show(this.dockPanel, DockState.Document);
 
             this.deviceManager.StartDeviceDetection();
 

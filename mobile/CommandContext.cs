@@ -91,6 +91,12 @@ namespace Suconbu.Toolbox
 
             if (!this.process.Start()) return false;
 
+            if (onErrorReceived != null)
+            {
+                this.process.ErrorDataReceived += (s, e) => onErrorReceived(e.Data);
+            }
+            this.process.BeginErrorReadLine();
+
             this.process.OutputDataReceived += (s, e) =>
             {
                 if (e.Data != null && outputBuffer != null)
@@ -107,12 +113,6 @@ namespace Suconbu.Toolbox
                 }
             };
             this.process.BeginOutputReadLine();
-
-            if (onErrorReceived != null)
-            {
-                this.process.ErrorDataReceived += (s, e) => onErrorReceived(e.Data);
-            }
-            this.process.BeginErrorReadLine();
 
             return true;
         }
