@@ -90,7 +90,7 @@ namespace Suconbu.Toolbox
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments}");
 
             if (!this.process.Start()) return false;
-
+            
             if (onErrorReceived != null)
             {
                 this.process.ErrorDataReceived += (s, e) => onErrorReceived(e.Data);

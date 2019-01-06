@@ -21,11 +21,12 @@ namespace Suconbu.Sumacon
         ToolStripDropDownButton uxPidDropDown = new ToolStripDropDownButton();
         GridPanel logGridPanel = new GridPanel();
         GridPanel countGridPanel = new GridPanel();
-        LogReceiver receiver;
+        LogReceiveContext receiver;
         string logUpdateTimeoutId;
         List<Log> logCache = new List<Log>();
         int logCacheStartIndex;
-        LogSubscriber logSubscriber;
+        Dictionary<string, LogSubscriber> logSubscribers = new Dictionary<string, LogSubscriber>();
+        LogReceiveSetting setting = new LogReceiveSetting() { StartAt = DateTime.Now };
 
         readonly int logUpdateIntervalMilliseconds = 100;
 
@@ -39,8 +40,8 @@ namespace Suconbu.Sumacon
             {
                 this.SafeInvoke(() =>
                 {
-                    this.ChangeReceiveEnabled(previousActiveDevice, false);
-                    this.ChangeReceiveEnabled(this.deviceManager.ActiveDevice, true);
+                    this.StopReceive(previousActiveDevice);
+                    this.StartReceive(this.deviceManager.ActiveDevice);
                     this.UpdateControlState();
                 });
             };
@@ -48,15 +49,12 @@ namespace Suconbu.Sumacon
             this.logReceiverManager = logReceiverManager;
             //LogReceiverManager.Received += this.LogReceiverManager_Received;
 
-            this.uxPauseCheck.CheckOnClick = true;
-            this.uxPauseCheck.Checked = false;
-            this.uxPauseCheck.Image = this.imageList1.Images["control_pause.png"];
-            this.uxPauseCheck.CheckedChanged += (s, e) => this.ReceivingPaused = this.uxPauseCheck.Checked;
+            this.uxFilterPatternText.KeyDown += this.UxFilterPatternText_KeyDown;
 
             this.uxAutoScrollCheck.CheckOnClick = true;
             this.uxAutoScrollCheck.Checked = true;
             this.uxAutoScrollCheck.Image = this.imageList1.Images["arrow_down.png"];
-            //this.uxFilterLabel.Image = this.imageList1.Images["drink.png"];
+            this.uxAutoScrollCheck.CheckedChanged += (s, e) => this.AutoScrollEnabled = this.uxAutoScrollCheck.Checked;
 
             this.uxPidDropDown.DropDownItems.Add("u0_a13 - 18846 - jp.co.yahoo.android.apps.transit");
             this.uxPidDropDown.DropDownItems.Add("u0_a13 - 22553 - com.google.process.gapps");
@@ -65,15 +63,21 @@ namespace Suconbu.Sumacon
             this.uxPidDropDown.Text = this.uxPidDropDown.DropDownItems[0].Text;
 
             this.logGridPanel.Dock = DockStyle.Fill;
-            this.logGridPanel.Columns.Add("Timestamp", "Timestamp");
-            this.logGridPanel.Columns["Timestamp"].Width = 160;
-            this.logGridPanel.Columns.Add("Type", "Type");
-            this.logGridPanel.Columns.Add("PID", "PID");
-            this.logGridPanel.Columns.Add("TID", "TID");
-            this.logGridPanel.Columns.Add("Tag", "Tag");
-            this.logGridPanel.Columns.Add("Message", "Message");
-            this.logGridPanel.Columns["Message"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            var timestampColumn = this.logGridPanel.AddColumn("Timestamp");
+            timestampColumn.Width = 120;
+            timestampColumn.DefaultCellStyle.Format = "MM/dd HH:mm:ss.fff";
+            var levelColumn = this.logGridPanel.AddColumn("Level");
+            levelColumn.Width = 20;
+            var pidColumn = this.logGridPanel.AddColumn("PID");
+            pidColumn.Width = 40;
+            var tidColumn = this.logGridPanel.AddColumn("TID");
+            tidColumn.Width = 40;
+            var tagColumn = this.logGridPanel.AddColumn("Tag");
+            var messageColumn = this.logGridPanel.AddColumn("Message");
+            messageColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.logGridPanel.Click += (s, e) => this.AutoScrollEnabled = false;
+            this.logGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = false;
+            this.logGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = false;
             this.logGridPanel.CellValueNeeded += (s, e) =>
             {
                 if(this.receiver != null)
@@ -103,10 +107,26 @@ namespace Suconbu.Sumacon
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
         }
 
+        private void UxFilterPatternText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.KeyCode == Keys.Enter)
+            {
+                this.FilterPattern = this.uxFilterPatternText.Text;
+                e.SuppressKeyPress = true;
+            }
+        }
+
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
-            this.ChangeReceiveEnabled(this.deviceManager.ActiveDevice, this.Visible);
+            if (this.Visible)
+            {
+                this.StartReceive(this.deviceManager.ActiveDevice);
+            }
+            else
+            {
+                this.StopReceive(this.deviceManager.ActiveDevice);
+            }
         }
 
         void OnLogReceived(object sender, LogReceiveEventArgs e)
@@ -114,7 +134,7 @@ namespace Suconbu.Sumacon
             this.receiver = e.Receiver;
             this.logUpdateTimeoutId = Delay.SetTimeout(() =>
             {
-                this.logGridPanel.RowCount = this.receiver.Count;
+                this.logGridPanel.RowCount = this.receiver?.Count ?? 0;
                 if(this.AutoScrollEnabled)
                 {
                     this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.RowCount - 1;
@@ -129,65 +149,69 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        void ChangeReceiveEnabled(Device device, bool enabled)
+        void StartReceive(Device device)
         {
             if (device == null) return;
-            if (enabled)
+            if (!this.logSubscribers.TryGetValue(device.Id, out var subscriber) || subscriber.Suspended)
             {
-                if (this.logSubscriber == null || this.logSubscriber.Suspended)
+                this.deviceManager.SuspendObserve(device);
+            }
+            if (subscriber == null)
+            {
+                subscriber = this.logReceiverManager.NewSubscriber(device, this.setting, this.OnLogReceived);
+                this.logSubscribers.Add(device.Id, subscriber);
+            }
+            subscriber.Suspended = false;
+        }
+
+        void StopReceive(Device device)
+        {
+            if (device == null) return;
+            if (this.logSubscribers.TryGetValue(device.Id, out var subscriber))
+            {
+                if (!subscriber.Suspended)
                 {
-                    this.deviceManager.SuspendObserve(device);
-                }
-                var setting = this.GetReceiveSetting();
-                this.logSubscriber = this.logSubscriber ?? this.logReceiverManager.AddSubscriber(device, setting, this.OnLogReceived);
-            }
-            else
-            {
-                if (!this.logSubscriber.Suspended)
-                {
-                    this.deviceManager.ResumeObserve(device);
+                    this.deviceManager.ResumeObserve(subscriber.Device);
+                    subscriber.Suspended = true;
+                    this.receiver = null;
                 }
             }
-
-            if (this.logSubscriber != null)
-            {
-                this.logSubscriber.Suspended = !enabled;
-            }
         }
 
-        void ResumeReceive(Device device)
+        void RestartReceive(Device device)
         {
             if (device == null) return;
-            this.deviceManager.SuspendObserve(device);
-            if(this.logSubscriber == null)
+            if (this.logSubscribers.TryGetValue(device.Id, out var subscriber))
             {
-                var setting = this.GetReceiveSetting();
-                this.logSubscriber = this.logReceiverManager.AddSubscriber(device, setting, this.OnLogReceived);
+                this.logSubscribers.Remove(subscriber.Device.Id);
+                subscriber.Dispose();
             }
-            this.logSubscriber.Suspended = false;
+            this.StartReceive(device);
         }
 
-        void SuspendReceive(Device device)
+        int FilterPid
         {
-            if (device == null) return;
-            this.logSubscriber.Suspended = true;
-            this.deviceManager.ResumeObserve(device);
-        }
-
-        bool ReceivingPaused
-        {
-            get { return this.uxPauseCheck.Checked; }
+            get { return this.setting.Pid; }
             set
             {
-                this.uxPauseCheck.Checked = value;
-                var device = this.deviceManager.ActiveDevice;
-                if (this.uxPauseCheck.Checked)
+                if(this.setting.Pid != value)
                 {
-                    this.SuspendReceive(device);
+                    this.setting.Pid = value;
+                    this.RestartReceive(this.deviceManager.ActiveDevice);
                 }
-                else
+            }
+        }
+
+        string FilterPattern
+        {
+            get { return this.setting.FilterPattern; }
+            set
+            {
+                this.uxFilterPatternText.Text = value;
+                if (this.setting.FilterPattern != value)
                 {
-                    this.ResumeReceive(device);
+                    this.setting.FilterPattern = value;
+                    this.RestartReceive(this.deviceManager.ActiveDevice);
                 }
             }
         }
@@ -195,14 +219,14 @@ namespace Suconbu.Sumacon
         bool AutoScrollEnabled
         {
             get { return this.uxAutoScrollCheck.Checked; }
-            set { this.uxAutoScrollCheck.Checked = value; }
-        }
-
-        LogReceiveSetting GetReceiveSetting()
-        {
-            var setting = new LogReceiveSetting();
-            //TODO: 設定取得
-            return setting;
+            set
+            {
+                this.uxAutoScrollCheck.Checked = value;
+                if(this.uxAutoScrollCheck.Checked && this.logGridPanel.Rows.Count > 0)
+                {
+                    this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.Rows.Count - 1;
+                }
+            }
         }
 
         void UpdateControlState()

@@ -14,7 +14,7 @@ namespace Suconbu.Sumacon
     {
         class ReceiverEntry
         {
-            public LogReceiver Receiver;
+            public LogReceiveContext Receiver;
             public HashSet<LogSubscriber> Subscribers = new HashSet<LogSubscriber>();
             public HashSet<LogSubscriber> SuspendedSubscribers = new HashSet<LogSubscriber>();
         }
@@ -23,11 +23,14 @@ namespace Suconbu.Sumacon
 
         public LogReceiverManager() { }
 
-        public LogSubscriber AddSubscriber(Device device, LogReceiveSetting setting, EventHandler<LogReceiveEventArgs> onReceived)
+        public LogSubscriber NewSubscriber(Device device, LogReceiveSetting setting, EventHandler<LogReceiveEventArgs> onReceived)
         {
-            var key = $"{device.Id}:{setting.GetHashCode()}";
+            if (device == null) throw new ArgumentNullException(nameof(device));
+            if (setting == null) throw new ArgumentNullException(nameof(setting));
 
-            var newSubscriber = new LogSubscriber(key, onReceived);
+           var key = $"{device.Id}:{setting.GetHashCode()}";
+
+            var newSubscriber = new LogSubscriber(device, key, onReceived);
             newSubscriber.SuspendedChanged += (s, suspended) => this.OnSubscriberSuspendedChanged(newSubscriber, suspended);
             newSubscriber.Disposing += (s, e) => this.OnSubscriberDisposing(newSubscriber);
 
@@ -37,7 +40,7 @@ namespace Suconbu.Sumacon
                 if (!this.entries.TryGetValue(key, out entry))
                 {
                     entry = new ReceiverEntry();
-                    entry.Receiver = new LogReceiver(device, setting);
+                    entry.Receiver = new LogReceiveContext(device, setting);
                     entry.Receiver.Received += (s, log) =>
                     {
                         foreach (var subscriber in entry.Subscribers)
@@ -106,22 +109,24 @@ namespace Suconbu.Sumacon
     public class LogReceiveEventArgs : EventArgs
     {
         public string DeviceId;
-        public LogReceiver Receiver;
+        public LogReceiveContext Receiver;
         public Log Log;
     }
 
     public class LogSubscriber : IDisposable
     {
-        internal string Key { get; private set; }
-
         internal event EventHandler<bool> SuspendedChanged = delegate { };
         internal event EventHandler Disposing = delegate { };
+
+        public Device Device { get; private set; }
+        internal string Key { get; private set; }
 
         readonly EventHandler<LogReceiveEventArgs> onRceived;
         bool suspended;
 
-        internal LogSubscriber(string key, EventHandler<LogReceiveEventArgs> onReceived)
+        internal LogSubscriber(Device device, string key, EventHandler<LogReceiveEventArgs> onReceived)
         {
+            this.Device = device;
             this.Key = key;
             this.onRceived = onReceived;
         }
