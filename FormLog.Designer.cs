@@ -37,7 +37,7 @@
             this.uxPid = new System.Windows.Forms.ToolStripDropDownButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.uxFilterLabel = new System.Windows.Forms.ToolStripLabel();
-            this.uxFilterPatternText = new System.Windows.Forms.ToolStripTextBox();
+            this.uxFilterTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.uxAutoScrollCheck = new System.Windows.Forms.ToolStripButton();
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
@@ -101,7 +101,7 @@
             this.uxPid,
             this.toolStripSeparator2,
             this.uxFilterLabel,
-            this.uxFilterPatternText,
+            this.uxFilterTextBox,
             this.toolStripSeparator3,
             this.uxAutoScrollCheck});
             this.uxToolStrip.Location = new System.Drawing.Point(3, 0);
@@ -132,8 +132,8 @@
             // 
             // uxFilterText
             // 
-            this.uxFilterPatternText.Name = "uxFilterText";
-            this.uxFilterPatternText.Size = new System.Drawing.Size(100, 25);
+            this.uxFilterTextBox.Name = "uxFilterText";
+            this.uxFilterTextBox.Size = new System.Drawing.Size(100, 25);
             // 
             // toolStripSeparator3
             // 
@@ -192,7 +192,7 @@
         private System.Windows.Forms.ToolStripDropDownButton uxPid;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripLabel uxFilterLabel;
-        private System.Windows.Forms.ToolStripTextBox uxFilterPatternText;
+        private System.Windows.Forms.ToolStripTextBox uxFilterTextBox;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ImageList imageList1;

@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -17,20 +18,25 @@ namespace Suconbu.Sumacon
     public partial class FormLog : FormBase
     {
         DeviceManager deviceManager;
-        LogReceiverManager logReceiverManager;
+        //LogReceiverManager logReceiverManager;
         ToolStripDropDownButton uxPidDropDown = new ToolStripDropDownButton();
         GridPanel logGridPanel = new GridPanel();
         GridPanel countGridPanel = new GridPanel();
-        LogReceiveContext receiver;
+        //LogContext receiver;
         string logUpdateTimeoutId;
+        string filterTimeoutId;
         List<Log> logCache = new List<Log>();
+        string filterText = string.Empty;
+        List<Log> filteredLogs;
         int logCacheStartIndex;
-        Dictionary<string, LogSubscriber> logSubscribers = new Dictionary<string, LogSubscriber>();
-        LogReceiveSetting setting = new LogReceiveSetting() { StartAt = DateTime.Now };
+        LogContext logContext;
+        //Dictionary<string, LogSubscriber> logSubscribers = new Dictionary<string, LogSubscriber>();
+        LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
 
         readonly int logUpdateIntervalMilliseconds = 100;
+        readonly int filterDelayMilliseconds = 100;
 
-        public FormLog(DeviceManager deviceManager, LogReceiverManager logReceiverManager)
+        public FormLog(DeviceManager deviceManager)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
@@ -40,16 +46,12 @@ namespace Suconbu.Sumacon
             {
                 this.SafeInvoke(() =>
                 {
-                    this.StopReceive(previousActiveDevice);
-                    this.StartReceive(this.deviceManager.ActiveDevice);
+                    this.ReopenLogContext();
                     this.UpdateControlState();
                 });
             };
 
-            this.logReceiverManager = logReceiverManager;
-            //LogReceiverManager.Received += this.LogReceiverManager_Received;
-
-            this.uxFilterPatternText.KeyDown += this.UxFilterPatternText_KeyDown;
+            this.uxFilterTextBox.KeyDown += this.UxFilterText_KeyDown;
 
             this.uxAutoScrollCheck.CheckOnClick = true;
             this.uxAutoScrollCheck.Checked = true;
@@ -80,62 +82,67 @@ namespace Suconbu.Sumacon
             this.logGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = false;
             this.logGridPanel.CellValueNeeded += (s, e) =>
             {
-                if(this.receiver != null)
+                if (this.filteredLogs == null && this.logContext == null) return;
+
+                if (e.RowIndex < this.logCacheStartIndex ||
+                    (this.logCacheStartIndex + this.logCache.Count) <= e.RowIndex)
                 {
-                    Log log;
-                    if (e.RowIndex < this.logCacheStartIndex ||
-                        (this.logCacheStartIndex + this.logCache.Count) <= e.RowIndex)
-                    {
-                        this.logCache = receiver.GetRange(e.RowIndex, 100);
-                        this.logCacheStartIndex = e.RowIndex;
-                    }
-                    log = this.logCache[e.RowIndex - this.logCacheStartIndex];
-                    if (log == null) return;
-                    // プロパティ名でアクセスしたい・・・
-                    e.Value =
-                        (e.ColumnIndex == 0) ? (object)log.Timestamp :
-                        (e.ColumnIndex == 1) ? (object)log.Priority :
-                        (e.ColumnIndex == 2) ? (object)log.Pid :
-                        (e.ColumnIndex == 3) ? (object)log.Tid :
-                        (e.ColumnIndex == 4) ? (object)log.Tag :
-                        (e.ColumnIndex == 5) ? (object)log.Message :
-                        null;
+                    // 表示領域の上下に50%ずつの余裕
+                    int cacheCount = this.logGridPanel.DisplayedRowCount(true) * 2;
+                    int startIndex = e.RowIndex - (cacheCount / 4);
+                    this.logCache = this.GetLog(startIndex, cacheCount);
+                    this.logCacheStartIndex = Math.Max(0, startIndex);
+                    //this.logCache = this.logContext.GetRange(e.RowIndex, 100);
                 }
+                var log = (this.logCache.Count>0) ? this.logCache[e.RowIndex - this.logCacheStartIndex] : null;
+                if (log == null) return;
+                // プロパティ名でアクセスしたい・・・
+                e.Value =
+                    (e.ColumnIndex == 0) ? (object)log.Timestamp :
+                    (e.ColumnIndex == 1) ? (object)log.Priority :
+                    (e.ColumnIndex == 2) ? (object)log.Pid :
+                    (e.ColumnIndex == 3) ? (object)log.Tid :
+                    (e.ColumnIndex == 4) ? (object)log.Tag :
+                    (e.ColumnIndex == 5) ? (object)log.Message :
+                    null;
             };
             this.logGridPanel.VirtualMode = true;
 
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
+            this.uxSplitContainer.Panel2Collapsed = true;
         }
 
-        private void UxFilterPatternText_KeyDown(object sender, KeyEventArgs e)
+        private void UxFilterText_KeyDown(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode == Keys.Enter)
+            this.filterTimeoutId = Delay.SetTimeout(() =>
             {
-                this.FilterPattern = this.uxFilterPatternText.Text;
-                e.SuppressKeyPress = true;
-            }
+                this.FilterText = this.uxFilterTextBox.Text;
+            }, this.filterDelayMilliseconds, this, this.filterTimeoutId, true);
         }
 
         protected override void OnVisibleChanged(EventArgs e)
         {
             base.OnVisibleChanged(e);
-            if (this.Visible)
+            if (this.logContext != null)
             {
-                this.StartReceive(this.deviceManager.ActiveDevice);
-            }
-            else
-            {
-                this.StopReceive(this.deviceManager.ActiveDevice);
+                this.logContext.Suspended = !this.Visible;
             }
         }
 
-        void OnLogReceived(object sender, LogReceiveEventArgs e)
+        void OnLogReceived(object sender, Log log)
         {
-            this.receiver = e.Receiver;
+            if(this.filteredLogs != null)
+            {
+                if (Regex.IsMatch(log.Message, this.filterText, RegexOptions.IgnoreCase))
+                {
+                    this.filteredLogs.Add(log);
+                }
+            }
+
             this.logUpdateTimeoutId = Delay.SetTimeout(() =>
             {
-                this.logGridPanel.RowCount = this.receiver?.Count ?? 0;
-                if(this.AutoScrollEnabled)
+                this.logGridPanel.RowCount = this.GetLogCount();
+                if (this.AutoScrollEnabled && this.logGridPanel.RowCount > 0)
                 {
                     this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.RowCount - 1;
                 }
@@ -149,69 +156,72 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        void StartReceive(Device device)
+        void ReopenLogContext()
         {
-            if (device == null) return;
-            if (!this.logSubscribers.TryGetValue(device.Id, out var subscriber) || subscriber.Suspended)
+            this.logCache.Clear();
+            if (this.logContext != null)
             {
-                this.deviceManager.SuspendObserve(device);
+                this.logContext.Received -= this.OnLogReceived;
+                this.logContext.Close();
             }
-            if (subscriber == null)
-            {
-                subscriber = this.logReceiverManager.NewSubscriber(device, this.setting, this.OnLogReceived);
-                this.logSubscribers.Add(device.Id, subscriber);
-            }
-            subscriber.Suspended = false;
+            this.logContext = LogContext.Open(this.deviceManager.ActiveDevice, this.logSetting);
+            this.logContext.Received += this.OnLogReceived;
         }
 
-        void StopReceive(Device device)
+        int GetLogCount()
         {
-            if (device == null) return;
-            if (this.logSubscribers.TryGetValue(device.Id, out var subscriber))
-            {
-                if (!subscriber.Suspended)
-                {
-                    this.deviceManager.ResumeObserve(subscriber.Device);
-                    subscriber.Suspended = true;
-                    this.receiver = null;
-                }
-            }
+            return (this.filteredLogs != null) ? this.filteredLogs.Count : (this.logContext?.Count ?? 0);
         }
 
-        void RestartReceive(Device device)
+        List<Log> GetLog(int index, int count)
         {
-            if (device == null) return;
-            if (this.logSubscribers.TryGetValue(device.Id, out var subscriber))
-            {
-                this.logSubscribers.Remove(subscriber.Device.Id);
-                subscriber.Dispose();
-            }
-            this.StartReceive(device);
+            int logCount = (this.filteredLogs != null) ? this.filteredLogs.Count : this.logContext?.Count ?? 0;
+            int safeIndex = Math.Max(0, Math.Min(index, logCount - 1));
+            int safeCount = Math.Min(index + count, logCount) - safeIndex;
+            return (this.filteredLogs != null) ?
+                this.filteredLogs.GetRange(safeIndex, safeCount) :
+                this.logContext?.GetRange(safeIndex, safeCount);
         }
 
         int FilterPid
         {
-            get { return this.setting.Pid; }
+            get { return this.logSetting.Pid; }
             set
             {
-                if(this.setting.Pid != value)
+                if(this.logSetting.Pid != value)
                 {
-                    this.setting.Pid = value;
-                    this.RestartReceive(this.deviceManager.ActiveDevice);
+                    this.logSetting.Pid = value;
+                    this.ReopenLogContext();
                 }
             }
         }
 
-        string FilterPattern
+        string FilterText
         {
-            get { return this.setting.FilterPattern; }
+            get { return this.filterText; }
             set
             {
-                this.uxFilterPatternText.Text = value;
-                if (this.setting.FilterPattern != value)
+                this.uxFilterTextBox.Text = value;
+                if (this.filterText != value)
                 {
-                    this.setting.FilterPattern = value;
-                    this.RestartReceive(this.deviceManager.ActiveDevice);
+                    var pattern = this.filterText;
+                    this.filterText = value;
+                    this.logCache.Clear();
+                    try
+                    {
+                        // もしちゃんとした正規表現じゃなかったら前回のを使う
+                        Regex.IsMatch(string.Empty, this.filterText);
+                        pattern = this.filterText;
+                    }
+                    catch(ArgumentException)
+                    {
+                        ;
+                    }
+                    this.filteredLogs = !string.IsNullOrEmpty(pattern) ?
+                        this.logContext.GetRange().Where(log =>
+                            Regex.IsMatch(log.Message.Trim(), pattern, RegexOptions.IgnoreCase)).ToList() :
+                        null;
+                    this.logGridPanel.RowCount = this.GetLogCount();
                 }
             }
         }

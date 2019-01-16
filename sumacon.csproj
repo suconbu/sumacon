@@ -59,8 +59,7 @@
     <Compile Include="FormLog.Designer.cs">
       <DependentUpon>FormLog.cs</DependentUpon>
     </Compile>
-    <Compile Include="LogReceiveManager.cs" />
-    <Compile Include="mobile\LogReceiver.cs" />
+    <Compile Include="mobile\LogContext.cs" />
     <Compile Include="RecordContext.cs" />
     <Compile Include="CaptureContext.cs" />
     <Compile Include="DailyLoggingTraceListener.cs" />

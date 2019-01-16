@@ -25,7 +25,7 @@ namespace Suconbu.Sumacon
             set { this.ChangeActiveDevice(value); }
         }
         public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices; } }
-        public int ObserveIntervalMilliseconds { get; set; } = 1000;
+        public int ObserveIntervalMilliseconds { get; set; } = 10000;
 
         Device activeDevice;
         List<Device> connectedDevices = new List<Device>();

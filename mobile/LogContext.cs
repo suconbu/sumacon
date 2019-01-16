@@ -12,29 +12,57 @@ using System.Threading;
 
 namespace Suconbu.Mobile
 {
-    public class LogReceiveContext : IDisposable
+    public class LogContext : IDisposable
     {
         public event EventHandler<Log> Received = delegate { };
 
         public Device Device { get; private set; }
-        public LogReceiveSetting Setting { get; private set; }
+        public LogSetting Setting { get; private set; }
         public int Count { get { return this.receivedLogs.Count; } }
 
         readonly List<Log> receivedLogs = new List<Log>();
-        readonly List<Log> temporaryLogs = new List<Log>();
+        //readonly List<Log> temporaryLogs = new List<Log>();
         SemaphoreSlim receivedLogsSemaphore = new SemaphoreSlim(1);
         CommandContext logcatContext;
         bool suspended;
 
         /// <summary>
-        /// Initialize instance.
-        /// Does not start receiving until you call the 'Start' method.
-        /// </summary>
-        public LogReceiveContext(Device device, LogReceiveSetting setting)
+        ///// Initialize instance.
+        ///// Does not start receiving until you call the 'Start' method.
+        ///// </summary>
+        //public LogContext(Device device, LogSetting setting)
+        //{
+        //    this.Device = device ?? throw new ArgumentNullException(nameof(device));
+        //    this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
+        //    this.StartInternal(false);
+        //}
+
+        public static LogContext Open(Device device, LogSetting setting)
         {
-            this.Device = device ?? throw new ArgumentNullException(nameof(device));
-            this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
-            this.StartInternal(false);
+            var intance = new LogContext();
+            intance.Device = device ?? throw new ArgumentNullException(nameof(device));
+            intance.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
+            intance.StartInternal(false);
+            return intance;
+        }
+
+        public void Close()
+        {
+            this.Dispose();
+        }
+
+        /// <summary>
+        /// Get logs from log buffer.
+        /// </summary>
+        public List<Log> GetRange(int index = 0, int count = int.MaxValue)
+        {
+            var takens = new List<Log>();
+            lock (this.receivedLogs)
+            {
+                count = Math.Min(index + count, this.receivedLogs.Count) - index;
+                takens.AddRange(this.receivedLogs.GetRange(index, count));
+            }
+            return takens;
         }
 
         public IReadOnlyList<Log> LockLogs()
@@ -47,38 +75,6 @@ namespace Suconbu.Mobile
         {
             this.receivedLogsSemaphore.Release();
         }
-
-        ///// <summary>
-        ///// Get logs from log buffer.
-        ///// </summary>
-        //public List<Log> GetRange(int index = 0, int count = int.MaxValue)
-        //{
-        //    var takens = new List<Log>();
-        //    lock (this.receivedLogs)
-        //    {
-        //        var to = index + count;
-        //        var from = Math.Max(0, index);
-        //        count = Math.Min(to, this.receivedLogs.Count) - from;
-        //        takens.AddRange(this.receivedLogs.GetRange(from, count));
-        //    }
-        //    return takens;
-        //}
-
-        //public List<Log> Where(Func<Log, bool> predicate)
-        //{
-        //    var takens = new List<Log>();
-        //    lock (this.receivedLogs)
-        //    {
-        //        foreach(var log in this.receivedLogs)
-        //        {
-        //            if(predicate(log))
-        //            {
-        //                takens.Add(log);
-        //            }
-        //        }
-        //    }
-        //    return takens;
-        //}
 
         public bool Suspended
         {
@@ -114,7 +110,7 @@ namespace Suconbu.Mobile
             this.logcatContext = null;
         }
 
-        string MakeLogcatCommand(LogReceiveSetting setting, bool resume)
+        string MakeLogcatCommand(LogSetting setting, bool resume)
         {
             var command = new StringBuilder("logcat");
 
@@ -224,7 +220,7 @@ namespace Suconbu.Mobile
         Log() { }
     }
 
-    public class LogReceiveSetting
+    public class LogSetting
     {
         public DateTime StartAt { get; set; } = DateTime.MinValue;
         public int Pid { get; set; } = 0;
