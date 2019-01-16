@@ -22,6 +22,8 @@ namespace Suconbu.Sumacon
         ToolStripDropDownButton uxPidDropDown = new ToolStripDropDownButton();
         GridPanel logGridPanel = new GridPanel();
         GridPanel countGridPanel = new GridPanel();
+        ToolStripStatusLabel uxSelectedInfoLabel = new ToolStripStatusLabel();
+        ToolStripStatusLabel uxSummaryInfoLabel = new ToolStripStatusLabel();
         //LogContext receiver;
         string logUpdateTimeoutId;
         string filterTimeoutId;
@@ -92,7 +94,6 @@ namespace Suconbu.Sumacon
                     int startIndex = e.RowIndex - (cacheCount / 4);
                     this.logCache = this.GetLog(startIndex, cacheCount);
                     this.logCacheStartIndex = Math.Max(0, startIndex);
-                    //this.logCache = this.logContext.GetRange(e.RowIndex, 100);
                 }
                 var log = (this.logCache.Count>0) ? this.logCache[e.RowIndex - this.logCacheStartIndex] : null;
                 if (log == null) return;
@@ -106,11 +107,18 @@ namespace Suconbu.Sumacon
                     (e.ColumnIndex == 5) ? (object)log.Message :
                     null;
             };
+            this.logGridPanel.SuppressibleSelectionChanged += (s, e) => this.UpdateControlState();
             this.logGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.logGridPanel.VirtualMode = true;
 
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
             this.uxSplitContainer.Panel2Collapsed = true;
+
+            this.uxSelectedInfoLabel.Spring = true;
+            this.uxSelectedInfoLabel.TextAlign = ContentAlignment.MiddleLeft;
+            this.statusStrip1.Items.Add(this.uxSelectedInfoLabel);
+            this.uxSummaryInfoLabel.TextAlign = ContentAlignment.MiddleLeft;
+            this.statusStrip1.Items.Add(this.uxSummaryInfoLabel);
         }
 
         private void UxFilterText_KeyDown(object sender, KeyEventArgs e)
@@ -134,7 +142,7 @@ namespace Suconbu.Sumacon
         {
             if(this.filteredLogs != null)
             {
-                if (Regex.IsMatch(log.Message, this.filterText, RegexOptions.IgnoreCase))
+                if (Regex.IsMatch(log.Message.Trim(), this.filterText, RegexOptions.IgnoreCase))
                 {
                     this.filteredLogs.Add(log);
                 }
@@ -147,6 +155,7 @@ namespace Suconbu.Sumacon
                 {
                     this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.RowCount - 1;
                 }
+                this.UpdateControlState();
             }, this.logUpdateIntervalMilliseconds, this, this.logUpdateTimeoutId);
         }
 
@@ -160,6 +169,7 @@ namespace Suconbu.Sumacon
         void ReopenLogContext()
         {
             this.logCache.Clear();
+            this.logGridPanel.RowCount = 0;
             if (this.logContext != null)
             {
                 this.logContext.Received -= this.OnLogReceived;
@@ -167,6 +177,7 @@ namespace Suconbu.Sumacon
             }
             this.logContext = LogContext.Open(this.deviceManager.ActiveDevice, this.logSetting);
             this.logContext.Received += this.OnLogReceived;
+            this.UpdateControlState();
         }
 
         int GetLogCount()
@@ -205,24 +216,23 @@ namespace Suconbu.Sumacon
                 this.uxFilterTextBox.Text = value;
                 if (this.filterText != value)
                 {
-                    var pattern = this.filterText;
                     this.filterText = value;
-                    this.logCache.Clear();
                     try
                     {
-                        // もしちゃんとした正規表現じゃなかったら前回のを使う
+                        // もしちゃんとした正規表現じゃなかったらfilteredLogsは前回のまま
                         Regex.IsMatch(string.Empty, this.filterText);
-                        pattern = this.filterText;
                     }
                     catch(ArgumentException)
                     {
-                        ;
+                        return;
                     }
-                    this.filteredLogs = !string.IsNullOrEmpty(pattern) ?
+                    this.logCache.Clear();
+                    this.filteredLogs = !string.IsNullOrEmpty(this.filterText) ?
                         this.logContext.GetRange().Where(log =>
-                            Regex.IsMatch(log.Message.Trim(), pattern, RegexOptions.IgnoreCase)).ToList() :
+                            Regex.IsMatch(log.Message.Trim(), this.filterText, RegexOptions.IgnoreCase)).ToList() :
                         null;
                     this.logGridPanel.RowCount = this.GetLogCount();
+                    this.UpdateControlState();
                 }
             }
         }
@@ -252,6 +262,32 @@ namespace Suconbu.Sumacon
         {
             var device = this.deviceManager.ActiveDevice;
             this.uxToolStrip.Enabled = (device != null);
+
+            var totalLogCount = this.logContext?.Count ?? 0;
+            if (this.filteredLogs != null)
+            {
+                this.uxSummaryInfoLabel.Text = $"{this.filteredLogs.Count:#,##0} / {totalLogCount:#,##0} logs";
+            }
+            else
+            {
+                this.uxSummaryInfoLabel.Text = $"{totalLogCount:#,##0} logs";
+            }
+            var rows = this.logGridPanel.SelectedRows;
+            if (rows.Count > 0)
+            {
+                var first = this.GetLog(rows[0].Index, 1).FirstOrDefault();
+                var last = this.GetLog(rows[rows.Count - 1].Index, 1).FirstOrDefault();
+                double duration = 0.0;
+                if (first != null && last != null)
+                {
+                    duration = Math.Abs((last.Timestamp - first.Timestamp).TotalMilliseconds);
+                }
+                this.uxSelectedInfoLabel.Text = $"{rows.Count:#,##0} logs selected ({duration:#,###0} ms)";
+            }
+            else
+            {
+                this.uxSelectedInfoLabel.Text = string.Empty;
+            }
         }
     }
 }
