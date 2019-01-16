@@ -106,7 +106,7 @@
             this.uxAutoScrollCheck});
             this.uxToolStrip.Location = new System.Drawing.Point(3, 0);
             this.uxToolStrip.Name = "uxToolStrip";
-            this.uxToolStrip.Size = new System.Drawing.Size(499, 25);
+            this.uxToolStrip.Size = new System.Drawing.Size(468, 25);
             this.uxToolStrip.TabIndex = 0;
             // 
             // uxPid
@@ -130,9 +130,9 @@
             this.uxFilterLabel.Size = new System.Drawing.Size(36, 22);
             this.uxFilterLabel.Text = "Filter:";
             // 
-            // uxFilterText
+            // uxFilterTextBox
             // 
-            this.uxFilterTextBox.Name = "uxFilterText";
+            this.uxFilterTextBox.Name = "uxFilterTextBox";
             this.uxFilterTextBox.Size = new System.Drawing.Size(100, 25);
             // 
             // toolStripSeparator3

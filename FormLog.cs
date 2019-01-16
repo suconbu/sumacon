@@ -77,9 +77,9 @@ namespace Suconbu.Sumacon
             var tagColumn = this.logGridPanel.AddColumn("Tag");
             var messageColumn = this.logGridPanel.AddColumn("Message");
             messageColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            this.logGridPanel.Click += (s, e) => this.AutoScrollEnabled = false;
-            this.logGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = false;
-            this.logGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = false;
+            this.logGridPanel.Click += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.logGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.logGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.logGridPanel.CellValueNeeded += (s, e) =>
             {
                 if (this.filteredLogs == null && this.logContext == null) return;
@@ -106,6 +106,7 @@ namespace Suconbu.Sumacon
                     (e.ColumnIndex == 5) ? (object)log.Message :
                     null;
             };
+            this.logGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.logGridPanel.VirtualMode = true;
 
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
@@ -231,12 +232,20 @@ namespace Suconbu.Sumacon
             get { return this.uxAutoScrollCheck.Checked; }
             set
             {
-                this.uxAutoScrollCheck.Checked = value;
-                if(this.uxAutoScrollCheck.Checked && this.logGridPanel.Rows.Count > 0)
+                if (this.uxAutoScrollCheck.Checked != value)
                 {
-                    this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.Rows.Count - 1;
+                    this.uxAutoScrollCheck.Checked = value;
+                    if (this.uxAutoScrollCheck.Checked && this.logGridPanel.Rows.Count > 0)
+                    {
+                        this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.Rows.Count - 1;
+                    }
                 }
             }
+        }
+
+        bool LastRowIsVisible()
+        {
+            return (this.logGridPanel.RowCount - this.logGridPanel.FirstDisplayedScrollingRowIndex) <= this.logGridPanel.DisplayedRowCount(true);
         }
 
         void UpdateControlState()
