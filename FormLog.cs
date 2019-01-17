@@ -285,6 +285,16 @@ namespace Suconbu.Sumacon
             return (this.logGridPanel.RowCount - this.logGridPanel.FirstDisplayedScrollingRowIndex) <= this.logGridPanel.DisplayedRowCount(true);
         }
 
+        List<Log> GetSelectedLogs()
+        {
+            var logs = new List<Log>();
+            foreach(DataGridViewRow row in this.logGridPanel.SelectedRows)
+            {
+                logs.AddRange(this.GetLog(row.Index, 1));
+            }
+            return logs;
+        }
+
         void UpdateControlState()
         {
             var device = this.deviceManager.ActiveDevice;
@@ -299,17 +309,13 @@ namespace Suconbu.Sumacon
             {
                 this.uxSummaryInfoLabel.Text = $"{totalLogCount:#,##0} logs";
             }
-            var rows = this.logGridPanel.SelectedRows;
-            if (rows.Count > 0)
+
+            var selectedLogs = this.GetSelectedLogs();
+            if (selectedLogs.Count > 0)
             {
-                var first = this.GetLog(rows[0].Index, 1).FirstOrDefault();
-                var last = this.GetLog(rows[rows.Count - 1].Index, 1).FirstOrDefault();
-                double duration = 0.0;
-                if (first != null && last != null)
-                {
-                    duration = Math.Abs((last.Timestamp - first.Timestamp).TotalMilliseconds);
-                }
-                this.uxSelectedInfoLabel.Text = $"{rows.Count:#,##0} logs selected ({duration:#,###0} ms)";
+                var ordered = selectedLogs.OrderBy(log => log.Timestamp);
+                double duration = Math.Abs((ordered.Last().Timestamp - ordered.First().Timestamp).TotalMilliseconds);
+                this.uxSelectedInfoLabel.Text = $"{selectedLogs.Count:#,##0} logs selected ({duration:#,###0} ms)";
             }
             else
             {
