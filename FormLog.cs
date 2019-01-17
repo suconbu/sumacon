@@ -34,6 +34,7 @@ namespace Suconbu.Sumacon
         LogContext logContext;
         //Dictionary<string, LogSubscriber> logSubscribers = new Dictionary<string, LogSubscriber>();
         LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
+        ColorSet colorSet = ColorSet.Light;
 
         readonly int logUpdateIntervalMilliseconds = 100;
         readonly int filterDelayMilliseconds = 100;
@@ -107,9 +108,35 @@ namespace Suconbu.Sumacon
                     (e.ColumnIndex == 5) ? (object)log.Message :
                     null;
             };
+            //this.logGridPanel.CellPainting += (s, e) =>
+            this.logGridPanel.RowPrePaint += (s, e) =>
+            {
+                if (e.RowIndex >= 0)
+                {
+                    var log = this.GetLog(e.RowIndex, 1).FirstOrDefault();
+                    if (log != null)
+                    {
+                        var colors = new Dictionary<Log.PriorityCode, Color>()
+                        {
+                            { Log.PriorityCode.F, Color.Red },
+                            { Log.PriorityCode.E, Color.Red },
+                            { Log.PriorityCode.W, Color.DarkOrange },
+                            { Log.PriorityCode.I, Color.Green },
+                            { Log.PriorityCode.D, Color.DarkBlue },
+                            { Log.PriorityCode.V, Color.Black }
+                        };
+                        if (colors.TryGetValue(log.Priority, out var color))
+                        {
+                            this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.ForeColor = color;
+                            this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.SelectionForeColor = color;
+                        }
+                    }
+                }
+            };
             this.logGridPanel.SuppressibleSelectionChanged += (s, e) => this.UpdateControlState();
             this.logGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.logGridPanel.VirtualMode = true;
+            this.logGridPanel.ApplyColorSet(this.colorSet);
 
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
             this.uxSplitContainer.Panel2Collapsed = true;
