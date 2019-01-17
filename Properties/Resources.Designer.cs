@@ -364,5 +364,15 @@ namespace Suconbu.Sumacon.Properties {
                 return ResourceManager.GetString("MonospaceFontName", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   (アイコン) に類似した型 System.Drawing.Icon のローカライズされたリソースを検索します。
+        /// </summary>
+        internal static System.Drawing.Icon sumacon {
+            get {
+                object obj = ResourceManager.GetObject("sumacon", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
     }
 }

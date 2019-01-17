@@ -34,6 +34,8 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
+            this.Icon = Properties.Resources.sumacon;
+
             this.KeyPreview = true;
 
             this.commandReceiver = new CommandReceiver();
