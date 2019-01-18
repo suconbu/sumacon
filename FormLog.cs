@@ -18,13 +18,10 @@ namespace Suconbu.Sumacon
     public partial class FormLog : FormBase
     {
         DeviceManager deviceManager;
-        //LogReceiverManager logReceiverManager;
-        ToolStripDropDownButton uxPidDropDown = new ToolStripDropDownButton();
         GridPanel logGridPanel = new GridPanel();
         GridPanel countGridPanel = new GridPanel();
         ToolStripStatusLabel uxSelectedInfoLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxSummaryInfoLabel = new ToolStripStatusLabel();
-        //LogContext receiver;
         string logUpdateTimeoutId;
         string filterTimeoutId;
         List<Log> logCache = new List<Log>();
@@ -32,9 +29,9 @@ namespace Suconbu.Sumacon
         List<Log> filteredLogs;
         int logCacheStartIndex;
         LogContext logContext;
-        //Dictionary<string, LogSubscriber> logSubscribers = new Dictionary<string, LogSubscriber>();
         LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
         ColorSet colorSet = ColorSet.Light;
+        ProcessInfo selectedProcessInfo = ProcessInfo.Empty;
 
         readonly int logUpdateIntervalMilliseconds = 100;
         readonly int filterDelayMilliseconds = 100;
@@ -61,12 +58,6 @@ namespace Suconbu.Sumacon
             this.uxAutoScrollCheck.Image = this.imageList1.Images["arrow_down.png"];
             this.uxAutoScrollCheck.CheckedChanged += (s, e) => this.AutoScrollEnabled = this.uxAutoScrollCheck.Checked;
 
-            this.uxPidDropDown.DropDownItems.Add("u0_a13 - 18846 - jp.co.yahoo.android.apps.transit");
-            this.uxPidDropDown.DropDownItems.Add("u0_a13 - 22553 - com.google.process.gapps");
-            this.uxPidDropDown.DropDownItems.Add("u0_a13 - 25653 - com.google.android.apps.maps");
-            //this.uxToolStrip.Items.Add(this.uxPidDropDown);
-            this.uxPidDropDown.Text = this.uxPidDropDown.DropDownItems[0].Text;
-
             this.logGridPanel.Dock = DockStyle.Fill;
             var timestampColumn = this.logGridPanel.AddColumn("Timestamp");
             timestampColumn.Width = 120;
@@ -74,7 +65,7 @@ namespace Suconbu.Sumacon
             var levelColumn = this.logGridPanel.AddColumn("Level");
             levelColumn.Width = 20;
             var pidColumn = this.logGridPanel.AddColumn("PID");
-            pidColumn.Width = 40;
+            pidColumn.Width = 120;// 40;
             var tidColumn = this.logGridPanel.AddColumn("TID");
             tidColumn.Width = 40;
             var tagColumn = this.logGridPanel.AddColumn("Tag");
@@ -102,7 +93,7 @@ namespace Suconbu.Sumacon
                 e.Value =
                     (e.ColumnIndex == 0) ? (object)log.Timestamp :
                     (e.ColumnIndex == 1) ? (object)log.Priority :
-                    (e.ColumnIndex == 2) ? (object)log.Pid :
+                    (e.ColumnIndex == 2) ? (object)$"{log.Pid}:{log.ProcessName}" :
                     (e.ColumnIndex == 3) ? (object)log.Tid :
                     (e.ColumnIndex == 4) ? (object)log.Tag :
                     (e.ColumnIndex == 5) ? (object)log.Message :

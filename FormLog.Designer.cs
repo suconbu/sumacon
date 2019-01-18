@@ -34,8 +34,6 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.uxSplitContainer = new System.Windows.Forms.SplitContainer();
             this.uxToolStrip = new System.Windows.Forms.ToolStrip();
-            this.uxPid = new System.Windows.Forms.ToolStripDropDownButton();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.uxFilterLabel = new System.Windows.Forms.ToolStripLabel();
             this.uxFilterTextBox = new System.Windows.Forms.ToolStripTextBox();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
@@ -98,31 +96,14 @@
             this.uxToolStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.uxToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
             this.uxToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.uxPid,
-            this.toolStripSeparator2,
             this.uxFilterLabel,
             this.uxFilterTextBox,
             this.toolStripSeparator3,
             this.uxAutoScrollCheck});
             this.uxToolStrip.Location = new System.Drawing.Point(3, 0);
             this.uxToolStrip.Name = "uxToolStrip";
-            this.uxToolStrip.Size = new System.Drawing.Size(468, 25);
+            this.uxToolStrip.Size = new System.Drawing.Size(262, 25);
             this.uxToolStrip.TabIndex = 0;
-            // 
-            // uxPid
-            // 
-            this.uxPid.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.uxPid.Image = ((System.Drawing.Image)(resources.GetObject("uxPid.Image")));
-            this.uxPid.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.uxPid.Name = "uxPid";
-            this.uxPid.Size = new System.Drawing.Size(231, 22);
-            this.uxPid.Text = "12345 - jp.co.yahoo.android.apps.transit";
-            this.uxPid.TextAlign = System.Drawing.ContentAlignment.TopCenter;
-            // 
-            // toolStripSeparator2
-            // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
             // uxFilterLabel
             // 
@@ -187,8 +168,6 @@
         private System.Windows.Forms.ToolStripContainer toolStripContainer1;
         private System.Windows.Forms.SplitContainer uxSplitContainer;
         private System.Windows.Forms.ToolStrip uxToolStrip;
-        private System.Windows.Forms.ToolStripDropDownButton uxPid;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripLabel uxFilterLabel;
         private System.Windows.Forms.ToolStripTextBox uxFilterTextBox;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;

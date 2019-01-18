@@ -63,6 +63,7 @@
       <DependentUpon>FormLog.cs</DependentUpon>
     </Compile>
     <Compile Include="mobile\LogContext.cs" />
+    <Compile Include="mobile\Process.cs" />
     <Compile Include="RecordContext.cs" />
     <Compile Include="CaptureContext.cs" />
     <Compile Include="DailyLoggingTraceListener.cs" />

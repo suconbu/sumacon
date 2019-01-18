@@ -152,7 +152,7 @@ namespace Suconbu.Mobile
 
         void OnOutput(string output)
         {
-            var log = Log.FromText(output);
+            var log = Log.FromString(output, this.Device.Processes);
             if (log == null) return;
             this.receivedLogsSemaphore.Wait();
             this.receivedLogs.Add(log);
@@ -184,10 +184,11 @@ namespace Suconbu.Mobile
         public PriorityCode Priority { get; private set; }
         public string Tag { get; private set; }
         public int Pid { get; private set; }
+        public string ProcessName { get; private set; }
         public int Tid { get; private set; }
         public string Message { get; private set; }
 
-        public static Log FromText(string input)
+        public static Log FromString(string input, ProcessSnapshot process = null)
         {
             var timestampLength = 18;
             if (string.IsNullOrEmpty(input) || input.Length < timestampLength) return null;
@@ -204,6 +205,7 @@ namespace Suconbu.Mobile
                 var instance = new Log();
                 instance.Timestamp = DateTime.Parse(time);
                 instance.Pid = int.Parse(match.Groups[1].Value);
+                instance.ProcessName = process?[instance.Pid]?.Name ?? string.Empty;
                 instance.Tid = int.Parse(match.Groups[2].Value);
                 instance.Priority = (PriorityCode)Enum.Parse(typeof(PriorityCode), match.Groups[3].Value);
                 instance.Tag = match.Groups[4].Value;

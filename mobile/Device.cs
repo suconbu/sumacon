@@ -82,6 +82,8 @@ namespace Suconbu.Mobile
         public Dictionary<string, DeviceComponentBase> ComponentsByCategory = new Dictionary<string, DeviceComponentBase>();
         [Browsable(false)]
         public bool ObserveActivated { get; private set; }
+        [Browsable(false)]
+        public ProcessSnapshot Processes { get; private set; }
 
         DeviceData deviceData;
         int observeIntervalMilliseconds = 1000;
@@ -101,6 +103,7 @@ namespace Suconbu.Mobile
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
+            ProcessSnapshot.GetAsync(this, processes => this.Processes = processes).Wait();
         }
 
         public void StartObserve(int intervalMilliseconds, bool imidiate = true)
@@ -153,7 +156,8 @@ namespace Suconbu.Mobile
 
         void TimerElapsed()
         {
-            Parallel.ForEach(this.Components, component => component.PullAsync().Wait());
+            Parallel.ForEach(this.Components, component => component.PullAsync());
+            ProcessSnapshot.GetAsync(this, processes => this.Processes = processes);
             if (!this.ObserveActivated) return;
             this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
         }
