@@ -17,13 +17,38 @@ namespace Suconbu.Sumacon
 {
     public partial class FormLog : FormBase
     {
+        struct FilterSetting
+        {
+            public Dictionary<Log.PriorityCode, bool> EnabledByPriority;
+            public string PidFilter;
+            public string TidFilter;
+            public string TagFilter;
+            public string MessageFilter;
+
+            public bool IsFilterEnabled()
+            {
+                return
+                    this.EnabledByPriority.Any(pair => !pair.Value) ||
+                    !string.IsNullOrEmpty(this.PidFilter) ||
+                    !string.IsNullOrEmpty(this.TagFilter) ||
+                    !string.IsNullOrEmpty(this.MessageFilter);
+            }
+        }
+
         DeviceManager deviceManager;
+        Dictionary<Log.PriorityCode, ToolStripButton> uxPriorityFilterButtons = new Dictionary<Log.PriorityCode, ToolStripButton>();
+        ToolStripTextBox uxPidFilterTextBox = new ToolStripTextBox();
+        ToolStripTextBox uxTidFilterTextBox = new ToolStripTextBox();
+        ToolStripTextBox uxTagFilterTextBox = new ToolStripTextBox();
+        ToolStripTextBox uxMessageFilterTextBox = new ToolStripTextBox();
+        ToolStripButton uxClearFilterButton = new ToolStripButton();
+        ToolStripButton uxAutoScrollButton = new ToolStripButton();
         GridPanel logGridPanel = new GridPanel();
         GridPanel countGridPanel = new GridPanel();
         ToolStripStatusLabel uxSelectedInfoLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxSummaryInfoLabel = new ToolStripStatusLabel();
         string logUpdateTimeoutId;
-        string filterTimeoutId;
+        string filterSettingChangedTimeoutId;
         List<Log> logCache = new List<Log>();
         string filterText = string.Empty;
         List<Log> filteredLogs;
@@ -32,14 +57,26 @@ namespace Suconbu.Sumacon
         LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
         ColorSet colorSet = ColorSet.Light;
         ProcessInfo selectedProcessInfo = ProcessInfo.Empty;
+        FilterSetting filterSetting;
 
         readonly int logUpdateIntervalMilliseconds = 100;
-        readonly int filterDelayMilliseconds = 100;
+        readonly int filterSettingChangedDelayMilliseconds = 100;
+        readonly Dictionary<Log.PriorityCode, Color> colorByPriorities = new Dictionary<Log.PriorityCode, Color>()
+        {
+            { Log.PriorityCode.F, Color.Red },
+            { Log.PriorityCode.E, Color.Red },
+            { Log.PriorityCode.W, Color.DarkOrange },
+            { Log.PriorityCode.I, Color.Green },
+            { Log.PriorityCode.D, Color.DarkBlue },
+            { Log.PriorityCode.V, Color.Black }
+        };
 
         public FormLog(DeviceManager deviceManager)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
+
+            this.filterSetting.EnabledByPriority = new Dictionary<Log.PriorityCode, bool>();
 
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
@@ -51,13 +88,62 @@ namespace Suconbu.Sumacon
                 });
             };
 
-            this.uxFilterTextBox.KeyDown += this.UxFilterText_KeyDown;
+            this.SetupToolStrip();
+            this.SetupLogGridPanel();
+            this.SetupStatusStrip();
+        }
 
-            this.uxAutoScrollCheck.CheckOnClick = true;
-            this.uxAutoScrollCheck.Checked = true;
-            this.uxAutoScrollCheck.Image = this.imageList1.Images["arrow_down.png"];
-            this.uxAutoScrollCheck.CheckedChanged += (s, e) => this.AutoScrollEnabled = this.uxAutoScrollCheck.Checked;
+        void SetupToolStrip()
+        {
+            foreach (var pair in this.colorByPriorities)
+            {
+                var button = new ToolStripButton(pair.Key.ToString());
+                button.CheckOnClick = true;
+                button.Checked = true;
+                button.ForeColor = pair.Value;
+                button.CheckedChanged += this.FilterSettingChanged;
+                this.uxPriorityFilterButtons[pair.Key] = button;
+                this.uxToolStrip.Items.Add(button);
+            }
 
+            this.uxToolStrip.Items.Add(new ToolStripSeparator());
+
+            foreach (var item in new[] { this.uxPidFilterTextBox, this.uxTidFilterTextBox, this.uxTagFilterTextBox, this.uxMessageFilterTextBox })
+            {
+                item.AutoSize = false;
+                item.TextChanged += this.FilterSettingChanged;
+                item.Click += (s, e) => ((ToolStripTextBox)s).SelectAll();
+                item.GotFocus += (s, e) => ((ToolStripTextBox)s).SelectAll();
+            }
+
+            this.uxToolStrip.Items.Add(new ToolStripLabel("PID:"));
+            this.uxPidFilterTextBox.Width = 60;
+            this.uxToolStrip.Items.Add(this.uxPidFilterTextBox);
+
+            this.uxToolStrip.Items.Add(new ToolStripLabel("TID:"));
+            this.uxTidFilterTextBox.Width = 60;
+            this.uxToolStrip.Items.Add(this.uxTidFilterTextBox);
+
+            this.uxToolStrip.Items.Add(new ToolStripLabel("Tag:"));
+            this.uxTagFilterTextBox.Width = 60;
+            this.uxToolStrip.Items.Add(this.uxTagFilterTextBox);
+
+            this.uxToolStrip.Items.Add(new ToolStripLabel("Message:"));
+            this.uxMessageFilterTextBox.Width = 120;
+            this.uxToolStrip.Items.Add(this.uxMessageFilterTextBox);
+
+            this.uxToolStrip.Items.Add(new ToolStripSeparator());
+
+            this.uxAutoScrollButton.Text = "Auto scroll";
+            this.uxAutoScrollButton.CheckOnClick = true;
+            this.uxAutoScrollButton.Checked = true;
+            this.uxAutoScrollButton.Image = this.imageList1.Images["arrow_down.png"];
+            this.uxAutoScrollButton.CheckedChanged += (s, e) => this.AutoScrollEnabled = this.uxAutoScrollButton.Checked;
+            this.uxToolStrip.Items.Add(this.uxAutoScrollButton);
+        }
+
+        void SetupLogGridPanel()
+        {
             this.logGridPanel.Dock = DockStyle.Fill;
             var timestampColumn = this.logGridPanel.AddColumn("Timestamp");
             timestampColumn.Width = 120;
@@ -87,7 +173,7 @@ namespace Suconbu.Sumacon
                     this.logCache = this.GetLog(startIndex, cacheCount);
                     this.logCacheStartIndex = Math.Max(0, startIndex);
                 }
-                var log = (this.logCache.Count>0) ? this.logCache[e.RowIndex - this.logCacheStartIndex] : null;
+                var log = (this.logCache.Count > 0) ? this.logCache[e.RowIndex - this.logCacheStartIndex] : null;
                 if (log == null) return;
                 // プロパティ名でアクセスしたい・・・
                 e.Value =
@@ -107,16 +193,7 @@ namespace Suconbu.Sumacon
                     var log = this.GetLog(e.RowIndex, 1).FirstOrDefault();
                     if (log != null)
                     {
-                        var colors = new Dictionary<Log.PriorityCode, Color>()
-                        {
-                            { Log.PriorityCode.F, Color.Red },
-                            { Log.PriorityCode.E, Color.Red },
-                            { Log.PriorityCode.W, Color.DarkOrange },
-                            { Log.PriorityCode.I, Color.Green },
-                            { Log.PriorityCode.D, Color.DarkBlue },
-                            { Log.PriorityCode.V, Color.Black }
-                        };
-                        if (colors.TryGetValue(log.Priority, out var color))
+                        if (colorByPriorities.TryGetValue(log.Priority, out var color))
                         {
                             this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.ForeColor = color;
                             this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.SelectionForeColor = color;
@@ -131,7 +208,10 @@ namespace Suconbu.Sumacon
 
             this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
             this.uxSplitContainer.Panel2Collapsed = true;
+        }
 
+        void SetupStatusStrip()
+        {
             this.uxSelectedInfoLabel.Spring = true;
             this.uxSelectedInfoLabel.TextAlign = ContentAlignment.MiddleLeft;
             this.statusStrip1.Items.Add(this.uxSelectedInfoLabel);
@@ -139,12 +219,31 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(this.uxSummaryInfoLabel);
         }
 
-        private void UxFilterText_KeyDown(object sender, KeyEventArgs e)
+        void FilterSettingChanged(object sender, EventArgs e)
         {
-            this.filterTimeoutId = Delay.SetTimeout(() =>
+            this.filterSettingChangedTimeoutId = Delay.SetTimeout(() =>
             {
-                this.FilterText = this.uxFilterTextBox.Text;
-            }, this.filterDelayMilliseconds, this, this.filterTimeoutId, true);
+                foreach (var pair in this.uxPriorityFilterButtons)
+                {
+                    this.filterSetting.EnabledByPriority[pair.Key] = pair.Value.Checked;
+                }
+
+                this.filterSetting.PidFilter = this.IsValidFilter(this.uxPidFilterTextBox.Text) ? this.uxPidFilterTextBox.Text : this.filterSetting.PidFilter;
+                this.filterSetting.TidFilter = this.IsValidFilter(this.uxTidFilterTextBox.Text) ? this.uxTidFilterTextBox.Text : this.filterSetting.TidFilter;
+                this.filterSetting.TagFilter = this.IsValidFilter(this.uxTagFilterTextBox.Text) ? this.uxTagFilterTextBox.Text : this.filterSetting.TagFilter;
+                this.filterSetting.MessageFilter = this.IsValidFilter(this.uxMessageFilterTextBox.Text) ? this.uxMessageFilterTextBox.Text : this.filterSetting.MessageFilter;
+
+                this.logCache.Clear();
+                this.filteredLogs =
+                    this.filterSetting.IsFilterEnabled() ?
+                    this.GetFilteredLogs(this.logContext.GetRange()).ToList() :
+                    null;
+                // 直接設定すると時間掛かるので一旦0に
+                this.logGridPanel.RowCount = 0;
+                this.logGridPanel.RowCount = this.GetLogCount();
+
+                this.UpdateControlState();
+            }, this.filterSettingChangedDelayMilliseconds, this, this.filterSettingChangedTimeoutId, true);
         }
 
         protected override void OnVisibleChanged(EventArgs e)
@@ -158,13 +257,7 @@ namespace Suconbu.Sumacon
 
         void OnLogReceived(object sender, Log log)
         {
-            if(this.filteredLogs != null)
-            {
-                if (Regex.IsMatch(log.Message.Trim(), this.filterText, RegexOptions.IgnoreCase))
-                {
-                    this.filteredLogs.Add(log);
-                }
-            }
+            this.filteredLogs?.AddRange(this.GetFilteredLogs(new[] { log }));
 
             this.logUpdateTimeoutId = Delay.SetTimeout(() =>
             {
@@ -182,6 +275,50 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
             this.UpdateControlState();
+        }
+
+        bool IsValidFilter(string filter)
+        {
+            try
+            {
+                Regex.IsMatch(string.Empty, filter);
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+        }
+
+        IEnumerable<Log> GetFilteredLogs(IEnumerable<Log> input)
+        {
+            var setting = this.filterSetting;
+
+            var logs = input.Where(log => setting.EnabledByPriority[log.Priority]);
+
+            if (!string.IsNullOrEmpty(setting.PidFilter))
+            {
+                logs = logs.Where(log =>
+                    Regex.IsMatch($"{log.Pid}:{log.ProcessName}", setting.PidFilter, RegexOptions.IgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(setting.TidFilter))
+            {
+                logs = logs.Where(log =>
+                    Regex.IsMatch($"{log.Tid}", setting.TidFilter, RegexOptions.IgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(setting.TagFilter))
+            {
+                logs = logs.Where(log => Regex.IsMatch(log.Tag, setting.TagFilter, RegexOptions.IgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(setting.MessageFilter))
+            {
+                logs = logs.Where(log => Regex.IsMatch(log.Message, setting.MessageFilter, RegexOptions.IgnoreCase));
+            }
+
+            return logs;
         }
 
         void ReopenLogContext()
@@ -213,57 +350,15 @@ namespace Suconbu.Sumacon
                 this.logContext?.GetRange(safeIndex, safeCount);
         }
 
-        int FilterPid
-        {
-            get { return this.logSetting.Pid; }
-            set
-            {
-                if(this.logSetting.Pid != value)
-                {
-                    this.logSetting.Pid = value;
-                    this.ReopenLogContext();
-                }
-            }
-        }
-
-        string FilterText
-        {
-            get { return this.filterText; }
-            set
-            {
-                this.uxFilterTextBox.Text = value;
-                if (this.filterText != value)
-                {
-                    this.filterText = value;
-                    try
-                    {
-                        // もしちゃんとした正規表現じゃなかったらfilteredLogsは前回のまま
-                        Regex.IsMatch(string.Empty, this.filterText);
-                    }
-                    catch(ArgumentException)
-                    {
-                        return;
-                    }
-                    this.logCache.Clear();
-                    this.filteredLogs = !string.IsNullOrEmpty(this.filterText) ?
-                        this.logContext.GetRange().Where(log =>
-                            Regex.IsMatch(log.Message.Trim(), this.filterText, RegexOptions.IgnoreCase)).ToList() :
-                        null;
-                    this.logGridPanel.RowCount = this.GetLogCount();
-                    this.UpdateControlState();
-                }
-            }
-        }
-
         bool AutoScrollEnabled
         {
-            get { return this.uxAutoScrollCheck.Checked; }
+            get { return this.uxAutoScrollButton.Checked; }
             set
             {
-                if (this.uxAutoScrollCheck.Checked != value)
+                if (this.uxAutoScrollButton.Checked != value)
                 {
-                    this.uxAutoScrollCheck.Checked = value;
-                    if (this.uxAutoScrollCheck.Checked && this.logGridPanel.Rows.Count > 0)
+                    this.uxAutoScrollButton.Checked = value;
+                    if (this.uxAutoScrollButton.Checked && this.logGridPanel.Rows.Count > 0)
                     {
                         this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.Rows.Count - 1;
                     }

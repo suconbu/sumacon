@@ -34,10 +34,6 @@
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.uxSplitContainer = new System.Windows.Forms.SplitContainer();
             this.uxToolStrip = new System.Windows.Forms.ToolStrip();
-            this.uxFilterLabel = new System.Windows.Forms.ToolStripLabel();
-            this.uxFilterTextBox = new System.Windows.Forms.ToolStripTextBox();
-            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
-            this.uxAutoScrollCheck = new System.Windows.Forms.ToolStripButton();
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -45,7 +41,6 @@
             this.toolStripContainer1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).BeginInit();
             this.uxSplitContainer.SuspendLayout();
-            this.uxToolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStripContainer1
@@ -95,42 +90,10 @@
             // 
             this.uxToolStrip.Dock = System.Windows.Forms.DockStyle.None;
             this.uxToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.uxToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.uxFilterLabel,
-            this.uxFilterTextBox,
-            this.toolStripSeparator3,
-            this.uxAutoScrollCheck});
             this.uxToolStrip.Location = new System.Drawing.Point(3, 0);
             this.uxToolStrip.Name = "uxToolStrip";
-            this.uxToolStrip.Size = new System.Drawing.Size(262, 25);
+            this.uxToolStrip.Size = new System.Drawing.Size(102, 25);
             this.uxToolStrip.TabIndex = 0;
-            // 
-            // uxFilterLabel
-            // 
-            this.uxFilterLabel.Name = "uxFilterLabel";
-            this.uxFilterLabel.Size = new System.Drawing.Size(36, 22);
-            this.uxFilterLabel.Text = "Filter:";
-            // 
-            // uxFilterTextBox
-            // 
-            this.uxFilterTextBox.Name = "uxFilterTextBox";
-            this.uxFilterTextBox.Size = new System.Drawing.Size(100, 25);
-            // 
-            // toolStripSeparator3
-            // 
-            this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
-            // 
-            // uxAutoScrollCheck
-            // 
-            this.uxAutoScrollCheck.Checked = true;
-            this.uxAutoScrollCheck.CheckOnClick = true;
-            this.uxAutoScrollCheck.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.uxAutoScrollCheck.Image = ((System.Drawing.Image)(resources.GetObject("uxAutoScrollCheck.Image")));
-            this.uxAutoScrollCheck.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.uxAutoScrollCheck.Name = "uxAutoScrollCheck";
-            this.uxAutoScrollCheck.Size = new System.Drawing.Size(84, 22);
-            this.uxAutoScrollCheck.Text = "Auto scroll";
             // 
             // imageList1
             // 
@@ -157,8 +120,6 @@
             this.toolStripContainer1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).EndInit();
             this.uxSplitContainer.ResumeLayout(false);
-            this.uxToolStrip.ResumeLayout(false);
-            this.uxToolStrip.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -168,11 +129,7 @@
         private System.Windows.Forms.ToolStripContainer toolStripContainer1;
         private System.Windows.Forms.SplitContainer uxSplitContainer;
         private System.Windows.Forms.ToolStrip uxToolStrip;
-        private System.Windows.Forms.ToolStripLabel uxFilterLabel;
-        private System.Windows.Forms.ToolStripTextBox uxFilterTextBox;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ImageList imageList1;
-        private System.Windows.Forms.ToolStripButton uxAutoScrollCheck;
     }
 }
