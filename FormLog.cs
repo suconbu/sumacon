@@ -17,21 +17,19 @@ namespace Suconbu.Sumacon
 {
     public partial class FormLog : FormBase
     {
-        struct FilterSetting
+        class FilterSetting
         {
-            public Dictionary<Log.PriorityCode, bool> EnabledByPriority;
-            public string PidFilter;
-            public string TidFilter;
-            public string TagFilter;
-            public string MessageFilter;
+            public enum FilterField { Pid, Tid, Tag, Message }
+
+            public Dictionary<Log.PriorityCode, bool> EnabledByPriority { get; set; } = new Dictionary<Log.PriorityCode, bool>();
+            public Dictionary<FilterField, string> Filters { get; set; } = new Dictionary<FilterField, string>();
+            public Dictionary<FilterField, bool> FilterInverteds { get; set; } = new Dictionary<FilterField, bool>();
 
             public bool IsFilterEnabled()
             {
                 return
                     this.EnabledByPriority.Any(pair => !pair.Value) ||
-                    !string.IsNullOrEmpty(this.PidFilter) ||
-                    !string.IsNullOrEmpty(this.TagFilter) ||
-                    !string.IsNullOrEmpty(this.MessageFilter);
+                    this.Filters.Any(pair => !string.IsNullOrEmpty(pair.Value));
             }
         }
 
@@ -57,7 +55,7 @@ namespace Suconbu.Sumacon
         LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
         ColorSet colorSet = ColorSet.Light;
         ProcessInfo selectedProcessInfo = ProcessInfo.Empty;
-        FilterSetting filterSetting;
+        FilterSetting filterSetting = new FilterSetting();
 
         readonly int logUpdateIntervalMilliseconds = 100;
         readonly int filterSettingChangedDelayMilliseconds = 100;
@@ -75,8 +73,6 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
-
-            this.filterSetting.EnabledByPriority = new Dictionary<Log.PriorityCode, bool>();
 
             this.deviceManager = deviceManager;
             this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
@@ -228,17 +224,41 @@ namespace Suconbu.Sumacon
                     this.filterSetting.EnabledByPriority[pair.Key] = pair.Value.Checked;
                 }
 
-                this.filterSetting.PidFilter = this.IsValidFilter(this.uxPidFilterTextBox.Text) ? this.uxPidFilterTextBox.Text : this.filterSetting.PidFilter;
-                this.filterSetting.TidFilter = this.IsValidFilter(this.uxTidFilterTextBox.Text) ? this.uxTidFilterTextBox.Text : this.filterSetting.TidFilter;
-                this.filterSetting.TagFilter = this.IsValidFilter(this.uxTagFilterTextBox.Text) ? this.uxTagFilterTextBox.Text : this.filterSetting.TagFilter;
-                this.filterSetting.MessageFilter = this.IsValidFilter(this.uxMessageFilterTextBox.Text) ? this.uxMessageFilterTextBox.Text : this.filterSetting.MessageFilter;
+                if (this.IsValidFilter(this.uxPidFilterTextBox.Text))
+                {
+                    this.filterSetting.Filters[FilterSetting.FilterField.Pid] = this.uxPidFilterTextBox.Text;
+                }
+                if (this.IsValidFilter(this.uxTidFilterTextBox.Text))
+                {
+                    this.filterSetting.Filters[FilterSetting.FilterField.Tid] = this.uxTidFilterTextBox.Text;
+                }
+                if (this.IsValidFilter(this.uxTagFilterTextBox.Text))
+                {
+                    this.filterSetting.Filters[FilterSetting.FilterField.Tag] = this.uxTagFilterTextBox.Text;
+                }
+                if (this.IsValidFilter(this.uxMessageFilterTextBox.Text))
+                {
+                    this.filterSetting.Filters[FilterSetting.FilterField.Message] = this.uxMessageFilterTextBox.Text;
+                }
+
+                foreach (FilterSetting.FilterField field in Enum.GetValues(typeof(FilterSetting.FilterField)))
+                {
+                    this.filterSetting.FilterInverteds[field] = this.filterSetting.Filters[field].StartsWith("-");
+                    if(this.filterSetting.FilterInverteds[field])
+                    {
+                        this.filterSetting.Filters[field] = this.filterSetting.Filters[field].Substring(1);
+                    }
+                    else
+                    {
+                        this.filterSetting.Filters[field] = this.filterSetting.Filters[field].TrimStart();
+                    }
+                }
 
                 this.logCache.Clear();
-                this.filteredLogs =
-                    this.filterSetting.IsFilterEnabled() ?
+                this.filteredLogs = this.filterSetting.IsFilterEnabled() ?
                     this.GetFilteredLogs(this.logContext.GetRange()).ToList() :
                     null;
-                // 直接設定すると時間掛かるので一旦0に
+                // いったん0にしてから設定すると速い
                 this.logGridPanel.RowCount = 0;
                 this.logGridPanel.RowCount = this.GetLogCount();
 
@@ -296,26 +316,36 @@ namespace Suconbu.Sumacon
 
             var logs = input.Where(log => setting.EnabledByPriority[log.Priority]);
 
-            if (!string.IsNullOrEmpty(setting.PidFilter))
+            var pidFilter = setting.Filters[FilterSetting.FilterField.Pid];
+            if (!string.IsNullOrEmpty(pidFilter))
             {
-                logs = logs.Where(log =>
-                    Regex.IsMatch($"{log.Pid}:{log.ProcessName}", setting.PidFilter, RegexOptions.IgnoreCase));
+                logs = setting.FilterInverteds[FilterSetting.FilterField.Pid] ?
+                    logs.Where(log => !Regex.IsMatch($"{log.Pid}:{log.ProcessName}", pidFilter, RegexOptions.IgnoreCase)) :
+                    logs.Where(log => Regex.IsMatch($"{log.Pid}:{log.ProcessName}", pidFilter, RegexOptions.IgnoreCase));
             }
 
-            if (!string.IsNullOrEmpty(setting.TidFilter))
+            var tidFilter = setting.Filters[FilterSetting.FilterField.Tid];
+            if (!string.IsNullOrEmpty(tidFilter))
             {
-                logs = logs.Where(log =>
-                    Regex.IsMatch($"{log.Tid}", setting.TidFilter, RegexOptions.IgnoreCase));
+                logs = setting.FilterInverteds[FilterSetting.FilterField.Tid] ?
+                    logs.Where(log => !Regex.IsMatch($"{log.Tid}", tidFilter, RegexOptions.IgnoreCase)) :
+                    logs.Where(log => Regex.IsMatch($"{log.Tid}", tidFilter, RegexOptions.IgnoreCase));
             }
 
-            if (!string.IsNullOrEmpty(setting.TagFilter))
+            var tagFilter = setting.Filters[FilterSetting.FilterField.Tag];
+            if (!string.IsNullOrEmpty(tagFilter))
             {
-                logs = logs.Where(log => Regex.IsMatch(log.Tag, setting.TagFilter, RegexOptions.IgnoreCase));
+                logs = setting.FilterInverteds[FilterSetting.FilterField.Tag] ?
+                    logs.Where(log => !Regex.IsMatch(log.Tag, tagFilter, RegexOptions.IgnoreCase)) :
+                    logs.Where(log => Regex.IsMatch(log.Tag, tagFilter, RegexOptions.IgnoreCase));
             }
 
-            if (!string.IsNullOrEmpty(setting.MessageFilter))
+            var messageFilter = setting.Filters[FilterSetting.FilterField.Message];
+            if (!string.IsNullOrEmpty(messageFilter))
             {
-                logs = logs.Where(log => Regex.IsMatch(log.Message, setting.MessageFilter, RegexOptions.IgnoreCase));
+                logs = setting.FilterInverteds[FilterSetting.FilterField.Message] ?
+                    logs.Where(log => !Regex.IsMatch(log.Message, messageFilter, RegexOptions.IgnoreCase)) :
+                    logs.Where(log => Regex.IsMatch(log.Message, messageFilter, RegexOptions.IgnoreCase));
             }
 
             return logs;
