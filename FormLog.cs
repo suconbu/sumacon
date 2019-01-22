@@ -41,8 +41,9 @@ namespace Suconbu.Sumacon
         ToolStripTextBox uxMessageFilterTextBox = new ToolStripTextBox();
         ToolStripButton uxClearFilterButton = new ToolStripButton();
         ToolStripButton uxAutoScrollButton = new ToolStripButton();
-        GridPanel logGridPanel = new GridPanel();
-        GridPanel countGridPanel = new GridPanel();
+        ToolStripButton uxMarkedListButton = new ToolStripButton();
+        GridPanel uxLogGridPanel = new GridPanel();
+        //GridPanel uxMarkedListGridPanel = new GridPanel();
         ToolStripStatusLabel uxSelectedInfoLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxSummaryInfoLabel = new ToolStripStatusLabel();
         string logUpdateTimeoutId;
@@ -56,6 +57,9 @@ namespace Suconbu.Sumacon
         ColorSet colorSet = ColorSet.Light;
         ProcessInfo selectedProcessInfo = ProcessInfo.Empty;
         FilterSetting filterSetting = new FilterSetting();
+        BindingList<Log> bookmarkedLogs = new BindingList<Log>();
+        //Dictionary<Log, int> bookmarkedLogIndices = new Dictionary<Log, int>();
+        //bool markedListOperated = false;
 
         readonly int logUpdateIntervalMilliseconds = 100;
         readonly int filterSettingChangedDelayMilliseconds = 100;
@@ -84,8 +88,11 @@ namespace Suconbu.Sumacon
                 });
             };
 
+            this.uxSplitContainer.Orientation = Orientation.Horizontal;
+
             this.SetupToolStrip();
             this.SetupLogGridPanel();
+            //this.SetupMarkedListPanel();
             this.SetupStatusStrip();
         }
 
@@ -136,27 +143,80 @@ namespace Suconbu.Sumacon
             this.uxAutoScrollButton.Image = this.imageList1.Images["arrow_down.png"];
             this.uxAutoScrollButton.CheckedChanged += (s, e) => this.AutoScrollEnabled = this.uxAutoScrollButton.Checked;
             this.uxToolStrip.Items.Add(this.uxAutoScrollButton);
+
+            this.uxToolStrip.Items.Add(new ToolStripSeparator());
+
+            var uxToggleBookmark = new ToolStripButton("", this.imageList1.Images["flag_blue.png"], (s, e) => this.ToggleBookmark(this.GetSelectedLogs().FirstOrDefault()));
+            uxToggleBookmark.ToolTipText = "Add/Remove bookmark a selected log (Space)";
+            this.uxToolStrip.Items.Add(uxToggleBookmark);
+            var uxJumpPrevBookmark = new ToolStripButton("", this.imageList1.Images["flag_blue_back.png"], (s, e) => this.JumpPrevBookmark());
+            uxJumpPrevBookmark.ToolTipText = "Move previous bookmark (Ctrl + Up)";
+            this.uxToolStrip.Items.Add(uxJumpPrevBookmark);
+            var uxJumpNextBookmark = new ToolStripButton("", this.imageList1.Images["flag_blue_go.png"], (s, e) => this.JumpNextBookmark());
+            uxJumpNextBookmark.ToolTipText = "Move next bookmark (Ctrl + Down)";
+            this.uxToolStrip.Items.Add(uxJumpNextBookmark);
+            var uxClearBookmark = new ToolStripButton("", this.imageList1.Images["flag_blue_delete.png"], (s, e) => this.ClearBookmark());
+            uxClearBookmark.ToolTipText = "Clear all bookmarks";
+            this.uxToolStrip.Items.Add(uxClearBookmark);
+
+            //this.uxMarkedListButton.Text = "Marked list";
+            //this.uxMarkedListButton.CheckOnClick = true;
+            //this.uxMarkedListButton.Checked = false;
+            //this.uxMarkedListButton.Image = this.imageList1.Images["flag_blue.png"];
+            //this.uxMarkedListButton.CheckedChanged += (s, e) =>
+            //{
+            //    this.markedListOperated = true;
+            //    this.uxSplitContainer.Panel2Collapsed = !this.uxMarkedListButton.Checked;
+            //};
+            //this.uxToolStrip.Items.Add(this.uxMarkedListButton);
         }
 
         void SetupLogGridPanel()
         {
-            this.logGridPanel.Dock = DockStyle.Fill;
-            var timestampColumn = this.logGridPanel.AddColumn("Timestamp");
+            this.uxLogGridPanel.Dock = DockStyle.Fill;
+            var imageColumn = new DataGridViewImageColumn();
+            imageColumn.DefaultCellStyle.NullValue = null;
+            imageColumn.Width = 20;
+            this.uxLogGridPanel.Columns.Add(imageColumn);
+            var noColumn = this.uxLogGridPanel.AddColumn("No");
+            noColumn.Width = 40;
+            var timestampColumn = this.uxLogGridPanel.AddColumn("Timestamp");
             timestampColumn.Width = 120;
             timestampColumn.DefaultCellStyle.Format = "MM/dd HH:mm:ss.fff";
-            var levelColumn = this.logGridPanel.AddColumn("Level");
+            var levelColumn = this.uxLogGridPanel.AddColumn("Level");
             levelColumn.Width = 20;
-            var pidColumn = this.logGridPanel.AddColumn("PID");
+            var pidColumn = this.uxLogGridPanel.AddColumn("PID");
             pidColumn.Width = 120;// 40;
-            var tidColumn = this.logGridPanel.AddColumn("TID");
+            var tidColumn = this.uxLogGridPanel.AddColumn("TID");
             tidColumn.Width = 40;
-            var tagColumn = this.logGridPanel.AddColumn("Tag");
-            var messageColumn = this.logGridPanel.AddColumn("Message");
+            var tagColumn = this.uxLogGridPanel.AddColumn("Tag");
+            var messageColumn = this.uxLogGridPanel.AddColumn("Message");
             messageColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            this.logGridPanel.Click += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
-            this.logGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
-            this.logGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
-            this.logGridPanel.CellValueNeeded += (s, e) =>
+            this.uxLogGridPanel.Click += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.uxLogGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.uxLogGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.uxLogGridPanel.KeyDown += (s, e) =>
+            {
+                if(ModifierKeys == Keys.Control && e.KeyCode == Keys.Up)
+                {
+                    this.JumpPrevBookmark();
+                    e.SuppressKeyPress = true;
+                }
+                else if (ModifierKeys == Keys.Control && e.KeyCode == Keys.Down)
+                {
+                    this.JumpNextBookmark();
+                    e.SuppressKeyPress = true;
+                }
+                else if(e.KeyCode == Keys.Space)
+                {
+                    this.ToggleBookmark(this.GetSelectedLogs().FirstOrDefault());
+                }
+                else
+                {
+                    ;
+                }
+            };
+            this.uxLogGridPanel.CellValueNeeded += (s, e) =>
             {
                 if (this.filteredLogs == null && this.logContext == null) return;
 
@@ -164,7 +224,7 @@ namespace Suconbu.Sumacon
                     (this.logCacheStartIndex + this.logCache.Count) <= e.RowIndex)
                 {
                     // 表示領域の上下に50%ずつの余裕
-                    int cacheCount = this.logGridPanel.DisplayedRowCount(true) * 2;
+                    int cacheCount = this.uxLogGridPanel.DisplayedRowCount(true) * 2;
                     int startIndex = e.RowIndex - (cacheCount / 4);
                     this.logCache = this.GetLog(startIndex, cacheCount);
                     this.logCacheStartIndex = Math.Max(0, startIndex);
@@ -173,38 +233,65 @@ namespace Suconbu.Sumacon
                 if (log == null) return;
                 // プロパティ名でアクセスしたい・・・
                 e.Value =
-                    (e.ColumnIndex == 0) ? (object)log.Timestamp :
-                    (e.ColumnIndex == 1) ? (object)log.Priority :
-                    (e.ColumnIndex == 2) ? (object)$"{log.Pid}:{log.ProcessName}" :
-                    (e.ColumnIndex == 3) ? (object)log.Tid :
-                    (e.ColumnIndex == 4) ? (object)log.Tag :
-                    (e.ColumnIndex == 5) ? (object)log.Message :
+                    (e.ColumnIndex == 1) ? (object)log.No :
+                    (e.ColumnIndex == 2) ? (object)log.Timestamp :
+                    (e.ColumnIndex == 3) ? (object)log.Priority :
+                    (e.ColumnIndex == 4) ? (object)$"{log.Pid}:{log.ProcessName}" :
+                    (e.ColumnIndex == 5) ? (object)log.Tid :
+                    (e.ColumnIndex == 6) ? (object)log.Tag :
+                    (e.ColumnIndex == 7) ? (object)log.Message :
                     null;
+                if (e.ColumnIndex == 0)
+                {
+                    e.Value = this.bookmarkedLogs.Contains(log) ? this.imageList1.Images["flag_blue.png"] : null;
+                }
             };
             //this.logGridPanel.CellPainting += (s, e) =>
-            this.logGridPanel.RowPrePaint += (s, e) =>
+            this.uxLogGridPanel.RowPrePaint += (s, e) =>
             {
                 if (e.RowIndex >= 0)
                 {
                     var log = this.GetLog(e.RowIndex, 1).FirstOrDefault();
                     if (log != null)
                     {
+                        var row = this.uxLogGridPanel.Rows[e.RowIndex];
                         if (colorByPriorities.TryGetValue(log.Priority, out var color))
                         {
-                            this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.ForeColor = color;
-                            this.logGridPanel.Rows[e.RowIndex].DefaultCellStyle.SelectionForeColor = color;
+                            row.DefaultCellStyle.ForeColor = color;
+                            row.DefaultCellStyle.SelectionForeColor = color;
                         }
                     }
                 }
             };
-            this.logGridPanel.SuppressibleSelectionChanged += (s, e) => this.UpdateControlState();
-            this.logGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
-            this.logGridPanel.VirtualMode = true;
-            this.logGridPanel.ApplyColorSet(this.colorSet);
+            this.uxLogGridPanel.SuppressibleSelectionChanged += (s, e) => this.UpdateControlState();
+            this.uxLogGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
+            this.uxLogGridPanel.VirtualMode = true;
+            this.uxLogGridPanel.ApplyColorSet(this.colorSet);
+            this.uxLogGridPanel.CellDoubleClick += (s, e) => this.ToggleBookmark(this.GetLog(e.RowIndex));
 
-            this.uxSplitContainer.Panel1.Controls.Add(this.logGridPanel);
+            this.uxSplitContainer.Panel1.Controls.Add(this.uxLogGridPanel);
             this.uxSplitContainer.Panel2Collapsed = true;
         }
+
+        //void SetupMarkedListPanel()
+        //{
+        //    this.uxMarkedListGridPanel.Dock = DockStyle.Fill;
+        //    this.uxMarkedListGridPanel.AutoGenerateColumns = true;
+        //    this.uxMarkedListGridPanel.DataSource = this.bookmarkedLogs;
+        //    this.uxMarkedListGridPanel.SelectionChanged += (s, e) =>
+        //    {
+        //        int count = this.uxMarkedListGridPanel.SelectedRows.Count;
+        //        if(count > 0)
+        //        {
+        //            var log = this.bookmarkedLogs[this.uxMarkedListGridPanel.SelectedRows[count - 1].Index];
+        //            if (this.bookmarkedLogIndices.TryGetValue(log, out var index))
+        //            {
+        //                this.SetDisplayedLogIndex(index);
+        //            }
+        //        }
+        //    };
+        //    this.uxSplitContainer.Panel2.Controls.Add(this.uxMarkedListGridPanel);
+        //}
 
         void SetupStatusStrip()
         {
@@ -259,8 +346,8 @@ namespace Suconbu.Sumacon
                     this.GetFilteredLogs(this.logContext.GetRange()).ToList() :
                     null;
                 // いったん0にしてから設定すると速い
-                this.logGridPanel.RowCount = 0;
-                this.logGridPanel.RowCount = this.GetLogCount();
+                this.uxLogGridPanel.RowCount = 0;
+                this.uxLogGridPanel.RowCount = this.GetLogCount();
 
                 this.UpdateControlState();
             }, this.filterSettingChangedDelayMilliseconds, this, this.filterSettingChangedTimeoutId, true);
@@ -281,10 +368,10 @@ namespace Suconbu.Sumacon
 
             this.logUpdateTimeoutId = Delay.SetTimeout(() =>
             {
-                this.logGridPanel.RowCount = this.GetLogCount();
-                if (this.AutoScrollEnabled && this.logGridPanel.RowCount > 0)
+                this.uxLogGridPanel.RowCount = this.GetLogCount();
+                if (this.AutoScrollEnabled && this.uxLogGridPanel.RowCount > 0)
                 {
-                    this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.RowCount - 1;
+                    this.uxLogGridPanel.FirstDisplayedScrollingRowIndex = this.uxLogGridPanel.RowCount - 1;
                 }
                 this.UpdateControlState();
             }, this.logUpdateIntervalMilliseconds, this, this.logUpdateTimeoutId);
@@ -354,7 +441,7 @@ namespace Suconbu.Sumacon
         void ReopenLogContext()
         {
             this.logCache.Clear();
-            this.logGridPanel.RowCount = 0;
+            this.uxLogGridPanel.RowCount = 0;
             if (this.logContext != null)
             {
                 this.logContext.Received -= this.OnLogReceived;
@@ -380,6 +467,16 @@ namespace Suconbu.Sumacon
                 this.logContext?.GetRange(safeIndex, safeCount);
         }
 
+        Log GetLog(int index)
+        {
+            return this.GetLog(index, 1).FirstOrDefault();
+        }
+
+        int GetLogIndex(Log log)
+        {
+            return (this.filteredLogs != null) ? this.filteredLogs.FindIndex(l => l == log) : log.No;
+        }
+
         bool AutoScrollEnabled
         {
             get { return this.uxAutoScrollButton.Checked; }
@@ -388,9 +485,9 @@ namespace Suconbu.Sumacon
                 if (this.uxAutoScrollButton.Checked != value)
                 {
                     this.uxAutoScrollButton.Checked = value;
-                    if (this.uxAutoScrollButton.Checked && this.logGridPanel.Rows.Count > 0)
+                    if (this.uxAutoScrollButton.Checked && this.uxLogGridPanel.Rows.Count > 0)
                     {
-                        this.logGridPanel.FirstDisplayedScrollingRowIndex = this.logGridPanel.Rows.Count - 1;
+                        this.uxLogGridPanel.FirstDisplayedScrollingRowIndex = this.uxLogGridPanel.Rows.Count - 1;
                     }
                 }
             }
@@ -398,17 +495,110 @@ namespace Suconbu.Sumacon
 
         bool LastRowIsVisible()
         {
-            return (this.logGridPanel.RowCount - this.logGridPanel.FirstDisplayedScrollingRowIndex) <= this.logGridPanel.DisplayedRowCount(true);
+            return (this.uxLogGridPanel.RowCount - this.uxLogGridPanel.FirstDisplayedScrollingRowIndex) <= this.uxLogGridPanel.DisplayedRowCount(true);
         }
 
         List<Log> GetSelectedLogs()
         {
             var logs = new List<Log>();
-            foreach(DataGridViewRow row in this.logGridPanel.SelectedRows)
+            foreach(DataGridViewRow row in this.uxLogGridPanel.SelectedRows)
             {
                 logs.AddRange(this.GetLog(row.Index, 1));
             }
             return logs;
+        }
+
+        //List<uint> GetSelectedLogNos()
+        //{
+        //    var logNos = new List<uint>();
+        //    foreach (DataGridViewRow row in this.uxLogGridPanel.SelectedRows)
+        //    {
+        //        var log = this.GetLog(row.Index);
+        //        if (log != null)
+        //        {
+        //            logNos.Add(log.No);
+        //        }
+        //    }
+        //    return logNos.OrderBy(no => no).ToList();
+        //}
+
+        void ToggleBookmark(Log log)
+        {
+            if (log == null) return;
+
+            if (!this.bookmarkedLogs.Remove(log))
+            {
+                this.bookmarkedLogs.Add(log);
+            }
+            var index = this.GetLogIndex(log);
+            if (index >= 0)
+            {
+                this.uxLogGridPanel.InvalidateRow(index);
+            }
+
+            //if (!this.markedListOperated)
+            //{
+            //    this.uxMarkedListButton.Checked = true;
+            //}
+        }
+
+        void JumpPrevBookmark()
+        {
+            var selectedLog = this.GetSelectedLogs().FirstOrDefault();
+            if (selectedLog == null) return;
+
+            foreach (var log in this.bookmarkedLogs.OrderByDescending(log => log.No))
+            {
+                if (selectedLog.No > log.No && this.GetLogIndex(log) >= 0)
+                {
+                    this.SetDisplayedLog(log);
+                    break;
+                }
+            }
+        }
+
+        void JumpNextBookmark()
+        {
+            var selectedLog = this.GetSelectedLogs().FirstOrDefault();
+            if (selectedLog == null) return;
+
+            foreach (var log in this.bookmarkedLogs.OrderBy(log => log.No))
+            {
+                if (selectedLog.No < log.No && this.GetLogIndex(log) >= 0)
+                {
+                    this.SetDisplayedLog(log);
+                    break;
+                }
+            }
+            //this.ViewLog(-1);
+        }
+
+        void ClearBookmark()
+        {
+            foreach(var log in this.bookmarkedLogs)
+            {
+                var index = this.GetLogIndex(log);
+                if (index >= 0)
+                {
+                    this.uxLogGridPanel.InvalidateRow(index);
+                }
+            }
+            this.bookmarkedLogs.Clear();
+            //this.bookmarkedLogIndices.Clear();
+        }
+
+        void SetDisplayedLog(Log log)
+        {
+            //if(index < 0)
+            //{
+            //    index = this.uxLogGridPanel.RowCount + index;
+            //}
+            var index = this.GetLogIndex(log);
+            if (index < 0) return;
+            this.uxLogGridPanel.CenterDisplayedRowIndex = index;
+            this.uxLogGridPanel.ClearSelection();
+            this.uxLogGridPanel.Rows[index].Selected = true;
+            this.uxLogGridPanel.CurrentCell = this.uxLogGridPanel.Rows[index].Cells[0];
         }
 
         void UpdateControlState()

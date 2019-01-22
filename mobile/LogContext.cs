@@ -22,9 +22,10 @@ namespace Suconbu.Mobile
 
         readonly List<Log> receivedLogs = new List<Log>();
         //readonly List<Log> temporaryLogs = new List<Log>();
-        SemaphoreSlim receivedLogsSemaphore = new SemaphoreSlim(1);
+        //SemaphoreSlim receivedLogsSemaphore = new SemaphoreSlim(1);
         CommandContext logcatContext;
         bool suspended;
+        int nextNo = 0;
 
         /// <summary>
         ///// Initialize instance.
@@ -65,16 +66,16 @@ namespace Suconbu.Mobile
             return takens;
         }
 
-        public IReadOnlyList<Log> LockLogs()
-        {
-            this.receivedLogsSemaphore.Wait();
-            return this.receivedLogs;
-        }
+        //public IReadOnlyList<Log> LockLogs()
+        //{
+        //    this.receivedLogsSemaphore.Wait();
+        //    return this.receivedLogs;
+        //}
 
-        public void UnlockLogs()
-        {
-            this.receivedLogsSemaphore.Release();
-        }
+        //public void UnlockLogs()
+        //{
+        //    this.receivedLogsSemaphore.Release();
+        //}
 
         public bool Suspended
         {
@@ -152,11 +153,15 @@ namespace Suconbu.Mobile
 
         void OnOutput(string output)
         {
-            var log = Log.FromString(output, this.Device.Processes);
+            var log = Log.FromString(this.nextNo, output, this.Device.Processes);
             if (log == null) return;
-            this.receivedLogsSemaphore.Wait();
-            this.receivedLogs.Add(log);
-            this.receivedLogsSemaphore.Release();
+            //this.receivedLogsSemaphore.Wait();
+            this.nextNo++;
+            lock (this.receivedLogs)
+            {
+                this.receivedLogs.Add(log);
+            }
+            //this.receivedLogsSemaphore.Release();
             //lock (this.receivedLogs)
             //{
             //    this.receivedLogs.Add(log);
@@ -180,6 +185,7 @@ namespace Suconbu.Mobile
     {
         public enum PriorityCode { None, S, F, E, W, I, D, V }
 
+        public int No { get; private set; }
         public DateTime Timestamp { get; private set; }
         public PriorityCode Priority { get; private set; }
         public string Tag { get; private set; }
@@ -188,7 +194,7 @@ namespace Suconbu.Mobile
         public int Tid { get; private set; }
         public string Message { get; private set; }
 
-        public static Log FromString(string input, ProcessSnapshot process = null)
+        public static Log FromString(int no, string input, ProcessSnapshot process = null)
         {
             var timestampLength = 18;
             if (string.IsNullOrEmpty(input) || input.Length < timestampLength) return null;
@@ -203,6 +209,7 @@ namespace Suconbu.Mobile
             try
             {
                 var instance = new Log();
+                instance.No = no;
                 instance.Timestamp = DateTime.Parse(time);
                 instance.Pid = int.Parse(match.Groups[1].Value);
                 instance.ProcessName = process?[instance.Pid]?.Name ?? string.Empty;

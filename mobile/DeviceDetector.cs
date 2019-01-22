@@ -44,7 +44,7 @@ namespace Suconbu.Mobile
                 Task.Run(() =>
                 {
                     // Online状態になるまでちょっと時間かかる
-                    while (AdbClient.Instance.GetDevices().Find(d => d.Serial == deviceId).State != DeviceState.Online)
+                    while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == deviceId)?.State != DeviceState.Online)
                     {
                         Thread.Sleep(10);
                     }

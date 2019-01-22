@@ -99,7 +99,12 @@
             // 
             this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
             this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
-            this.imageList1.Images.SetKeyName(0, "arrow_down.png");
+            this.imageList1.Images.SetKeyName(0, "arrow_up.png");
+            this.imageList1.Images.SetKeyName(1, "arrow_down.png");
+            this.imageList1.Images.SetKeyName(2, "flag_blue.png");
+            this.imageList1.Images.SetKeyName(3, "flag_blue_back.png");
+            this.imageList1.Images.SetKeyName(4, "flag_blue_go.png");
+            this.imageList1.Images.SetKeyName(5, "flag_blue_delete.png");
             // 
             // FormLog
             // 
