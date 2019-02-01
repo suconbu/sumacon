@@ -18,7 +18,7 @@ namespace Suconbu.Sumacon
 {
     public partial class FormRecord : FormBase
     {
-        DeviceManager deviceManager;
+        Sumacon sumacon;
         RecordContext recordContext;
         GridPanel uxFileGridPanel;
         ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
@@ -31,13 +31,13 @@ namespace Suconbu.Sumacon
         readonly int baseBitrateNormal = 4_000_000;
         readonly int baseBitrateEconomy = 1_000_000;
 
-        public FormRecord(DeviceManager deviceManager)
+        public FormRecord(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
-            this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
+            this.sumacon = sumacon;
+            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
 
             this.SetupContextMenu();
 
@@ -120,6 +120,13 @@ namespace Suconbu.Sumacon
 
             this.uxSplitContainer.SplitterDistance = 450;
             this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnClosing(e);
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
 
         void SetupContextMenu()
@@ -243,13 +250,18 @@ namespace Suconbu.Sumacon
             return column;
         }
 
+        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        {
+            this.SafeInvoke(this.UpdateControlState);
+        }
+
         private void UxStartButton_Click(object sender, EventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
 
             if (this.recordContext == null)
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
                 var setting = this.CreateSetting(device);
                 this.recordContext = RecordContext.StartNew(device, setting, state =>
@@ -257,11 +269,11 @@ namespace Suconbu.Sumacon
                     this.SafeInvoke(() => this.OnRecordContextStateChanged(state));
                 });
                 this.timer.Start();
-                this.deviceManager.SuspendObserve(device);
+                this.sumacon.DeviceManager.SuspendObserve(device);
             }
             else
             {
-                this.deviceManager.ResumeObserve(this.recordContext.Device);
+                this.sumacon.DeviceManager.ResumeObserve(this.recordContext.Device);
                 this.timer.Stop();
                 this.recordContext.Stop();
             }
@@ -309,12 +321,12 @@ namespace Suconbu.Sumacon
             }
             else if (state == RecordContext.RecordState.Aborted)
             {
-                this.deviceManager.ResumeObserve(this.recordContext?.Device);
+                this.sumacon.DeviceManager.ResumeObserve(this.recordContext?.Device);
                 this.recordContext = null;
             }
             else if (state == RecordContext.RecordState.Finished)
             {
-                this.deviceManager.ResumeObserve(this.recordContext.Device);
+                this.sumacon.DeviceManager.ResumeObserve(this.recordContext.Device);
 
                 this.fileInfos.Add(new FileInfo(this.recordContext.FilePath));
 
@@ -365,7 +377,7 @@ namespace Suconbu.Sumacon
             this.uxStartButton.Enabled = true;
             this.uxSettingPanel.Enabled = (this.recordContext == null);
 
-            if (this.deviceManager.ActiveDevice == null)
+            if (this.sumacon.DeviceManager.ActiveDevice == null)
             {
                 this.uxStartButton.Enabled = false;
                 this.uxSettingPanel.Enabled = false;

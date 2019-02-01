@@ -25,8 +25,9 @@ namespace Suconbu.Sumacon
         ToolStripItem memoryInfoLabel;
         Timer memoryTimer = new Timer() { Interval = 1000 };
 
-        DeviceManager deviceManager;
-        CommandReceiver commandReceiver;
+        Sumacon sumacon = new Sumacon();
+        //DeviceManager deviceManager;
+        //CommandReceiver commandReceiver;
         //LogReceiverManager logReceiverManager;
 
         public FormMain()
@@ -38,7 +39,6 @@ namespace Suconbu.Sumacon
 
             this.KeyPreview = true;
 
-            this.commandReceiver = new CommandReceiver();
             this.SetupDeviceManager();
             //this.logReceiverManager = new LogReceiverManager();
         }
@@ -59,20 +59,20 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(new ToolStripStatusLabel() { Spring = true });
             this.memoryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
 
-            this.consoleForm = new FormConsole(this.deviceManager, this.commandReceiver);
+            this.consoleForm = new FormConsole(this.sumacon);
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
-            this.shortcutForm = new FormShortcut(this.deviceManager, this.commandReceiver);
+            this.shortcutForm = new FormShortcut(this.sumacon);
             this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
-            this.propertyForm = new FormProperty(this.deviceManager);
+            this.propertyForm = new FormProperty(this.sumacon);
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
-            this.captureForm = new FormCapture(this.deviceManager);
+            this.captureForm = new FormCapture(this.sumacon);
             this.captureForm.Show(this.dockPanel, DockState.Document);
-            this.recordForm = new FormRecord(this.deviceManager);
+            this.recordForm = new FormRecord(this.sumacon);
             this.recordForm.Show(this.dockPanel, DockState.Document);
-            this.logForm = new FormLog(this.deviceManager);
+            this.logForm = new FormLog(this.sumacon);
             this.logForm.Show(this.dockPanel, DockState.Document);
 
-            this.deviceManager.StartDeviceDetection();
+            this.sumacon.DeviceManager.StartDeviceDetection();
 
             this.memoryTimer.Tick += this.MemoryTimer_Tick;
             this.memoryTimer.Start();
@@ -82,7 +82,7 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
-            this.deviceManager.Dispose();
+            this.sumacon.Dispose();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -93,16 +93,15 @@ namespace Suconbu.Sumacon
 
         void SetupDeviceManager()
         {
-            this.deviceManager = new DeviceManager();
-            this.deviceManager.PropertyChanged += (s, properties) =>
+            this.sumacon.DeviceManager.PropertyChanged += (s, properties) =>
             {
                 this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
             };
-            this.deviceManager.ConnectedDevicesChanged += (s, ee) =>
+            this.sumacon.DeviceManager.ConnectedDevicesChanged += (s, ee) =>
             {
                 this.SafeInvoke(() => this.UpdateDeviceList());
             };
-            this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
+            this.sumacon.DeviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
             {
                 this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
             };
@@ -111,19 +110,19 @@ namespace Suconbu.Sumacon
         void UpdateDeviceList()
         {
             this.deviceDropDown.DropDownItems.Clear();
-            var devices = this.deviceManager.ConnectedDevices.ToArray();
+            var devices = this.sumacon.DeviceManager.ConnectedDevices.ToArray();
             foreach (var device in devices)
             {
                 var label = device.ToString(Properties.Resources.DeviceLabelFormat);
                 var item = this.deviceDropDown.DropDownItems.Add(label);
                 item.Image = this.imageList1.Images["phone.png"];
-                item.Click += (s, e) => this.deviceManager.ActiveDevice = device;
+                item.Click += (s, e) => this.sumacon.DeviceManager.ActiveDevice = device;
             }
         }
 
         void UpdateStatusDeviceInfo()
         {
-            var device = this.deviceManager.ActiveDevice;
+            var device = this.sumacon.DeviceManager.ActiveDevice;
 
             if (device != null)
             {

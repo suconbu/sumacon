@@ -57,7 +57,7 @@ namespace Suconbu.Sumacon
             new DataGridViewColumn() { Name = LogColumnNames.Message, HeaderText = "Message", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
         };
 
-        DeviceManager deviceManager;
+        Sumacon sumacon;
         Dictionary<Log.PriorityCode, ToolStripButton> uxPriorityFilterButtons = new Dictionary<Log.PriorityCode, ToolStripButton>();
         ToolStripTextBox uxPidFilterTextBox = new ToolStripTextBox();
         ToolStripTextBox uxTidFilterTextBox = new ToolStripTextBox();
@@ -97,20 +97,13 @@ namespace Suconbu.Sumacon
             { Log.PriorityCode.V, Color.Black }
         };
 
-        public FormLog(DeviceManager deviceManager)
+        public FormLog(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
-            this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
-            {
-                this.SafeInvoke(() =>
-                {
-                    this.ReopenLogContext();
-                    this.UpdateControlState();
-                });
-            };
+            this.sumacon = sumacon;
+            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
 
             this.uxSplitContainer.Orientation = Orientation.Horizontal;
 
@@ -118,6 +111,22 @@ namespace Suconbu.Sumacon
             this.SetupLogGridPanel();
             //this.SetupMarkedListPanel();
             this.SetupStatusStrip();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnClosing(e);
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+        }
+
+        void DeviceManager_ActiveDeviceChanged(object sender, Device e)
+        {
+            this.SafeInvoke(() =>
+            {
+                this.ReopenLogContext();
+                this.UpdateControlState();
+            });
         }
 
         void SetupToolStrip()
@@ -458,9 +467,9 @@ namespace Suconbu.Sumacon
                 this.logContext.Close();
                 this.logContext = null;
             }
-            if (this.deviceManager.ActiveDevice != null)
+            if (this.sumacon.DeviceManager.ActiveDevice != null)
             {
-                this.logContext = LogContext.Open(this.deviceManager.ActiveDevice, this.logSetting);
+                this.logContext = LogContext.Open(this.sumacon.DeviceManager.ActiveDevice, this.logSetting);
                 this.logContext.Received += this.OnLogReceived;
             }
             this.UpdateControlState();
@@ -617,7 +626,7 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
-            var device = this.deviceManager.ActiveDevice;
+            var device = this.sumacon.DeviceManager.ActiveDevice;
             this.uxToolStrip.Enabled = (device != null);
 
             var totalLogCount = this.logContext?.Count ?? 0;

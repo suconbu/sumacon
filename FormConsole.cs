@@ -15,36 +15,20 @@ namespace Suconbu.Sumacon
 {
     public partial class FormConsole : FormBase
     {
-        DeviceManager deviceManager;
-        CommandReceiver commandReceiver;
+        Sumacon sumacon;
         Dictionary<string, CommandContext> contexts = new Dictionary<string, CommandContext>();
         LruCache<string, string> commandHistory = new LruCache<string, string>(10);
 
-        public FormConsole(DeviceManager deviceManager, CommandReceiver commandReceiver)
+        public FormConsole(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.commandReceiver = commandReceiver;
-            this.commandReceiver.InputReceived += (s, input) =>
-            {
-                this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + input));
-            };
-            this.commandReceiver.OutputReceived += (s, output) =>
-            {
-                this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + output));
-            };
-
-            this.deviceManager = deviceManager;
-            this.deviceManager.DeviceConnected += (s, device) =>
-            {
-                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is connected.");
-            };
-            this.deviceManager.DeviceDisconnecting += (s, device) =>
-            {
-                this.CancelCommandRun(device.Id);
-                this.commandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is disconnected.");
-            };
+            this.sumacon = sumacon;
+            this.sumacon.CommandReceiver.InputReceived += this.CommandReceiver_InputReceived;
+            this.sumacon.CommandReceiver.OutputReceived += this.CommandReceiver_OutputReceived;
+            this.sumacon.DeviceManager.DeviceConnected += this.DeviceManager_DeviceConnected;
+            this.sumacon.DeviceManager.DeviceDisconnecting += this.DeviceManager_DeviceDisconnecting;
 
             this.uxInputCombo.KeyDown += this.UxInputText_KeyDown;
             this.uxInputCombo.PreviewKeyDown += this.UxInputCombo_PreviewKeyDown;
@@ -64,7 +48,7 @@ namespace Suconbu.Sumacon
             this.uxOutputText.ForeColor = Color.White;
 
             this.uxOutputText.AppendText($"# Hello. {DateTime.Now.ToString()}" + Environment.NewLine);
-            CommandContext.StartNewText("adb", "version", output => this.SafeInvoke(() => this.commandReceiver.WriteOutput(output)));
+            CommandContext.StartNewText("adb", "version", output => this.SafeInvoke(() => this.sumacon.CommandReceiver.WriteOutput(output)));
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -75,6 +59,32 @@ namespace Suconbu.Sumacon
             {
                 context.Cancel();
             }
+
+            this.sumacon.CommandReceiver.InputReceived -= this.CommandReceiver_InputReceived;
+            this.sumacon.CommandReceiver.OutputReceived -= this.CommandReceiver_OutputReceived;
+            this.sumacon.DeviceManager.DeviceConnected -= this.DeviceManager_DeviceConnected;
+            this.sumacon.DeviceManager.DeviceDisconnecting -= this.DeviceManager_DeviceDisconnecting;
+        }
+
+        void CommandReceiver_InputReceived(object sender, string input)
+        {
+            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + input));
+        }
+
+        void CommandReceiver_OutputReceived(object sender, string output)
+        {
+            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + output));
+        }
+
+        void DeviceManager_DeviceConnected(object sender, Device device)
+        {
+            this.sumacon.CommandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is connected.");
+        }
+
+        void DeviceManager_DeviceDisconnecting(object sender, Device device)
+        {
+            this.CancelCommandRun(device.Id);
+            this.sumacon.CommandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is disconnected.");
         }
 
         private void UxInputCombo_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -94,7 +104,7 @@ namespace Suconbu.Sumacon
 
         void UxInputText_KeyDown(object sender, KeyEventArgs e)
         {
-            var device = this.deviceManager.ActiveDevice;
+            var device = this.sumacon.DeviceManager.ActiveDevice;
 
             if (e.KeyCode == Keys.Enter)
             {
@@ -125,7 +135,7 @@ namespace Suconbu.Sumacon
                 {
                     if (output != null)
                     {
-                        this.commandReceiver?.WriteOutput(output);
+                        this.sumacon.CommandReceiver.WriteOutput(output);
                     }
                     else
                     {

@@ -18,20 +18,18 @@ namespace Suconbu.Sumacon
 {
     public partial class FormShortcut : FormBase
     {
+        Sumacon sumacon;
         Dictionary<string, CommandSet> commandSets = new Dictionary<string, CommandSet>();
-        DeviceManager deviceManager;
-        CommandReceiver commandReceiver;
         FileSystemWatcher watcher = new FileSystemWatcher();
         readonly string directoryPath = Properties.Resources.FormShortcut_DirectoryPath;
         readonly string fileNameFilter = Properties.Resources.FormShortcut_FileNameFilter;
 
-        public FormShortcut(DeviceManager deviceManager, CommandReceiver commandReceiver)
+        public FormShortcut(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
-            this.commandReceiver = commandReceiver;
+            this.sumacon = sumacon;
             if (Directory.Exists(this.directoryPath))
             {
                 this.watcher.Path = this.directoryPath;
@@ -42,20 +40,6 @@ namespace Suconbu.Sumacon
                 this.watcher.Deleted += this.Watcher_Changed;
                 this.watcher.EnableRaisingEvents = true;
                 this.watcher.SynchronizingObject = this;
-            }
-        }
-
-        public void NotifyKeyDown(KeyEventArgs e)
-        {
-            if(Keys.F1 <= e.KeyCode && e.KeyCode <= Keys.F24)
-            {
-                Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {e.KeyCode}");
-
-                var keyName = e.KeyCode.ToString();
-                if (this.commandSets.TryGetValue(keyName, out var command))
-                {
-                    command.RunAsync(this.deviceManager.ActiveDevice, this.commandReceiver);
-                }
             }
         }
 
@@ -73,6 +57,20 @@ namespace Suconbu.Sumacon
             this.uxCommandText.BackColor = Color.Black;
             this.uxCommandText.ForeColor = Color.White;
             this.uxCommandText.Font = new Font(Properties.Resources.MonospaceFontName, this.uxCommandText.Font.Size);
+        }
+
+        public void NotifyKeyDown(KeyEventArgs e)
+        {
+            if (Keys.F1 <= e.KeyCode && e.KeyCode <= Keys.F24)
+            {
+                Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {e.KeyCode}");
+
+                var keyName = e.KeyCode.ToString();
+                if (this.commandSets.TryGetValue(keyName, out var command))
+                {
+                    command.RunAsync(this.sumacon.DeviceManager.ActiveDevice, this.sumacon.CommandReceiver);
+                }
+            }
         }
 
         void Watcher_Changed(object sender, FileSystemEventArgs e)
@@ -121,7 +119,7 @@ namespace Suconbu.Sumacon
                 if (this.uxShortcutList.SelectedItems.Count > 0)
                 {
                     var item = this.uxShortcutList.SelectedItems[0];
-                    this.commandSets[item.Text].RunAsync(this.deviceManager.ActiveDevice, this.commandReceiver);
+                    this.commandSets[item.Text].RunAsync(this.sumacon.DeviceManager.ActiveDevice, this.sumacon.CommandReceiver);
                 }
             };
         }

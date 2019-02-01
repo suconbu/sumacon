@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic.FileIO;
+using Suconbu.Mobile;
 using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace Suconbu.Sumacon
 {
     public partial class FormCapture : FormBase
     {
-        DeviceManager deviceManager;
+        Sumacon sumacon;
         CaptureContext captureContext;
         GridPanel uxFileGridPanel;
         BindingList<FileInfo> capturedFileInfos = new BindingList<FileInfo>();
@@ -36,13 +37,13 @@ namespace Suconbu.Sumacon
         readonly int previewImageCacheCapacity = (int)(5 * 5 * 1.2);
         readonly int previewImageSizeLimit = 800;
 
-        public FormCapture(DeviceManager deviceManager)
+        public FormCapture(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
-            this.deviceManager.ActiveDeviceChanged += (s, e) => this.SafeInvoke(this.UpdateControlState);
+            this.sumacon = sumacon;
+            this.sumacon.DeviceManager.ActiveDeviceChanged += DeviceManager_ActiveDeviceChanged;
 
             this.SetupContextMenu();
             this.SetupPicturePreview();
@@ -104,6 +105,7 @@ namespace Suconbu.Sumacon
 
         protected override void OnShown(EventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnShown(e);
 
             this.uxSplitContainer.SplitterDistance = 420;
@@ -112,10 +114,13 @@ namespace Suconbu.Sumacon
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
 
             this.captureContext.Stop();
             this.captureContext = null;
+
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= DeviceManager_ActiveDeviceChanged;
         }
 
         void SetupContextMenu()
@@ -288,6 +293,11 @@ namespace Suconbu.Sumacon
             return cachedImage;
         }
 
+        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        {
+            this.SafeInvoke(this.UpdateControlState);
+        }
+
         private void UxFileGridPanel_KeyDown(object sender, KeyEventArgs e)
         {
             if(e.KeyCode == Keys.Enter)
@@ -389,7 +399,7 @@ namespace Suconbu.Sumacon
 
             if (this.captureContext == null || this.captureContext.Mode == CaptureContext.CaptureMode.Single)
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
                 if (this.uxContinuousCheck.Checked)
                 {
@@ -403,12 +413,12 @@ namespace Suconbu.Sumacon
                 {
                     this.captureContext = CaptureContext.StartSingleCapture(device, this.OnCaptured, this.OnFinished);
                 }
-                this.deviceManager.SuspendObserve(device);
+                this.sumacon.DeviceManager.SuspendObserve(device);
             }
             else
             {
                 // 連続撮影中止
-                this.deviceManager.ResumeObserve(this.captureContext.Device);
+                this.sumacon.DeviceManager.ResumeObserve(this.captureContext.Device);
                 this.captureContext.Stop();
             }
 
@@ -447,7 +457,7 @@ namespace Suconbu.Sumacon
             this.captureContext = null;
             this.SafeInvoke(() =>
             {
-                this.deviceManager.ResumeObserve(device);
+                this.sumacon.DeviceManager.ResumeObserve(device);
                 this.UpdateControlState();
             });
         }
@@ -500,7 +510,7 @@ namespace Suconbu.Sumacon
                 this.uxSettingPanel.Enabled = true;
             }
 
-            if (this.deviceManager.ActiveDevice == null)
+            if (this.sumacon.DeviceManager.ActiveDevice == null)
             {
                 this.uxStartButton.Enabled = false;
                 this.uxSettingPanel.Enabled = false;
@@ -527,7 +537,7 @@ namespace Suconbu.Sumacon
                 { "height", bitmap.Height.ToString() },
                 { "no", no }
             };
-            var pattern = this.deviceManager.ActiveDevice.ToString(this.uxPatternText.Text);
+            var pattern = this.sumacon.DeviceManager.ActiveDevice.ToString(this.uxPatternText.Text);
             return pattern.Replace(replacer, "-");
         }
     }

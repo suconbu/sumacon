@@ -16,24 +16,24 @@ namespace Suconbu.Sumacon
 {
     public partial class FormProperty : FormBase
     {
-        DeviceManager deviceManager;
+        Sumacon sumacon;
         ContextMenuStrip menu = new ContextMenuStrip();
 
-        public FormProperty(DeviceManager deviceManager)
+        public FormProperty(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
-            this.deviceManager = deviceManager;
-            this.deviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
-            {
-                this.SafeInvoke(() =>
-                {
-                    this.propertyGrid1.SelectedObject = this.deviceManager.ActiveDevice;
-                    this.SetupContextMenu();
-                });
-            };
-            this.deviceManager.PropertyChanged += this.DeviceManager_PropertyChanged;
+            this.sumacon = sumacon;
+            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged += this.DeviceManager_PropertyChanged;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged -= this.DeviceManager_PropertyChanged;
         }
 
         void SetupContextMenu()
@@ -41,7 +41,7 @@ namespace Suconbu.Sumacon
             this.menu.Items.Clear();
             var resetPropertyMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
                 var component = device.ComponentsByCategory[category];
@@ -50,14 +50,14 @@ namespace Suconbu.Sumacon
             });
             var resetCategoryMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
                 device.ComponentsByCategory[category]?.ResetAsync();
             });
             var resetAllMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 foreach (var component in device.Components.OrEmptyIfNull())
                 {
                     component.ResetAsync();
@@ -66,7 +66,7 @@ namespace Suconbu.Sumacon
 
             this.menu.Opening += (s, e) =>
             {
-                var device = this.deviceManager.ActiveDevice;
+                var device = this.sumacon.DeviceManager.ActiveDevice;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor?.Category;
                 if (device == null || category == null)
                 {
@@ -96,11 +96,18 @@ namespace Suconbu.Sumacon
             this.propertyGrid1.ContextMenuStrip = this.menu;
         }
 
+        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        {
+            this.SafeInvoke(() =>
+            {
+                this.propertyGrid1.SelectedObject = device;
+                this.SetupContextMenu();
+            });
+        }
 
         void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Property> properties)
         {
-            //Console.Beep(1000, 100);
-            this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.deviceManager.ActiveDevice);
+            this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.sumacon.DeviceManager.ActiveDevice);
         }
     }
 }
