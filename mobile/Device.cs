@@ -35,7 +35,7 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Battery)]
         public bool WirelessPowered { get { return this.Battery.WirelessPowered; } set { this.Battery.WirelessPowered = value; } }
         [Category(ComponentCategory.Battery), Description("0-100")]
-        public float BatteryLevel { get { return 100.0f * this.Battery.Level / this.Battery.Scale; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
+        public float BatteryLevel { get { return (this.Battery.Scale != 0.0f) ? (100.0f * this.Battery.Level / this.Battery.Scale) : 0.0f; } set { this.Battery.Level = (int)(value / 100.0f * this.Battery.Scale); } }
         [Category(ComponentCategory.Battery)]
         public Battery.StatusCode Status { get { return this.Battery.Status; } set { this.Battery.Status = value; } }
         [Category(ComponentCategory.Battery)]
