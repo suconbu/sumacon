@@ -33,6 +33,30 @@ namespace Suconbu.Sumacon
             }
         }
 
+        struct LogColumnNames
+        {
+            public static string Bookmark = nameof(Bookmark);
+            public static string No = nameof(No);
+            public static string Timestamp = nameof(Timestamp);
+            public static string Priority = nameof(Priority);
+            public static string Pid = nameof(Pid);
+            public static string Tid = nameof(Tid);
+            public static string Tag = nameof(Tag);
+            public static string Message = nameof(Message);
+        }
+
+        DataGridViewColumn[] logColumns = new DataGridViewColumn[]
+        {
+            new DataGridViewImageColumn() { Name = LogColumnNames.Bookmark, Width = 20 },
+            new DataGridViewColumn() { Name = LogColumnNames.No, HeaderText = "No", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Timestamp, HeaderText = "Timestamp", Width = 120, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Priority, HeaderText = "Priority", Width = 20, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Pid, HeaderText = "PID", Width = 120, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Tid, HeaderText = "TID", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Tag, HeaderText = "Tag", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Message, HeaderText = "Message", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
+        };
+
         DeviceManager deviceManager;
         Dictionary<Log.PriorityCode, ToolStripButton> uxPriorityFilterButtons = new Dictionary<Log.PriorityCode, ToolStripButton>();
         ToolStripTextBox uxPidFilterTextBox = new ToolStripTextBox();
@@ -174,24 +198,13 @@ namespace Suconbu.Sumacon
         void SetupLogGridPanel()
         {
             this.uxLogGridPanel.Dock = DockStyle.Fill;
-            var imageColumn = new DataGridViewImageColumn();
-            imageColumn.DefaultCellStyle.NullValue = null;
-            imageColumn.Width = 20;
-            this.uxLogGridPanel.Columns.Add(imageColumn);
-            var noColumn = this.uxLogGridPanel.AddColumn("No");
-            noColumn.Width = 40;
-            var timestampColumn = this.uxLogGridPanel.AddColumn("Timestamp");
-            timestampColumn.Width = 120;
-            timestampColumn.DefaultCellStyle.Format = "MM/dd HH:mm:ss.fff";
-            var levelColumn = this.uxLogGridPanel.AddColumn("Level");
-            levelColumn.Width = 20;
-            var pidColumn = this.uxLogGridPanel.AddColumn("PID");
-            pidColumn.Width = 120;// 40;
-            var tidColumn = this.uxLogGridPanel.AddColumn("TID");
-            tidColumn.Width = 40;
-            var tagColumn = this.uxLogGridPanel.AddColumn("Tag");
-            var messageColumn = this.uxLogGridPanel.AddColumn("Message");
-            messageColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            foreach(var column in this.logColumns)
+            {
+                this.uxLogGridPanel.Columns.Add(column);
+            }
+            this.uxLogGridPanel.Columns[LogColumnNames.Bookmark].DefaultCellStyle.NullValue = null;
+            this.uxLogGridPanel.Columns[LogColumnNames.Timestamp].DefaultCellStyle.Format = "MM/dd HH:mm:ss.fff";
+            this.uxLogGridPanel.ApplyColorSet(this.colorSet);
             this.uxLogGridPanel.Click += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.uxLogGridPanel.MouseWheel += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.uxLogGridPanel.KeyDown += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
@@ -224,38 +237,36 @@ namespace Suconbu.Sumacon
                     (this.logCacheStartIndex + this.logCache.Count) <= e.RowIndex)
                 {
                     // 表示領域の上下に50%ずつの余裕
-                    int cacheCount = this.uxLogGridPanel.DisplayedRowCount(true) * 2;
-                    int startIndex = e.RowIndex - (cacheCount / 4);
+                    int cacheCount = this.uxLogGridPanel.DisplayedRowCount(true) * 4;
+                    int startIndex = e.RowIndex - (cacheCount / 2);
                     this.logCache = this.GetLog(startIndex, cacheCount);
                     this.logCacheStartIndex = Math.Max(0, startIndex);
                 }
-                var log = (this.logCache.Count > 0) ? this.logCache[e.RowIndex - this.logCacheStartIndex] : null;
+                var cacheIndex = e.RowIndex - this.logCacheStartIndex;
+                var log = this.logCache.ElementAtOrDefault(e.RowIndex - this.logCacheStartIndex);
                 if (log == null) return;
-                // プロパティ名でアクセスしたい・・・
+
+                var name = this.uxLogGridPanel.Columns[e.ColumnIndex].Name;
                 e.Value =
-                    (e.ColumnIndex == 1) ? (object)log.No :
-                    (e.ColumnIndex == 2) ? (object)log.Timestamp :
-                    (e.ColumnIndex == 3) ? (object)log.Priority :
-                    (e.ColumnIndex == 4) ? (object)$"{log.Pid}:{log.ProcessName}" :
-                    (e.ColumnIndex == 5) ? (object)log.Tid :
-                    (e.ColumnIndex == 6) ? (object)log.Tag :
-                    (e.ColumnIndex == 7) ? (object)log.Message :
+                    (name == LogColumnNames.Bookmark) ? (this.bookmarkedLogs.Contains(log) ? this.imageList1.Images["flag_blue.png"] : null) :
+                    (name == LogColumnNames.No) ? (object)log.No :
+                    (name == LogColumnNames.Timestamp) ? (object)log.Timestamp :
+                    (name == LogColumnNames.Priority) ? (object)log.Priority :
+                    (name == LogColumnNames.Pid) ? (object)$"{log.Pid}:{log.ProcessName}" :
+                    (name == LogColumnNames.Tid) ? (object)log.Tid :
+                    (name == LogColumnNames.Tag) ? (object)log.Tag :
+                    (name == LogColumnNames.Message) ? (object)log.Message :
                     null;
-                if (e.ColumnIndex == 0)
-                {
-                    e.Value = this.bookmarkedLogs.Contains(log) ? this.imageList1.Images["flag_blue.png"] : null;
-                }
             };
-            //this.logGridPanel.CellPainting += (s, e) =>
             this.uxLogGridPanel.RowPrePaint += (s, e) =>
             {
                 if (e.RowIndex >= 0)
                 {
-                    var log = this.GetLog(e.RowIndex, 1).FirstOrDefault();
+                    var log = this.GetLog(e.RowIndex);
                     if (log != null)
                     {
                         var row = this.uxLogGridPanel.Rows[e.RowIndex];
-                        if (colorByPriorities.TryGetValue(log.Priority, out var color))
+                        if (this.colorByPriorities.TryGetValue(log.Priority, out var color))
                         {
                             row.DefaultCellStyle.ForeColor = color;
                             row.DefaultCellStyle.SelectionForeColor = color;
@@ -266,7 +277,6 @@ namespace Suconbu.Sumacon
             this.uxLogGridPanel.SuppressibleSelectionChanged += (s, e) => this.UpdateControlState();
             this.uxLogGridPanel.Scroll += (s, e) => this.AutoScrollEnabled = this.LastRowIsVisible();
             this.uxLogGridPanel.VirtualMode = true;
-            this.uxLogGridPanel.ApplyColorSet(this.colorSet);
             this.uxLogGridPanel.CellDoubleClick += (s, e) => this.ToggleBookmark(this.GetLog(e.RowIndex));
 
             this.uxSplitContainer.Panel1.Controls.Add(this.uxLogGridPanel);
@@ -446,9 +456,13 @@ namespace Suconbu.Sumacon
             {
                 this.logContext.Received -= this.OnLogReceived;
                 this.logContext.Close();
+                this.logContext = null;
             }
-            this.logContext = LogContext.Open(this.deviceManager.ActiveDevice, this.logSetting);
-            this.logContext.Received += this.OnLogReceived;
+            if (this.deviceManager.ActiveDevice != null)
+            {
+                this.logContext = LogContext.Open(this.deviceManager.ActiveDevice, this.logSetting);
+                this.logContext.Received += this.OnLogReceived;
+            }
             this.UpdateControlState();
         }
 
