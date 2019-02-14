@@ -1,12 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root name="Screen" pull="shell dumpsys display">
-  <property name="Size" type="Size" pattern="PhysicalDisplayInfo{(\d+) x (\d+)" push="shell wm size {0}x{1}" reset="shell wm size reset"/>
-  <property name="Density" type="Integer" pattern="DisplayDeviceInfo.+density (\d+)" push="shell wm density {0}" reset="shell wm density reset"/>
-  <property name="Dpi" type="Size" pattern="PhysicalDisplayInfo.+, ([\d\.]+) x ([\d\.]+) dpi"/>
+  <property name="RealSize" type="Size" pattern="PhysicalDisplayInfo{(\d+) x (\d+)"/>
+  <property name="Size" type="Size" pull="shell wm size" pattern="(\d+)x(\d+)$" push="shell wm size {0}x{1}" reset="shell wm size reset"/>
+  <property name="RealDensity" type="Integer" pattern="DisplayDeviceInfo.+density (\d+)"/>
+  <property name="Density" type="Integer" pattern="mOverrideDisplayInfo.+density (\d+)" push="shell wm density {0}" reset="shell wm density reset"/>
+  <property name="Dpi" type="Size" pattern="mOverrideDisplayInfo.+\(([\d\.]+) x ([\d\.]+)\) dpi,"/>
   <property name="Brightness" type="Integer" pattern="mPowerRequest=.+screenBrightness=(\d+)" push="shell settings put system screen_brightness {0}"/>
   <property name="AutoBrightness" type="Bool" pattern="mPowerRequest=.+useAutoBrightness=(\w+)"/>
   <property name="AutoRotate" type="Integer" pull="shell settings get system accelerometer_rotation" pattern="(\d+)" push="shell settings put system accelerometer_rotation {0}"/>
   <property name="UserRotation" type="Integer" pull="shell settings get system user_rotation" pattern="(\d+)" push="shell settings put system user_rotation {0}"/>
-  <property name="CurrentRotation" type="Integer" pattern="mDefaultViewport=.+orientation=(\d+)"/>
+  <property name="CurrentRotation" type="Integer" pattern="mOverrideDisplayInfo.+rotation (\d+)"/>
   <property name="OffTimeout" type="Integer" pull="shell settings get system screen_off_timeout" pattern="(\d+)" push="shell settings put system screen_off_timeout {0}"/>
 </root>

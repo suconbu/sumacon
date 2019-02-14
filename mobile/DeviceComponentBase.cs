@@ -22,6 +22,10 @@ namespace Suconbu.Mobile
         {
             this.device = device;
             this.propertyGroup = PropertyGroup.FromXml(xmlPath);
+            foreach (var property in this.propertyGroup.Properties)
+            {
+                property.Component = this;
+            }
         }
 
         /// <summary>
@@ -33,7 +37,7 @@ namespace Suconbu.Mobile
             return CommandContext.StartNew(() =>
             {
                 // グループ一括
-                this.PullGroupAsync();
+                this.propertyGroup.PullAsync(this.device, this.pushing, this.OnPropertyChanged);
 
                 // 個別
                 foreach (var property in this.propertyGroup.Properties)
@@ -88,34 +92,6 @@ namespace Suconbu.Mobile
             this.PropertyChanged(this, properties);
         }
 
-        CommandContext PullGroupAsync()
-        {
-            if (string.IsNullOrEmpty(this.propertyGroup.PullCommand)) return null;
-
-            var changedProperties = new List<Property>();
-            return this.device.RunCommandAsync(this.propertyGroup.PullCommand, output =>
-            {
-                if (output == null)
-                {
-                    if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
-                    return;
-                }
-
-                foreach(var p in this.propertyGroup.Properties)
-                {
-                    // 個別のpullコマンドを持ってたらそれにお任せするのでここでは対象外
-                    if (string.IsNullOrEmpty(p.PullCommand) && !this.pushing.Contains(p.Name))
-                    {
-                        var previous = p.Value?.ToString();
-                        if (p.TrySetValueFromString(output.Trim()))
-                        {
-                            if (previous != p.Value?.ToString()) changedProperties.Add(p);
-                        }
-                    }
-                }
-            });
-        }
-
         void OnPullFinished(object sender, bool valueChanged)
         {
             if (valueChanged)
@@ -127,7 +103,7 @@ namespace Suconbu.Mobile
         void OnPushFinished(object sender, EventArgs e)
         {
             var property = sender as Property;
-            this.pushing.Add(property.Name);
+            this.pushing.Remove(property.Name);
         }
     }
 }

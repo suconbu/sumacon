@@ -37,6 +37,36 @@ namespace Suconbu.Mobile
         {
             get { return this.Properties.Find(p => p.Name == name); }
         }
+
+        public CommandContext PullAsync(Device device, ICollection<string> exceptedPropertyNames = null, Action<List<Property>> onPropertyChanged = null)
+        {
+            if (string.IsNullOrEmpty(this.PullCommand)) return null;
+
+            var changedProperties = new List<Property>();
+            return device.RunCommandAsync(this.PullCommand, output =>
+            {
+                if (output == null)
+                {
+                    if (changedProperties.Count > 0) onPropertyChanged?.Invoke(changedProperties);
+                    return;
+                }
+
+                foreach(var p in this.Properties)
+                {
+                    // 個別のpullコマンドを持ってたらそれにお任せするのでここでは対象外
+                    if (string.IsNullOrEmpty(p.PullCommand) &&
+                        !changedProperties.Contains(p) &&
+                        (exceptedPropertyNames == null || !exceptedPropertyNames.Contains(p.Name)))
+                    {
+                        var previous = p.Value?.ToString();
+                        if (p.TrySetValueFromString(output.Trim()))
+                        {
+                            if (previous != p.Value?.ToString()) changedProperties.Add(p);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     //   <property name="AC powered" type="bool" pattern="AC powered: (\w+)" push="set ac \1"/>
@@ -73,6 +103,8 @@ namespace Suconbu.Mobile
         public object OriginalValue { get; private set; }
         [XmlIgnore]
         public bool Overridden { get; private set; }
+        [XmlIgnore]
+        public DeviceComponentBase Component { get; set; }
         // PushAsyncを呼び出した後、値がデバイスに反映されるまでの間はtrue
         //[XmlIgnore]
         //public bool Pushing { get; private set; }
@@ -135,7 +167,14 @@ namespace Suconbu.Mobile
                 this.Overridden = false;
                 return device.RunCommandOutputTextAsync(this.ResetCommand, output =>
                 {
-                    this.PullAsync(device)?.Wait();
+                    if (string.IsNullOrEmpty(this.PullCommand))
+                    {
+                        this.Component.PullAsync()?.Wait();
+                    }
+                    else
+                    {
+                        this.PullAsync(device)?.Wait();
+                    }
                 });
             }
             else

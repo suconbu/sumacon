@@ -50,7 +50,11 @@ namespace Suconbu.Mobile
         public string Technology { get { return this.Battery.Technology; } }
 
         [Category(ComponentCategory.Screen)]
+        public Size ScreenRealSize { get { return this.Screen.RealSize; } }
+        [Category(ComponentCategory.Screen)]
         public Size ScreenSize { get { return this.Screen.Size; } set { this.Screen.Size = value; } }
+        [Category(ComponentCategory.Screen)]
+        public int ScreenRealDensity { get { return this.Screen.RealDensity; } }
         [Category(ComponentCategory.Screen)]
         public int ScreenDensity { get { return this.Screen.Density; } set { this.Screen.Density = value; } }
         [Category(ComponentCategory.Screen)]
@@ -58,7 +62,7 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Screen)]
         public Size PhysicalScreenDpi { get { return this.Screen.Dpi; } }
         [Category(ComponentCategory.Screen), Description("Width/Height (inch)")]
-        public SizeF PhysicalScreenSize { get { return new SizeF((float)this.Screen.Size.Width / this.Screen.Dpi.Width, (float)this.Screen.Size.Height / this.Screen.Dpi.Height); } }
+        public SizeF PhysicalScreenSize { get { return new SizeF((float)this.Screen.RealSize.Width / this.Screen.Dpi.Width, (float)this.Screen.RealSize.Height / this.Screen.Dpi.Height); } }
         [Category(ComponentCategory.Screen), Description("Diagonal length (inch)")]
         public float PhysicalScreenLength { get { return (float)Math.Sqrt(this.PhysicalScreenSize.Width * this.PhysicalScreenSize.Width + this.PhysicalScreenSize.Height * this.PhysicalScreenSize.Height); } }
         [Category(ComponentCategory.Screen), Description("0-255")]
@@ -83,10 +87,10 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public bool ObserveActivated { get; private set; }
         [Browsable(false)]
-        public ProcessSnapshot Processes { get; private set; }
+        public ProcessInfoList Processes { get; private set; }
 
         DeviceData deviceData;
-        int observeIntervalMilliseconds = 1000;
+        int observeIntervalMilliseconds = 10000;
         string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
 
@@ -103,7 +107,7 @@ namespace Suconbu.Mobile
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
-            ProcessSnapshot.GetAsync(this, processes => this.Processes = processes).Wait();
+            ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
         }
 
         public void StartObserve(int intervalMilliseconds, bool imidiate = true)
@@ -156,8 +160,9 @@ namespace Suconbu.Mobile
 
         void TimerElapsed()
         {
+            ProcessInfoList.GetAsync(this, processes => this.Processes = processes);
             Parallel.ForEach(this.Components, component => component.PullAsync());
-            ProcessSnapshot.GetAsync(this, processes => this.Processes = processes);
+            ProcessInfoList.GetAsync(this, processes => this.Processes = processes);
             if (!this.ObserveActivated) return;
             this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
         }

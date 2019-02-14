@@ -192,9 +192,10 @@ namespace Suconbu.Mobile
         public int Pid { get; private set; }
         public string ProcessName { get; private set; }
         public int Tid { get; private set; }
+        public string ThreadName { get; private set; }
         public string Message { get; private set; }
 
-        public static Log FromString(int no, string input, ProcessSnapshot process = null)
+        public static Log FromString(int no, string input, ProcessInfoList process = null)
         {
             var timestampLength = 18;
             if (string.IsNullOrEmpty(input) || input.Length < timestampLength) return null;
@@ -212,8 +213,10 @@ namespace Suconbu.Mobile
                 instance.No = no;
                 instance.Timestamp = DateTime.Parse(time);
                 instance.Pid = int.Parse(match.Groups[1].Value);
-                instance.ProcessName = process?[instance.Pid]?.Name ?? string.Empty;
+                var processInfo = process?[instance.Pid];
+                instance.ProcessName = processInfo?.Name ?? string.Empty;
                 instance.Tid = int.Parse(match.Groups[2].Value);
+                instance.ThreadName = processInfo?[instance.Tid]?.Name ?? string.Empty;
                 instance.Priority = (PriorityCode)Enum.Parse(typeof(PriorityCode), match.Groups[3].Value);
                 instance.Tag = match.Groups[4].Value;
                 instance.Message = match.Groups[5].Value;

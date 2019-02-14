@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 
@@ -82,6 +83,10 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
+            foreach (var component in this.sumacon.DeviceManager.ActiveDevice.Components)
+            {
+                component.ResetAsync();
+            }
             this.sumacon.Dispose();
         }
 

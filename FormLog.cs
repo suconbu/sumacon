@@ -79,7 +79,7 @@ namespace Suconbu.Sumacon
         LogContext logContext;
         LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
         ColorSet colorSet = ColorSet.Light;
-        ProcessInfo selectedProcessInfo = ProcessInfo.Empty;
+        //ProcessInfo selectedProcessInfo = null;
         FilterSetting filterSetting = new FilterSetting();
         BindingList<Log> bookmarkedLogs = new BindingList<Log>();
         //Dictionary<Log, int> bookmarkedLogIndices = new Dictionary<Log, int>();
@@ -117,14 +117,23 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
+            this.CloseLogContext();
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
 
-        void DeviceManager_ActiveDeviceChanged(object sender, Device e)
+        void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.SafeInvoke(() =>
             {
-                this.ReopenLogContext();
+                var device = this.sumacon.DeviceManager.ActiveDevice;
+                if (device != null)
+                {
+                    this.OpenLogContext(device);
+                }
+                else
+                {
+                    this.CloseLogContext();
+                }
                 this.UpdateControlState();
             });
         }
@@ -262,7 +271,7 @@ namespace Suconbu.Sumacon
                     (name == LogColumnNames.Timestamp) ? (object)log.Timestamp :
                     (name == LogColumnNames.Priority) ? (object)log.Priority :
                     (name == LogColumnNames.Pid) ? (object)$"{log.Pid}:{log.ProcessName}" :
-                    (name == LogColumnNames.Tid) ? (object)log.Tid :
+                    (name == LogColumnNames.Tid) ? (object)$"{log.Tid}:{log.ThreadName}":
                     (name == LogColumnNames.Tag) ? (object)log.Tag :
                     (name == LogColumnNames.Message) ? (object)log.Message :
                     null;
@@ -381,6 +390,7 @@ namespace Suconbu.Sumacon
             }
         }
 
+        //TODO: フィルタしてないときでもFormLogでログ持つほうがいい
         void OnLogReceived(object sender, Log log)
         {
             this.filteredLogs?.AddRange(this.GetFilteredLogs(new[] { log }));
@@ -457,22 +467,25 @@ namespace Suconbu.Sumacon
             return logs;
         }
 
-        void ReopenLogContext()
+        void OpenLogContext(Device device)
         {
             this.logCache.Clear();
             this.uxLogGridPanel.RowCount = 0;
-            if (this.logContext != null)
-            {
-                this.logContext.Received -= this.OnLogReceived;
-                this.logContext.Close();
-                this.logContext = null;
-            }
+            this.CloseLogContext();
             if (this.sumacon.DeviceManager.ActiveDevice != null)
             {
-                this.logContext = LogContext.Open(this.sumacon.DeviceManager.ActiveDevice, this.logSetting);
+                this.logContext = LogContext.Open(device, this.logSetting);
                 this.logContext.Received += this.OnLogReceived;
             }
             this.UpdateControlState();
+        }
+
+        void CloseLogContext()
+        {
+            if (this.logContext == null) return;
+            this.logContext.Received -= this.OnLogReceived;
+            this.logContext.Close();
+            this.logContext = null;
         }
 
         int GetLogCount()
@@ -487,7 +500,7 @@ namespace Suconbu.Sumacon
             int safeCount = Math.Min(index + count, logCount) - safeIndex;
             return (this.filteredLogs != null) ?
                 this.filteredLogs.GetRange(safeIndex, safeCount) :
-                this.logContext?.GetRange(safeIndex, safeCount);
+                this.logContext?.GetRange(safeIndex, safeCount) ?? new List<Log>();
         }
 
         Log GetLog(int index)

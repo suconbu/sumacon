@@ -10,10 +10,20 @@ namespace Suconbu.Mobile
     {
         public enum RotationCode { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
 
+        public Size RealSize
+        {
+            get { return (Size)this.propertyGroup[nameof(this.RealSize)].Value; }
+            set { this.SetAndPushValue(nameof(this.RealSize), value); }
+        }
         public Size Size
         {
             get { return (Size)this.propertyGroup[nameof(this.Size)].Value; }
             set { this.SetAndPushValue(nameof(this.Size), value); }
+        }
+        public int RealDensity
+        {
+            get { return (int)this.propertyGroup[nameof(this.RealDensity)].Value; }
+            set { this.SetAndPushValue(nameof(this.RealDensity), value); }
         }
         public int Density
         {
