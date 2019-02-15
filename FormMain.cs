@@ -36,6 +36,7 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
 
+            this.Text = $"{Util.GetApplicationName()} - ver{Util.GetVersionString(3)}";
             this.Icon = Properties.Resources.sumacon;
 
             this.KeyPreview = true;
@@ -61,16 +62,22 @@ namespace Suconbu.Sumacon
             this.memoryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
 
             this.consoleForm = new FormConsole(this.sumacon);
+            this.consoleForm.Text = "Console";
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
             this.shortcutForm = new FormShortcut(this.sumacon);
+            this.shortcutForm.Text = "Command";
             this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
             this.propertyForm = new FormProperty(this.sumacon);
+            this.propertyForm.Text = "Property";
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
             this.captureForm = new FormCapture(this.sumacon);
+            this.captureForm.Text = "Capture";
             this.captureForm.Show(this.dockPanel, DockState.Document);
             this.recordForm = new FormRecord(this.sumacon);
+            this.recordForm.Text = "Record";
             this.recordForm.Show(this.dockPanel, DockState.Document);
             this.logForm = new FormLog(this.sumacon);
+            this.logForm.Text = "Log";
             this.logForm.Show(this.dockPanel, DockState.Document);
 
             this.sumacon.DeviceManager.StartDeviceDetection();
