@@ -54,7 +54,7 @@ namespace Suconbu.Sumacon
         RecordSetting setting;
         CommandContext recordCommandContext;
         CommandContext pullCommandContext;
-        string fileName;
+        Size recordScreenSize;
         string filePathInDevice;
         string filePathInPc;
         RecordState state = RecordState.Recording;
@@ -85,29 +85,28 @@ namespace Suconbu.Sumacon
                 Directory.CreateDirectory(this.setting.DirectoryPath);
             }
 
-            var size = this.Device.ScreenSize;
+            this.recordScreenSize = this.Device.ScreenSize;
             if (this.Device.CurrentRotation == Screen.RotationCode.Landscape ||
                 this.Device.CurrentRotation == Screen.RotationCode.LandscapeReversed)
             {
-                size = size.Swapped();
+                this.recordScreenSize = this.recordScreenSize.Swapped();
             }
             if (this.setting.ViewSizeMultiply != 1.0f)
             {
-                size = size.Multiplied(this.setting.ViewSizeMultiply);
+                this.recordScreenSize = this.recordScreenSize.Multiplied(this.setting.ViewSizeMultiply);
             }
 
-            this.fileName = this.GetFileName(this.setting.FileNamePattern, size);
-            this.filePathInDevice = $"{this.deviceTemporaryDirectoryPath}/{this.fileName}";
-            this.filePathInPc = Path.Combine(this.setting.DirectoryPath, this.fileName);
+            var fileName = this.GetFileName(this.setting.FileNamePattern, this.recordScreenSize, this.setting.TimeLimitSeconds);
+            this.filePathInDevice = $"{this.deviceTemporaryDirectoryPath}/{fileName}";
 
             var option = new StringBuilder();
             if (0 < this.setting.TimeLimitSeconds && this.setting.TimeLimitSeconds <= RecordContext.TimeLimitSecondsMax)
             {
                 option.Append($" --time-limit {this.setting.TimeLimitSeconds}");
             }
-            if(size != this.Device.ScreenSize)
+            if(this.recordScreenSize != this.Device.ScreenSize)
             {
-                option.Append($" --size {size.Width}x{size.Height}");
+                option.Append($" --size {this.recordScreenSize.Width}x{this.recordScreenSize.Height}");
             }
             option.Append($" --bit-rate {this.setting.Bitrate}");
 
@@ -155,6 +154,9 @@ namespace Suconbu.Sumacon
                 (this.StartedAt.AddSeconds(this.setting.TimeLimitSeconds));
             this.State = RecordState.Pulling;
 
+            var pcFileName = this.GetFileName(this.setting.FileNamePattern, this.recordScreenSize, (int)this.Elapsed.TotalSeconds);
+            this.filePathInPc = Path.Combine(this.setting.DirectoryPath, pcFileName);
+
             var command = $"pull {this.filePathInDevice} {this.filePathInPc}";
             this.pullCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
         }
@@ -192,7 +194,7 @@ namespace Suconbu.Sumacon
             this.State = RecordState.Finished;
         }
 
-        string GetFileName(string pattern, Size size)
+        string GetFileName(string pattern, Size size, int durationSeconds)
         {
             var now = DateTime.Now;
             var replacer = new Dictionary<string, string>()
@@ -201,7 +203,8 @@ namespace Suconbu.Sumacon
                 { "time", now.ToString("HHmmss") },
                 { "width", size.Width.ToString() },
                 { "height", size.Height.ToString() },
-                { "no", (this.setting.SequenceNo % 10000).ToString("0000") }
+                { "no", (this.setting.SequenceNo % 10000).ToString("0000") },
+                { "duration", durationSeconds.ToString("0sec") }
             };
             pattern = this.Device.ToString(pattern);
             return pattern.Replace(replacer, "-");

@@ -184,7 +184,7 @@
     <value>Stopping...</value>
   </data>
   <data name="FormRecord_DefaultFileNamePattern" xml:space="preserve">
-    <value>{device-model}_{date}_{time}_{width}x{height}_{no}.mp4</value>
+    <value>{device-model}_{date}_{time}_{width}x{height}_{duration}_{no}.mp4</value>
   </data>
   <data name="FormRecord_DefaultSaveDirectoryPath" xml:space="preserve">
     <value>.\screenrecord</value>

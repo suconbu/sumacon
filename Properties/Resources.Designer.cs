@@ -240,7 +240,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {device-model}_{date}_{time}_{width}x{height}_{no}.mp4 に類似しているローカライズされた文字列を検索します。
+        ///   {device-model}_{date}_{time}_{width}x{height}_{duration}_{no}.mp4 に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string FormRecord_DefaultFileNamePattern {
             get {
