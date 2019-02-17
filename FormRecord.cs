@@ -25,7 +25,7 @@ namespace Suconbu.Sumacon
         ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
         BindingList<FileInfo> fileInfos = new BindingList<FileInfo>();
         List<FileInfo> selectedFileInfos = new List<FileInfo>();
-        RadioButton[] timeButtons;
+        Button[] timeButtons;
         Timer timer = new Timer();
         int sequenceNo = 1;
 
@@ -49,17 +49,16 @@ namespace Suconbu.Sumacon
             this.uxSize1.Checked = true;
             this.uxQualityNormal.Checked = true;
 
-            this.uxTimeNumeric.Minimum = 1;
-            this.uxTimeNumeric.Maximum = RecordContext.TimeLimitSecondsMax;
-            this.uxTimeNumeric.ValueChanged += (s, e) => this.UpdateApproxSize();
-            this.uxTimeNumeric.Value = 10;
+            this.uxLimitTimeNumeric.Minimum = 1;
+            this.uxLimitTimeNumeric.Maximum = RecordContext.TimeLimitSecondsMax;
+            this.uxLimitTimeNumeric.ValueChanged += (s, e) => this.UpdateApproxSize();
+            this.uxLimitTimeNumeric.Value = 180;
 
-            this.timeButtons = new[] { this.uxTime10, this.uxTime30, this.uxTime60, this.uxTime180 };
+            this.timeButtons = new[] { this.uxLimitTime10, this.uxLimitTime30, this.uxLimitTime60, this.uxLimitTime180 };
             foreach(var button in this.timeButtons)
             {
-                button.CheckedChanged += this.UxTime_CheckedChanged;
+                button.Click += this.UxLimitTime_Clicked;
             }
-            this.uxTime180.Checked = true;
 
             this.uxTimestampCheck.Checked = true;
 
@@ -109,16 +108,10 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
-        private void UxTime_CheckedChanged(object sender, EventArgs e)
+        private void UxLimitTime_Clicked(object sender, EventArgs e)
         {
-            foreach (var button in this.timeButtons)
-            {
-                if(button.Checked)
-                {
-                    this.uxTimeNumeric.Value = int.Parse((string)button.Tag);
-                    break;
-                }
-            }
+            var button = (Button)sender;
+            this.uxLimitTimeNumeric.Value = int.Parse((string)button.Tag);
         }
 
         protected override void OnLoad(EventArgs e)
@@ -246,7 +239,7 @@ namespace Suconbu.Sumacon
 
         void UpdateApproxSize()
         {
-            var seconds = (int)this.uxTimeNumeric.Value;
+            var seconds = (int)this.uxLimitTimeNumeric.Value;
 
             var mega = this.GetBitrate() / 8_000_000.0f * seconds;
             this.uxApproxLabel.Text = mega.ToString(Properties.Resources.FormRecord_ApproxFormat);
@@ -313,7 +306,7 @@ namespace Suconbu.Sumacon
 
         int GetLimitTimeSeconds()
         {
-            return (int)this.uxTimeNumeric.Value;
+            return (int)this.uxLimitTimeNumeric.Value;
         }
 
         float GetViewSizeMultiply()

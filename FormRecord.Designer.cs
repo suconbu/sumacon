@@ -37,12 +37,12 @@
             this.uxStartButton = new System.Windows.Forms.Button();
             this.uxSettingPanel = new System.Windows.Forms.TableLayoutPanel();
             this.flowLayoutPanel3 = new System.Windows.Forms.FlowLayoutPanel();
-            this.uxTimeNumeric = new System.Windows.Forms.NumericUpDown();
+            this.uxLimitTimeNumeric = new System.Windows.Forms.NumericUpDown();
             this.flowLayoutPanel5 = new System.Windows.Forms.FlowLayoutPanel();
-            this.uxTime10 = new System.Windows.Forms.RadioButton();
-            this.uxTime30 = new System.Windows.Forms.RadioButton();
-            this.uxTime60 = new System.Windows.Forms.RadioButton();
-            this.uxTime180 = new System.Windows.Forms.RadioButton();
+            this.uxLimitTime10 = new System.Windows.Forms.Button();
+            this.uxLimitTime30 = new System.Windows.Forms.Button();
+            this.uxLimitTime60 = new System.Windows.Forms.Button();
+            this.uxLimitTime180 = new System.Windows.Forms.Button();
             this.uxApproxLabel = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.uxPatternText = new System.Windows.Forms.TextBox();
@@ -64,7 +64,7 @@
             this.axWindowsMediaPlayer1 = new AxWMPLib.AxWindowsMediaPlayer();
             this.uxSettingPanel.SuspendLayout();
             this.flowLayoutPanel3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.uxTimeNumeric)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxLimitTimeNumeric)).BeginInit();
             this.flowLayoutPanel5.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.flowLayoutPanel2.SuspendLayout();
@@ -140,7 +140,7 @@
             // 
             // flowLayoutPanel3
             // 
-            this.flowLayoutPanel3.Controls.Add(this.uxTimeNumeric);
+            this.flowLayoutPanel3.Controls.Add(this.uxLimitTimeNumeric);
             this.flowLayoutPanel3.Controls.Add(this.flowLayoutPanel5);
             this.flowLayoutPanel3.Controls.Add(this.uxApproxLabel);
             this.flowLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -151,22 +151,22 @@
             this.flowLayoutPanel3.TabIndex = 34;
             this.flowLayoutPanel3.WrapContents = false;
             // 
-            // uxTimeNumeric
+            // uxLimitTimeNumeric
             // 
-            this.uxTimeNumeric.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxTimeNumeric.Location = new System.Drawing.Point(3, 6);
-            this.uxTimeNumeric.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
-            this.uxTimeNumeric.Name = "uxTimeNumeric";
-            this.uxTimeNumeric.Size = new System.Drawing.Size(50, 23);
-            this.uxTimeNumeric.TabIndex = 4;
+            this.uxLimitTimeNumeric.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxLimitTimeNumeric.Location = new System.Drawing.Point(3, 6);
+            this.uxLimitTimeNumeric.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
+            this.uxLimitTimeNumeric.Name = "uxLimitTimeNumeric";
+            this.uxLimitTimeNumeric.Size = new System.Drawing.Size(50, 23);
+            this.uxLimitTimeNumeric.TabIndex = 4;
             // 
             // flowLayoutPanel5
             // 
             this.flowLayoutPanel5.AutoSize = true;
-            this.flowLayoutPanel5.Controls.Add(this.uxTime10);
-            this.flowLayoutPanel5.Controls.Add(this.uxTime30);
-            this.flowLayoutPanel5.Controls.Add(this.uxTime60);
-            this.flowLayoutPanel5.Controls.Add(this.uxTime180);
+            this.flowLayoutPanel5.Controls.Add(this.uxLimitTime10);
+            this.flowLayoutPanel5.Controls.Add(this.uxLimitTime30);
+            this.flowLayoutPanel5.Controls.Add(this.uxLimitTime60);
+            this.flowLayoutPanel5.Controls.Add(this.uxLimitTime180);
             this.flowLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel5.Location = new System.Drawing.Point(56, 0);
             this.flowLayoutPanel5.Margin = new System.Windows.Forms.Padding(0);
@@ -175,61 +175,57 @@
             this.flowLayoutPanel5.TabIndex = 51;
             this.flowLayoutPanel5.WrapContents = false;
             // 
-            // uxTime10
+            // uxLimitTime10
             // 
-            this.uxTime10.Appearance = System.Windows.Forms.Appearance.Button;
-            this.uxTime10.AutoSize = true;
-            this.uxTime10.Location = new System.Drawing.Point(1, 3);
-            this.uxTime10.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
-            this.uxTime10.Name = "uxTime10";
-            this.uxTime10.Size = new System.Drawing.Size(29, 25);
-            this.uxTime10.TabIndex = 47;
-            this.uxTime10.TabStop = true;
-            this.uxTime10.Tag = "10";
-            this.uxTime10.Text = "10";
-            this.uxTime10.UseVisualStyleBackColor = true;
+            this.uxLimitTime10.AutoSize = true;
+            this.uxLimitTime10.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxLimitTime10.Location = new System.Drawing.Point(1, 3);
+            this.uxLimitTime10.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
+            this.uxLimitTime10.Name = "uxLimitTime10";
+            this.uxLimitTime10.Size = new System.Drawing.Size(29, 25);
+            this.uxLimitTime10.TabIndex = 51;
+            this.uxLimitTime10.Tag = "10";
+            this.uxLimitTime10.Text = "10";
+            this.uxLimitTime10.UseVisualStyleBackColor = true;
             // 
-            // uxTime30
+            // uxLimitTime30
             // 
-            this.uxTime30.Appearance = System.Windows.Forms.Appearance.Button;
-            this.uxTime30.AutoSize = true;
-            this.uxTime30.Location = new System.Drawing.Point(32, 3);
-            this.uxTime30.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
-            this.uxTime30.Name = "uxTime30";
-            this.uxTime30.Size = new System.Drawing.Size(29, 25);
-            this.uxTime30.TabIndex = 48;
-            this.uxTime30.TabStop = true;
-            this.uxTime30.Tag = "30";
-            this.uxTime30.Text = "30";
-            this.uxTime30.UseVisualStyleBackColor = true;
+            this.uxLimitTime30.AutoSize = true;
+            this.uxLimitTime30.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxLimitTime30.Location = new System.Drawing.Point(32, 3);
+            this.uxLimitTime30.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
+            this.uxLimitTime30.Name = "uxLimitTime30";
+            this.uxLimitTime30.Size = new System.Drawing.Size(29, 25);
+            this.uxLimitTime30.TabIndex = 51;
+            this.uxLimitTime30.Tag = "30";
+            this.uxLimitTime30.Text = "30";
+            this.uxLimitTime30.UseVisualStyleBackColor = true;
             // 
-            // uxTime60
+            // uxLimitTime60
             // 
-            this.uxTime60.Appearance = System.Windows.Forms.Appearance.Button;
-            this.uxTime60.AutoSize = true;
-            this.uxTime60.Location = new System.Drawing.Point(63, 3);
-            this.uxTime60.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
-            this.uxTime60.Name = "uxTime60";
-            this.uxTime60.Size = new System.Drawing.Size(29, 25);
-            this.uxTime60.TabIndex = 49;
-            this.uxTime60.TabStop = true;
-            this.uxTime60.Tag = "60";
-            this.uxTime60.Text = "60";
-            this.uxTime60.UseVisualStyleBackColor = true;
+            this.uxLimitTime60.AutoSize = true;
+            this.uxLimitTime60.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxLimitTime60.Location = new System.Drawing.Point(63, 3);
+            this.uxLimitTime60.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
+            this.uxLimitTime60.Name = "uxLimitTime60";
+            this.uxLimitTime60.Size = new System.Drawing.Size(29, 25);
+            this.uxLimitTime60.TabIndex = 51;
+            this.uxLimitTime60.Tag = "60";
+            this.uxLimitTime60.Text = "60";
+            this.uxLimitTime60.UseVisualStyleBackColor = true;
             // 
-            // uxTime180
+            // uxLimitTime180
             // 
-            this.uxTime180.Appearance = System.Windows.Forms.Appearance.Button;
-            this.uxTime180.AutoSize = true;
-            this.uxTime180.Location = new System.Drawing.Point(94, 3);
-            this.uxTime180.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
-            this.uxTime180.Name = "uxTime180";
-            this.uxTime180.Size = new System.Drawing.Size(72, 25);
-            this.uxTime180.TabIndex = 50;
-            this.uxTime180.TabStop = true;
-            this.uxTime180.Tag = "180";
-            this.uxTime180.Text = "180 (Max.)";
-            this.uxTime180.UseVisualStyleBackColor = true;
+            this.uxLimitTime180.AutoSize = true;
+            this.uxLimitTime180.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxLimitTime180.Location = new System.Drawing.Point(94, 3);
+            this.uxLimitTime180.Margin = new System.Windows.Forms.Padding(1, 3, 1, 3);
+            this.uxLimitTime180.Name = "uxLimitTime180";
+            this.uxLimitTime180.Size = new System.Drawing.Size(72, 25);
+            this.uxLimitTime180.TabIndex = 51;
+            this.uxLimitTime180.Tag = "180";
+            this.uxLimitTime180.Text = "180 (Max.)";
+            this.uxLimitTime180.UseVisualStyleBackColor = true;
             // 
             // uxApproxLabel
             // 
@@ -483,7 +479,7 @@
             this.uxSettingPanel.PerformLayout();
             this.flowLayoutPanel3.ResumeLayout(false);
             this.flowLayoutPanel3.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.uxTimeNumeric)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxLimitTimeNumeric)).EndInit();
             this.flowLayoutPanel5.ResumeLayout(false);
             this.flowLayoutPanel5.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);
@@ -519,12 +515,8 @@
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel3;
-        private System.Windows.Forms.NumericUpDown uxTimeNumeric;
+        private System.Windows.Forms.NumericUpDown uxLimitTimeNumeric;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel5;
-        private System.Windows.Forms.RadioButton uxTime10;
-        private System.Windows.Forms.RadioButton uxTime30;
-        private System.Windows.Forms.RadioButton uxTime60;
-        private System.Windows.Forms.RadioButton uxTime180;
         private System.Windows.Forms.Label uxApproxLabel;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel2;
         private System.Windows.Forms.RadioButton uxSize1;
@@ -535,5 +527,9 @@
         private System.Windows.Forms.RadioButton uxQualityNormal;
         private System.Windows.Forms.RadioButton uxQuarityEconomy;
         private System.Windows.Forms.CheckBox uxTimestampCheck;
+        private System.Windows.Forms.Button uxLimitTime10;
+        private System.Windows.Forms.Button uxLimitTime30;
+        private System.Windows.Forms.Button uxLimitTime60;
+        private System.Windows.Forms.Button uxLimitTime180;
     }
 }
