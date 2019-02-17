@@ -70,6 +70,7 @@ namespace Suconbu.Sumacon
 
         public void Stop()
         {
+            this.onFinished?.Invoke();
             this.Dispose();
         }
 
@@ -87,7 +88,7 @@ namespace Suconbu.Sumacon
         {
             if (bitmap == null || this.disposed)
             {
-                this.onFinished();
+                this.onFinished?.Invoke();
                 return;
             }
 
@@ -120,13 +121,13 @@ namespace Suconbu.Sumacon
 
             if (!skip)
             {
-                this.onCaptured(bitmap);
+                this.onCaptured?.Invoke(bitmap);
             }
 
             if (this.Mode == CaptureMode.Single ||
                 (this.Mode == CaptureMode.Continuous && this.RemainingCount == 0))
             {
-                this.onFinished();
+                this.onFinished?.Invoke();
             }
         }
 

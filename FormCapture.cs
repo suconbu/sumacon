@@ -119,7 +119,7 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
 
-            this.captureContext.Stop();
+            this.captureContext?.Stop();
             this.captureContext = null;
 
             this.sumacon.DeviceManager.ActiveDeviceChanged -= DeviceManager_ActiveDeviceChanged;
@@ -461,7 +461,6 @@ namespace Suconbu.Sumacon
         void OnFinished()
         {
             var device = this.captureContext?.Device;
-            this.captureContext?.Stop();
             this.captureContext = null;
             this.SafeInvoke(() =>
             {
