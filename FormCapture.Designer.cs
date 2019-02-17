@@ -39,21 +39,22 @@
             this.label2 = new System.Windows.Forms.Label();
             this.uxSaveDirectoryText = new System.Windows.Forms.TextBox();
             this.uxPatternText = new System.Windows.Forms.TextBox();
-            this.uxConinuousPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.uxSkipSameImageCheck = new System.Windows.Forms.CheckBox();
-            this.uxCountNumeric = new System.Windows.Forms.NumericUpDown();
+            this.uxContinuousPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.uxIntervalLabel = new System.Windows.Forms.Label();
             this.uxIntervalNumeric = new System.Windows.Forms.NumericUpDown();
             this.uxCountCheck = new System.Windows.Forms.CheckBox();
+            this.uxCountNumeric = new System.Windows.Forms.NumericUpDown();
+            this.uxSkipDuplicatedImageCheck = new System.Windows.Forms.CheckBox();
             this.uxToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.uxImageList = new System.Windows.Forms.ImageList(this.components);
+            this.panel1 = new System.Windows.Forms.Panel();
             this.uxOuterPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).BeginInit();
             this.uxSplitContainer.SuspendLayout();
             this.uxSettingPanel.SuspendLayout();
-            this.uxConinuousPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.uxCountNumeric)).BeginInit();
+            this.uxContinuousPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxIntervalNumeric)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxCountNumeric)).BeginInit();
             this.SuspendLayout();
             // 
             // uxOuterPanel
@@ -103,15 +104,14 @@
             this.uxSettingPanel.Controls.Add(this.label2, 0, 1);
             this.uxSettingPanel.Controls.Add(this.uxSaveDirectoryText, 1, 0);
             this.uxSettingPanel.Controls.Add(this.uxPatternText, 1, 1);
-            this.uxSettingPanel.Controls.Add(this.uxConinuousPanel, 1, 2);
+            this.uxSettingPanel.Controls.Add(this.uxContinuousPanel, 1, 2);
             this.uxSettingPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxSettingPanel.Location = new System.Drawing.Point(3, 3);
             this.uxSettingPanel.Name = "uxSettingPanel";
             this.uxSettingPanel.RowCount = 3;
-            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.uxSettingPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.uxSettingPanel.Size = new System.Drawing.Size(652, 96);
             this.uxSettingPanel.TabIndex = 5;
             // 
@@ -119,9 +119,9 @@
             // 
             this.uxContinuousCheck.AutoSize = true;
             this.uxContinuousCheck.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxContinuousCheck.Location = new System.Drawing.Point(3, 67);
+            this.uxContinuousCheck.Location = new System.Drawing.Point(3, 61);
             this.uxContinuousCheck.Name = "uxContinuousCheck";
-            this.uxContinuousCheck.Size = new System.Drawing.Size(101, 26);
+            this.uxContinuousCheck.Size = new System.Drawing.Size(101, 32);
             this.uxContinuousCheck.TabIndex = 14;
             this.uxContinuousCheck.Text = "Continuous:";
             this.uxContinuousCheck.UseVisualStyleBackColor = true;
@@ -132,7 +132,7 @@
             this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.label1.Location = new System.Drawing.Point(3, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(101, 32);
+            this.label1.Size = new System.Drawing.Size(101, 29);
             this.label1.TabIndex = 0;
             this.label1.Text = "Save directory:";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -141,9 +141,9 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.label2.Location = new System.Drawing.Point(3, 32);
+            this.label2.Location = new System.Drawing.Point(3, 29);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(101, 32);
+            this.label2.Size = new System.Drawing.Size(101, 29);
             this.label2.TabIndex = 0;
             this.label2.Text = "File name pattern:";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -159,51 +159,26 @@
             // uxPatternText
             // 
             this.uxPatternText.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxPatternText.Location = new System.Drawing.Point(110, 35);
+            this.uxPatternText.Location = new System.Drawing.Point(110, 32);
             this.uxPatternText.Name = "uxPatternText";
             this.uxPatternText.Size = new System.Drawing.Size(539, 23);
             this.uxPatternText.TabIndex = 2;
             // 
-            // uxConinuousPanel
+            // uxContinuousPanel
             // 
-            this.uxConinuousPanel.ColumnCount = 6;
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.uxConinuousPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 111F));
-            this.uxConinuousPanel.Controls.Add(this.uxSkipSameImageCheck, 4, 0);
-            this.uxConinuousPanel.Controls.Add(this.uxCountNumeric, 3, 0);
-            this.uxConinuousPanel.Controls.Add(this.uxIntervalLabel, 0, 0);
-            this.uxConinuousPanel.Controls.Add(this.uxIntervalNumeric, 1, 0);
-            this.uxConinuousPanel.Controls.Add(this.uxCountCheck, 2, 0);
-            this.uxConinuousPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxConinuousPanel.Location = new System.Drawing.Point(107, 64);
-            this.uxConinuousPanel.Margin = new System.Windows.Forms.Padding(0);
-            this.uxConinuousPanel.Name = "uxConinuousPanel";
-            this.uxConinuousPanel.RowCount = 1;
-            this.uxConinuousPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.uxConinuousPanel.Size = new System.Drawing.Size(545, 32);
-            this.uxConinuousPanel.TabIndex = 3;
-            // 
-            // uxSkipSameImageCheck
-            // 
-            this.uxSkipSameImageCheck.AutoSize = true;
-            this.uxSkipSameImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxSkipSameImageCheck.Location = new System.Drawing.Point(329, 3);
-            this.uxSkipSameImageCheck.Name = "uxSkipSameImageCheck";
-            this.uxSkipSameImageCheck.Size = new System.Drawing.Size(107, 26);
-            this.uxSkipSameImageCheck.TabIndex = 22;
-            this.uxSkipSameImageCheck.Text = "Skip duplicated";
-            this.uxSkipSameImageCheck.UseVisualStyleBackColor = true;
-            // 
-            // uxCountNumeric
-            // 
-            this.uxCountNumeric.Location = new System.Drawing.Point(263, 3);
-            this.uxCountNumeric.Name = "uxCountNumeric";
-            this.uxCountNumeric.Size = new System.Drawing.Size(60, 23);
-            this.uxCountNumeric.TabIndex = 20;
+            this.uxContinuousPanel.Controls.Add(this.uxIntervalLabel);
+            this.uxContinuousPanel.Controls.Add(this.uxIntervalNumeric);
+            this.uxContinuousPanel.Controls.Add(this.uxCountCheck);
+            this.uxContinuousPanel.Controls.Add(this.uxCountNumeric);
+            this.uxContinuousPanel.Controls.Add(this.uxSkipDuplicatedImageCheck);
+            this.uxContinuousPanel.Controls.Add(this.panel1);
+            this.uxContinuousPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxContinuousPanel.Location = new System.Drawing.Point(107, 58);
+            this.uxContinuousPanel.Margin = new System.Windows.Forms.Padding(0);
+            this.uxContinuousPanel.Name = "uxContinuousPanel";
+            this.uxContinuousPanel.Size = new System.Drawing.Size(545, 38);
+            this.uxContinuousPanel.TabIndex = 15;
+            this.uxContinuousPanel.WrapContents = false;
             // 
             // uxIntervalLabel
             // 
@@ -211,28 +186,51 @@
             this.uxIntervalLabel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxIntervalLabel.Location = new System.Drawing.Point(3, 0);
             this.uxIntervalLabel.Name = "uxIntervalLabel";
-            this.uxIntervalLabel.Size = new System.Drawing.Size(104, 32);
-            this.uxIntervalLabel.TabIndex = 14;
-            this.uxIntervalLabel.Text = "Min. interval (sec):";
+            this.uxIntervalLabel.Size = new System.Drawing.Size(77, 32);
+            this.uxIntervalLabel.TabIndex = 23;
+            this.uxIntervalLabel.Text = "Interval (sec):";
             this.uxIntervalLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // uxIntervalNumeric
             // 
-            this.uxIntervalNumeric.Location = new System.Drawing.Point(113, 3);
+            this.uxIntervalNumeric.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxIntervalNumeric.Location = new System.Drawing.Point(86, 6);
+            this.uxIntervalNumeric.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
             this.uxIntervalNumeric.Name = "uxIntervalNumeric";
             this.uxIntervalNumeric.Size = new System.Drawing.Size(60, 23);
-            this.uxIntervalNumeric.TabIndex = 19;
+            this.uxIntervalNumeric.TabIndex = 24;
             // 
             // uxCountCheck
             // 
             this.uxCountCheck.AutoSize = true;
             this.uxCountCheck.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxCountCheck.Location = new System.Drawing.Point(179, 3);
+            this.uxCountCheck.Location = new System.Drawing.Point(161, 3);
+            this.uxCountCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
             this.uxCountCheck.Name = "uxCountCheck";
-            this.uxCountCheck.Size = new System.Drawing.Size(78, 26);
-            this.uxCountCheck.TabIndex = 21;
-            this.uxCountCheck.Text = "# of shots";
+            this.uxCountCheck.Size = new System.Drawing.Size(58, 26);
+            this.uxCountCheck.TabIndex = 26;
+            this.uxCountCheck.Text = "Count";
             this.uxCountCheck.UseVisualStyleBackColor = true;
+            // 
+            // uxCountNumeric
+            // 
+            this.uxCountNumeric.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxCountNumeric.Location = new System.Drawing.Point(225, 6);
+            this.uxCountNumeric.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
+            this.uxCountNumeric.Name = "uxCountNumeric";
+            this.uxCountNumeric.Size = new System.Drawing.Size(60, 23);
+            this.uxCountNumeric.TabIndex = 28;
+            // 
+            // uxSkipSameImageCheck
+            // 
+            this.uxSkipDuplicatedImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxSkipDuplicatedImageCheck.Location = new System.Drawing.Point(300, 3);
+            this.uxSkipDuplicatedImageCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
+            this.uxSkipDuplicatedImageCheck.Name = "uxSkipSameImageCheck";
+            this.uxSkipDuplicatedImageCheck.Size = new System.Drawing.Size(107, 26);
+            this.uxSkipDuplicatedImageCheck.TabIndex = 29;
+            this.uxSkipDuplicatedImageCheck.Text = "Skip duplicated";
+            this.uxSkipDuplicatedImageCheck.UseVisualStyleBackColor = true;
             // 
             // uxImageList
             // 
@@ -242,6 +240,14 @@
             this.uxImageList.Images.SetKeyName(1, "folder.png");
             this.uxImageList.Images.SetKeyName(2, "page_copy.png");
             this.uxImageList.Images.SetKeyName(3, "cross.png");
+            // 
+            // panel1
+            // 
+            this.panel1.Location = new System.Drawing.Point(410, 0);
+            this.panel1.Margin = new System.Windows.Forms.Padding(0);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(4, 32);
+            this.panel1.TabIndex = 30;
             // 
             // FormCapture
             // 
@@ -257,10 +263,10 @@
             this.uxSplitContainer.ResumeLayout(false);
             this.uxSettingPanel.ResumeLayout(false);
             this.uxSettingPanel.PerformLayout();
-            this.uxConinuousPanel.ResumeLayout(false);
-            this.uxConinuousPanel.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.uxCountNumeric)).EndInit();
+            this.uxContinuousPanel.ResumeLayout(false);
+            this.uxContinuousPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxIntervalNumeric)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.uxCountNumeric)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -276,13 +282,14 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox uxSaveDirectoryText;
         private System.Windows.Forms.TextBox uxPatternText;
-        private System.Windows.Forms.TableLayoutPanel uxConinuousPanel;
-        private System.Windows.Forms.NumericUpDown uxCountNumeric;
+        private System.Windows.Forms.ToolTip uxToolTip;
+        private System.Windows.Forms.ImageList uxImageList;
+        private System.Windows.Forms.FlowLayoutPanel uxContinuousPanel;
         private System.Windows.Forms.Label uxIntervalLabel;
         private System.Windows.Forms.NumericUpDown uxIntervalNumeric;
         private System.Windows.Forms.CheckBox uxCountCheck;
-        private System.Windows.Forms.CheckBox uxSkipSameImageCheck;
-        private System.Windows.Forms.ToolTip uxToolTip;
-        private System.Windows.Forms.ImageList uxImageList;
+        private System.Windows.Forms.NumericUpDown uxCountNumeric;
+        private System.Windows.Forms.CheckBox uxSkipDuplicatedImageCheck;
+        private System.Windows.Forms.Panel panel1;
     }
 }

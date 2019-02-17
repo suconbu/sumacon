@@ -13,7 +13,7 @@ namespace Suconbu.Sumacon
     struct ContinuousCaptureSetting
     {
         public int IntervalMilliseconds;
-        public bool SkipSameImage;
+        public bool SkipDuplicatedImage;
         public int LimitCount;
     }
 
@@ -94,7 +94,7 @@ namespace Suconbu.Sumacon
             this.commandContext = null;
 
             var skip = false;
-            if (this.Mode == CaptureMode.Continuous && this.continousSetting.SkipSameImage)
+            if (this.Mode == CaptureMode.Continuous && this.continousSetting.SkipDuplicatedImage)
             {
                 var hash = bitmap.ComputeMD5();
                 if (this.previousImageHash == hash)

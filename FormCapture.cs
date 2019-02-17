@@ -30,7 +30,7 @@ namespace Suconbu.Sumacon
         LinkedList<Image> previewImageCache = new LinkedList<Image>();
         int sequenceNo = 1;
 
-        readonly int defaultInterval = 5;
+        readonly int defaultInterval = 1;
         readonly int defaultCount = 10;
         readonly string patternToolTipText;
         readonly int picturePreviewCountMax = 5;
@@ -58,6 +58,8 @@ namespace Suconbu.Sumacon
 
             this.uxContinuousCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
             this.uxCountCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
+
+            this.uxSkipDuplicatedImageCheck.Checked = true;
 
             this.uxStartButton.Click += this.UxStartButton_Click;
 
@@ -403,10 +405,7 @@ namespace Suconbu.Sumacon
                 if (device == null) return;
                 if (this.uxContinuousCheck.Checked)
                 {
-                    var setting = new ContinuousCaptureSetting();
-                    setting.IntervalMilliseconds = (int)this.uxIntervalNumeric.Value * 1000;
-                    setting.LimitCount = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : 0;
-                    setting.SkipSameImage = this.uxSkipSameImageCheck.Checked;
+                    var setting = this.GetContinuousCaptureSetting();
                     this.captureContext = CaptureContext.StartContinuousCapture(device, setting, this.OnCaptured, this.OnFinished);
                 }
                 else
@@ -423,6 +422,15 @@ namespace Suconbu.Sumacon
             }
 
             this.UpdateControlState();
+        }
+
+        ContinuousCaptureSetting GetContinuousCaptureSetting()
+        {
+            var setting = new ContinuousCaptureSetting();
+            setting.IntervalMilliseconds = (int)this.uxIntervalNumeric.Value * 1000;
+            setting.LimitCount = this.uxCountCheck.Checked ? (int)this.uxCountNumeric.Value : 0;
+            setting.SkipDuplicatedImage = this.uxSkipDuplicatedImageCheck.Checked;
+            return setting;
         }
 
         void OnCaptured(Bitmap bitmap)
@@ -516,7 +524,7 @@ namespace Suconbu.Sumacon
                 this.uxSettingPanel.Enabled = false;
             }
 
-            this.uxConinuousPanel.Enabled = this.uxContinuousCheck.Checked;
+            this.uxContinuousPanel.Enabled = this.uxContinuousCheck.Checked;
             this.uxCountNumeric.Enabled = this.uxCountCheck.Checked;
         }
 

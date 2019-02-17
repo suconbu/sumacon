@@ -60,13 +60,6 @@ namespace Suconbu.Sumacon
                 button.CheckedChanged += this.UxTime_CheckedChanged;
             }
             this.uxTime180.Checked = true;
-            //this.uxTimeBar.Minimum = 0;
-            //this.uxTimeBar.Maximum = (int)this.uxTimeNumeric.Maximum;
-            //this.uxTimeBar.TickFrequency = 10;
-            //this.uxTimeBar.SmallChange = 10;
-            //this.uxTimeBar.LargeChange = 10;
-            //this.uxTimeBar.Value = (int)this.uxTimeNumeric.Value;
-            //this.uxTimeBar.ValueChanged += (s, e) => this.uxTimeNumeric.Value = Math.Max(this.uxTimeNumeric.Minimum, this.uxTimeBar.Value);
 
             this.uxTimestampCheck.Checked = true;
 
@@ -286,7 +279,7 @@ namespace Suconbu.Sumacon
             {
                 var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
-                var setting = this.CreateSetting(device);
+                var setting = this.GetRecordSetting(device);
                 this.recordContext = RecordContext.StartNew(device, setting, state =>
                 {
                     this.SafeInvoke(() => this.OnRecordContextStateChanged(state));
@@ -303,7 +296,7 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        RecordSetting CreateSetting(Device device)
+        RecordSetting GetRecordSetting(Device device)
         {
             var setting = new RecordSetting();
             setting.DirectoryPath = this.uxSaveDirectoryText.Text;
