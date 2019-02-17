@@ -58,12 +58,12 @@ namespace Suconbu.Sumacon
         };
 
         Sumacon sumacon;
-        Dictionary<Log.PriorityCode, ToolStripButton> uxPriorityFilterButtons = new Dictionary<Log.PriorityCode, ToolStripButton>();
+        Dictionary<Log.PriorityCode, ToolStripButton> priorityFilterButtons = new Dictionary<Log.PriorityCode, ToolStripButton>();
+        ToolStripTextBox[] filterTextBoxes;
         ToolStripTextBox uxPidFilterTextBox = new ToolStripTextBox();
         ToolStripTextBox uxTidFilterTextBox = new ToolStripTextBox();
         ToolStripTextBox uxTagFilterTextBox = new ToolStripTextBox();
         ToolStripTextBox uxMessageFilterTextBox = new ToolStripTextBox();
-        ToolStripButton uxClearFilterButton = new ToolStripButton();
         ToolStripButton uxAutoScrollButton = new ToolStripButton();
         ToolStripButton uxMarkedListButton = new ToolStripButton();
         GridPanel uxLogGridPanel = new GridPanel();
@@ -128,12 +128,12 @@ namespace Suconbu.Sumacon
             this.CloseLogContext();
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
 
-            Properties.Settings.Default.LogFilterPriorityF = this.uxPriorityFilterButtons[Log.PriorityCode.F].Checked;
-            Properties.Settings.Default.LogFilterPriorityE = this.uxPriorityFilterButtons[Log.PriorityCode.E].Checked;
-            Properties.Settings.Default.LogFilterPriorityW = this.uxPriorityFilterButtons[Log.PriorityCode.W].Checked;
-            Properties.Settings.Default.LogFilterPriorityI = this.uxPriorityFilterButtons[Log.PriorityCode.I].Checked;
-            Properties.Settings.Default.LogFilterPriorityD = this.uxPriorityFilterButtons[Log.PriorityCode.D].Checked;
-            Properties.Settings.Default.LogFilterPriorityV = this.uxPriorityFilterButtons[Log.PriorityCode.V].Checked;
+            Properties.Settings.Default.LogFilterPriorityF = this.priorityFilterButtons[Log.PriorityCode.F].Checked;
+            Properties.Settings.Default.LogFilterPriorityE = this.priorityFilterButtons[Log.PriorityCode.E].Checked;
+            Properties.Settings.Default.LogFilterPriorityW = this.priorityFilterButtons[Log.PriorityCode.W].Checked;
+            Properties.Settings.Default.LogFilterPriorityI = this.priorityFilterButtons[Log.PriorityCode.I].Checked;
+            Properties.Settings.Default.LogFilterPriorityD = this.priorityFilterButtons[Log.PriorityCode.D].Checked;
+            Properties.Settings.Default.LogFilterPriorityV = this.priorityFilterButtons[Log.PriorityCode.V].Checked;
             Properties.Settings.Default.LogFilterPid = this.uxPidFilterTextBox.Text;
             Properties.Settings.Default.LogFilterTid = this.uxTidFilterTextBox.Text;
             Properties.Settings.Default.LogFilterTag = this.uxTagFilterTextBox.Text;
@@ -166,13 +166,14 @@ namespace Suconbu.Sumacon
                 button.Checked = true;
                 button.ForeColor = pair.Value;
                 button.CheckedChanged += this.FilterSettingChanged;
-                this.uxPriorityFilterButtons[pair.Key] = button;
+                this.priorityFilterButtons[pair.Key] = button;
                 this.uxToolStrip.Items.Add(button);
             }
 
             this.uxToolStrip.Items.Add(new ToolStripSeparator());
 
-            foreach (var item in new[] { this.uxPidFilterTextBox, this.uxTidFilterTextBox, this.uxTagFilterTextBox, this.uxMessageFilterTextBox })
+            this.filterTextBoxes = new[] { this.uxPidFilterTextBox, this.uxTidFilterTextBox, this.uxTagFilterTextBox, this.uxMessageFilterTextBox };
+            foreach (var item in this.filterTextBoxes)
             {
                 item.AutoSize = false;
                 item.TextChanged += this.FilterSettingChanged;
@@ -195,6 +196,12 @@ namespace Suconbu.Sumacon
             this.uxToolStrip.Items.Add(new ToolStripLabel("Message:"));
             this.uxMessageFilterTextBox.Width = 120;
             this.uxToolStrip.Items.Add(this.uxMessageFilterTextBox);
+
+            this.uxToolStrip.Items.Add(new ToolStripSeparator());
+
+            var uxClearFilterButton = new ToolStripButton("Clear");
+            uxClearFilterButton.Click += (s, e) => this.ClearFilter();
+            this.uxToolStrip.Items.Add(uxClearFilterButton);
 
             this.uxToolStrip.Items.Add(new ToolStripSeparator());
 
@@ -353,7 +360,7 @@ namespace Suconbu.Sumacon
         {
             this.filterSettingChangedTimeoutId = Delay.SetTimeout(() =>
             {
-                foreach (var pair in this.uxPriorityFilterButtons)
+                foreach (var pair in this.priorityFilterButtons)
                 {
                     this.filterSetting.EnabledByPriority[pair.Key] = pair.Value.Checked;
                 }
@@ -650,14 +657,26 @@ namespace Suconbu.Sumacon
             this.uxLogGridPanel.CurrentCell = this.uxLogGridPanel.Rows[index].Cells[0];
         }
 
+        void ClearFilter()
+        {
+            foreach (var button in this.priorityFilterButtons.Values)
+            {
+                button.Checked = true;
+            }
+            foreach (var text in this.filterTextBoxes)
+            {
+                text.Clear();
+            }
+        }
+
         void ApplySettings()
         {
-            this.uxPriorityFilterButtons[Log.PriorityCode.F].Checked = Properties.Settings.Default.LogFilterPriorityF;
-            this.uxPriorityFilterButtons[Log.PriorityCode.E].Checked = Properties.Settings.Default.LogFilterPriorityE;
-            this.uxPriorityFilterButtons[Log.PriorityCode.W].Checked = Properties.Settings.Default.LogFilterPriorityW;
-            this.uxPriorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
-            this.uxPriorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
-            this.uxPriorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
+            this.priorityFilterButtons[Log.PriorityCode.F].Checked = Properties.Settings.Default.LogFilterPriorityF;
+            this.priorityFilterButtons[Log.PriorityCode.E].Checked = Properties.Settings.Default.LogFilterPriorityE;
+            this.priorityFilterButtons[Log.PriorityCode.W].Checked = Properties.Settings.Default.LogFilterPriorityW;
+            this.priorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
+            this.priorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
+            this.priorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
             this.uxPidFilterTextBox.Text = Properties.Settings.Default.LogFilterPid;
             this.uxTidFilterTextBox.Text = Properties.Settings.Default.LogFilterTid;
             this.uxTagFilterTextBox.Text = Properties.Settings.Default.LogFilterTag;
