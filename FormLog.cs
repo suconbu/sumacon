@@ -113,12 +113,31 @@ namespace Suconbu.Sumacon
             this.SetupStatusStrip();
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnLoad(e);
+
+            this.ApplySettings();
+        }
+
         protected override void OnClosing(CancelEventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
             this.CloseLogContext();
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+
+            Properties.Settings.Default.LogFilterPriorityF = this.uxPriorityFilterButtons[Log.PriorityCode.F].Checked;
+            Properties.Settings.Default.LogFilterPriorityE = this.uxPriorityFilterButtons[Log.PriorityCode.E].Checked;
+            Properties.Settings.Default.LogFilterPriorityW = this.uxPriorityFilterButtons[Log.PriorityCode.W].Checked;
+            Properties.Settings.Default.LogFilterPriorityI = this.uxPriorityFilterButtons[Log.PriorityCode.I].Checked;
+            Properties.Settings.Default.LogFilterPriorityD = this.uxPriorityFilterButtons[Log.PriorityCode.D].Checked;
+            Properties.Settings.Default.LogFilterPriorityV = this.uxPriorityFilterButtons[Log.PriorityCode.V].Checked;
+            Properties.Settings.Default.LogFilterPid = this.uxPidFilterTextBox.Text;
+            Properties.Settings.Default.LogFilterTid = this.uxTidFilterTextBox.Text;
+            Properties.Settings.Default.LogFilterTag = this.uxTagFilterTextBox.Text;
+            Properties.Settings.Default.LogFilterMessage = this.uxMessageFilterTextBox.Text;
         }
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
@@ -358,6 +377,7 @@ namespace Suconbu.Sumacon
 
                 foreach (FilterSetting.FilterField field in Enum.GetValues(typeof(FilterSetting.FilterField)))
                 {
+                    // 先頭に'-'がついていたら除外フィルタ
                     this.filterSetting.FilterInverteds[field] = this.filterSetting.Filters[field].StartsWith("-");
                     if(this.filterSetting.FilterInverteds[field])
                     {
@@ -370,7 +390,7 @@ namespace Suconbu.Sumacon
                 }
 
                 this.logCache.Clear();
-                this.filteredLogs = this.filterSetting.IsFilterEnabled() ?
+                this.filteredLogs = (this.logContext != null && this.filterSetting.IsFilterEnabled()) ?
                     this.GetFilteredLogs(this.logContext.GetRange()).ToList() :
                     null;
                 // いったん0にしてから設定すると速い
@@ -404,13 +424,6 @@ namespace Suconbu.Sumacon
                 }
                 this.UpdateControlState();
             }, this.logUpdateIntervalMilliseconds, this, this.logUpdateTimeoutId);
-        }
-
-        protected override void OnLoad(EventArgs e)
-        {
-            Trace.TraceInformation(Util.GetCurrentMethodName());
-            base.OnLoad(e);
-            this.UpdateControlState();
         }
 
         bool IsValidFilter(string filter)
@@ -635,6 +648,22 @@ namespace Suconbu.Sumacon
             this.uxLogGridPanel.ClearSelection();
             this.uxLogGridPanel.Rows[index].Selected = true;
             this.uxLogGridPanel.CurrentCell = this.uxLogGridPanel.Rows[index].Cells[0];
+        }
+
+        void ApplySettings()
+        {
+            this.uxPriorityFilterButtons[Log.PriorityCode.F].Checked = Properties.Settings.Default.LogFilterPriorityF;
+            this.uxPriorityFilterButtons[Log.PriorityCode.E].Checked = Properties.Settings.Default.LogFilterPriorityE;
+            this.uxPriorityFilterButtons[Log.PriorityCode.W].Checked = Properties.Settings.Default.LogFilterPriorityW;
+            this.uxPriorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
+            this.uxPriorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
+            this.uxPriorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
+            this.uxPidFilterTextBox.Text = Properties.Settings.Default.LogFilterPid;
+            this.uxTidFilterTextBox.Text = Properties.Settings.Default.LogFilterTid;
+            this.uxTagFilterTextBox.Text = Properties.Settings.Default.LogFilterTag;
+            this.uxMessageFilterTextBox.Text = Properties.Settings.Default.LogFilterMessage;
+
+            this.UpdateControlState();
         }
 
         void UpdateControlState()

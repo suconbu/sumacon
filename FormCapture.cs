@@ -30,8 +30,8 @@ namespace Suconbu.Sumacon
         LinkedList<Image> previewImageCache = new LinkedList<Image>();
         int sequenceNo = 1;
 
-        readonly int defaultInterval = 1;
-        readonly int defaultCount = 10;
+        //readonly int defaultInterval = 1;
+        //readonly int defaultCount = 10;
         readonly string patternToolTipText;
         readonly int picturePreviewCountMax = 5;
         readonly int previewImageCacheCapacity = (int)(5 * 5 * 1.2);
@@ -48,19 +48,11 @@ namespace Suconbu.Sumacon
             this.SetupContextMenu();
             this.SetupPicturePreview();
 
-            this.uxSaveDirectoryText.Text = Properties.Resources.FormCapture_DefaultSaveDirectoryPath;
-            this.uxPatternText.Text = Properties.Resources.FormCapture_DefaultFileNamePattern;
-
             this.uxIntervalNumeric.Minimum = 1;
-            this.uxIntervalNumeric.Value = this.defaultInterval;
             this.uxCountNumeric.Minimum = 1;
-            this.uxCountNumeric.Value = this.defaultCount;
 
             this.uxContinuousCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
             this.uxCountCheck.CheckedChanged += (s, ee) => this.UpdateControlState();
-
-            this.uxSkipDuplicatedImageCheck.Checked = true;
-
             this.uxStartButton.Click += this.UxStartButton_Click;
 
             this.uxFileGridPanel = new GridPanel();
@@ -97,27 +89,29 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
-        protected override void OnLoad(EventArgs e)
-        {
-            Trace.TraceInformation(Util.GetCurrentMethodName());
-            base.OnLoad(e);
-
-            this.UpdateControlState();
-        }
-
         protected override void OnShown(EventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnShown(e);
 
-            this.uxSplitContainer.SplitterDistance = 420;
             this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
+
+            this.ApplySettings();
         }
 
         protected override void OnClosing(CancelEventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
+
+            Properties.Settings.Default.CaptureSplitterDistance = this.uxSplitContainer.SplitterDistance;
+            Properties.Settings.Default.CaptureSaveDirectoryPath = this.uxSaveDirectoryText.Text;
+            Properties.Settings.Default.CaptureFileNamePattern = this.uxPatternText.Text;
+            Properties.Settings.Default.CaptureContinuousEnabled = this.uxContinuousCheck.Checked;
+            Properties.Settings.Default.CaptureIntervalSeconds = (int)this.uxIntervalNumeric.Value;
+            Properties.Settings.Default.CaptureCountEnabled = this.uxCountCheck.Checked;
+            Properties.Settings.Default.CaptureCount = (int)this.uxCountNumeric.Value;
+            Properties.Settings.Default.CaptureSkipDuplicateEnabled = this.uxSkipDuplicatedImageCheck.Checked;
 
             this.captureContext?.Stop();
             this.captureContext = null;
@@ -489,6 +483,20 @@ namespace Suconbu.Sumacon
                 Trace.TraceError(ex.ToString());
                 return null;
             }
+        }
+
+        void ApplySettings()
+        {
+            this.uxSplitContainer.SplitterDistance = Properties.Settings.Default.CaptureSplitterDistance;
+            this.uxSaveDirectoryText.Text = Properties.Settings.Default.CaptureSaveDirectoryPath;
+            this.uxPatternText.Text = Properties.Settings.Default.CaptureFileNamePattern;
+            this.uxContinuousCheck.Checked = Properties.Settings.Default.CaptureContinuousEnabled;
+            this.uxIntervalNumeric.Value = Properties.Settings.Default.CaptureIntervalSeconds;
+            this.uxCountCheck.Checked = Properties.Settings.Default.CaptureCountEnabled;
+            this.uxCountNumeric.Value = Properties.Settings.Default.CaptureCount;
+            this.uxSkipDuplicatedImageCheck.Checked = Properties.Settings.Default.CaptureSkipDuplicateEnabled;
+
+            this.UpdateControlState();
         }
 
         void UpdateControlState()

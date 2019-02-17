@@ -22,5 +22,335 @@ namespace Suconbu.Sumacon.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
+        public global::System.Drawing.Size FormMainSize {
+            get {
+                return ((global::System.Drawing.Size)(this["FormMainSize"]));
+            }
+            set {
+                this["FormMainSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(".\\screencapture")]
+        public string CaptureSaveDirectoryPath {
+            get {
+                return ((string)(this["CaptureSaveDirectoryPath"]));
+            }
+            set {
+                this["CaptureSaveDirectoryPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("{device-model}_{date}_{time}_{no}.png")]
+        public string CaptureFileNamePattern {
+            get {
+                return ((string)(this["CaptureFileNamePattern"]));
+            }
+            set {
+                this["CaptureFileNamePattern"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CaptureContinuousEnabled {
+            get {
+                return ((bool)(this["CaptureContinuousEnabled"]));
+            }
+            set {
+                this["CaptureContinuousEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public int CaptureIntervalSeconds {
+            get {
+                return ((int)(this["CaptureIntervalSeconds"]));
+            }
+            set {
+                this["CaptureIntervalSeconds"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int CaptureCount {
+            get {
+                return ((int)(this["CaptureCount"]));
+            }
+            set {
+                this["CaptureCount"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CaptureSkipDuplicateEnabled {
+            get {
+                return ((bool)(this["CaptureSkipDuplicateEnabled"]));
+            }
+            set {
+                this["CaptureSkipDuplicateEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(".\\screenrecord")]
+        public string RecordSaveDirectoryPath {
+            get {
+                return ((string)(this["RecordSaveDirectoryPath"]));
+            }
+            set {
+                this["RecordSaveDirectoryPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("{device-model}_{date}_{time}_{width}x{height}_{duration}_{no}.mp4")]
+        public string RecordFileNamePattern {
+            get {
+                return ((string)(this["RecordFileNamePattern"]));
+            }
+            set {
+                this["RecordFileNamePattern"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1/1")]
+        public string RecordViewSize {
+            get {
+                return ((string)(this["RecordViewSize"]));
+            }
+            set {
+                this["RecordViewSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Normal")]
+        public string RecordQuality {
+            get {
+                return ((string)(this["RecordQuality"]));
+            }
+            set {
+                this["RecordQuality"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool RecordTimestampEnabled {
+            get {
+                return ((bool)(this["RecordTimestampEnabled"]));
+            }
+            set {
+                this["RecordTimestampEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("180")]
+        public int RecordLimitTime {
+            get {
+                return ((int)(this["RecordLimitTime"]));
+            }
+            set {
+                this["RecordLimitTime"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool CaptureCountEnabled {
+            get {
+                return ((bool)(this["CaptureCountEnabled"]));
+            }
+            set {
+                this["CaptureCountEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("420")]
+        public int CaptureSplitterDistance {
+            get {
+                return ((int)(this["CaptureSplitterDistance"]));
+            }
+            set {
+                this["CaptureSplitterDistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("450")]
+        public int RecordSplitterDistance {
+            get {
+                return ((int)(this["RecordSplitterDistance"]));
+            }
+            set {
+                this["RecordSplitterDistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("180")]
+        public int RecordLimitTimeMax {
+            get {
+                return ((int)(this["RecordLimitTimeMax"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("/sdcard")]
+        public string DeviceTemporaryDirectoryPath {
+            get {
+                return ((string)(this["DeviceTemporaryDirectoryPath"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LogFilterPid {
+            get {
+                return ((string)(this["LogFilterPid"]));
+            }
+            set {
+                this["LogFilterPid"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LogFilterTid {
+            get {
+                return ((string)(this["LogFilterTid"]));
+            }
+            set {
+                this["LogFilterTid"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LogFilterTag {
+            get {
+                return ((string)(this["LogFilterTag"]));
+            }
+            set {
+                this["LogFilterTag"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LogFilterMessage {
+            get {
+                return ((string)(this["LogFilterMessage"]));
+            }
+            set {
+                this["LogFilterMessage"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityF {
+            get {
+                return ((bool)(this["LogFilterPriorityF"]));
+            }
+            set {
+                this["LogFilterPriorityF"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityE {
+            get {
+                return ((bool)(this["LogFilterPriorityE"]));
+            }
+            set {
+                this["LogFilterPriorityE"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityW {
+            get {
+                return ((bool)(this["LogFilterPriorityW"]));
+            }
+            set {
+                this["LogFilterPriorityW"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityI {
+            get {
+                return ((bool)(this["LogFilterPriorityI"]));
+            }
+            set {
+                this["LogFilterPriorityI"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityD {
+            get {
+                return ((bool)(this["LogFilterPriorityD"]));
+            }
+            set {
+                this["LogFilterPriorityD"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LogFilterPriorityV {
+            get {
+                return ((bool)(this["LogFilterPriorityV"]));
+            }
+            set {
+                this["LogFilterPriorityV"] = value;
+            }
+        }
     }
 }

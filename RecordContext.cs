@@ -27,7 +27,7 @@ namespace Suconbu.Sumacon
         public enum RecordState { Recording, ManualStopping, Pulling, Finished, Aborted }
 
         public Device Device { get; private set; }
-        public static int TimeLimitSecondsMax { get; } = 180;
+        public static int TimeLimitSecondsMax { get { return Properties.Settings.Default.RecordLimitTimeMax; } }
         public RecordState State
         {
             get { return this.state; }
@@ -59,10 +59,7 @@ namespace Suconbu.Sumacon
         string filePathInPc;
         RecordState state = RecordState.Recording;
         DateTime stoppedAt = DateTime.MaxValue;
-
         Action<RecordState> onStateChanged = delegate { };
-
-        readonly string deviceTemporaryDirectoryPath = "/sdcard";
 
         RecordContext() { }
 
@@ -97,7 +94,7 @@ namespace Suconbu.Sumacon
             }
 
             var fileName = this.GetFileName(this.setting.FileNamePattern, this.recordScreenSize, this.setting.TimeLimitSeconds);
-            this.filePathInDevice = $"{this.deviceTemporaryDirectoryPath}/{fileName}";
+            this.filePathInDevice = $"{Properties.Settings.Default.DeviceTemporaryDirectoryPath}/{fileName}";
 
             var option = new StringBuilder();
             if (0 < this.setting.TimeLimitSeconds && this.setting.TimeLimitSeconds <= RecordContext.TimeLimitSecondsMax)

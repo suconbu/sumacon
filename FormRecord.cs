@@ -28,6 +28,8 @@ namespace Suconbu.Sumacon
         Button[] timeButtons;
         Timer elapsedTimeRedrawTimer = new Timer();
         int sequenceNo = 1;
+        Dictionary<string, RadioButton> viewSizeRadioMap;
+        Dictionary<string, RadioButton> qualityRadioMap;
 
         readonly string patternToolTipText;
         readonly int baseBitrateNormal = 4_000_000;
@@ -43,30 +45,39 @@ namespace Suconbu.Sumacon
 
             this.SetupContextMenu();
 
-            this.uxSaveDirectoryText.Text = Properties.Resources.FormRecord_DefaultSaveDirectoryPath;
-            this.uxPatternText.Text = Properties.Resources.FormRecord_DefaultFileNamePattern;
+            // viewSizeRadioMap, qualityRadioMapのキーはSettingの文字列と対応(ボタンのラベルじゃない)
 
             this.uxSize1.Checked = true;
+            this.viewSizeRadioMap = new Dictionary<string, RadioButton>()
+            {
+                { "1/1", this.uxSize1 }, { "1/2", this.uxSize2 }, { "1/4", this.uxSize4 }
+            };
+            foreach(var entry in this.viewSizeRadioMap)
+            {
+                entry.Value.Tag = entry.Key;
+                entry.Value.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            }
+
             this.uxQualityNormal.Checked = true;
+            this.qualityRadioMap = new Dictionary<string, RadioButton>()
+            {
+                { "Normal", this.uxQualityNormal }, { "Economy", this.uxQuarityEconomy }
+            };
+            foreach (var entry in this.qualityRadioMap)
+            {
+                entry.Value.Tag = entry.Key;
+                entry.Value.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            }
 
             this.uxLimitTimeNumeric.Minimum = 1;
             this.uxLimitTimeNumeric.Maximum = RecordContext.TimeLimitSecondsMax;
             this.uxLimitTimeNumeric.ValueChanged += (s, e) => this.UpdateApproxSize();
-            this.uxLimitTimeNumeric.Value = 180;
 
             this.timeButtons = new[] { this.uxLimitTime10, this.uxLimitTime30, this.uxLimitTime60, this.uxLimitTime180 };
             foreach(var button in this.timeButtons)
             {
                 button.Click += this.UxLimitTime_Clicked;
             }
-
-            this.uxTimestampCheck.Checked = true;
-
-            this.uxSize1.CheckedChanged += (s, e) => this.UpdateApproxSize();
-            this.uxSize2.CheckedChanged += (s, e) => this.UpdateApproxSize();
-            this.uxSize4.CheckedChanged += (s, e) => this.UpdateApproxSize();
-            this.uxQualityNormal.CheckedChanged += (s, e) => this.UpdateApproxSize();
-            this.uxQuarityEconomy.CheckedChanged += (s, e) => this.UpdateApproxSize();
 
             this.uxStartButton.Click += this.UxStartButton_Click;
 
@@ -114,21 +125,14 @@ namespace Suconbu.Sumacon
             this.uxLimitTimeNumeric.Value = int.Parse((string)button.Tag);
         }
 
-        protected override void OnLoad(EventArgs e)
-        {
-            Trace.TraceInformation(Util.GetCurrentMethodName());
-            base.OnLoad(e);
-
-            this.UpdateControlState();
-        }
-
         protected override void OnShown(EventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnShown(e);
 
-            this.uxSplitContainer.SplitterDistance = 450;
             this.uxSplitContainer.FixedPanel = FixedPanel.Panel1;
+
+            this.ApplySettings();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -136,6 +140,14 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+
+            Properties.Settings.Default.RecordSplitterDistance = this.uxSplitContainer.SplitterDistance;
+            Properties.Settings.Default.RecordSaveDirectoryPath = this.uxSaveDirectoryText.Text;
+            Properties.Settings.Default.RecordFileNamePattern = this.uxPatternText.Text;
+            Properties.Settings.Default.RecordViewSize = (string)this.viewSizeRadioMap.Values.FirstOrDefault(radio => radio.Checked)?.Tag;
+            Properties.Settings.Default.RecordQuality = (string)this.qualityRadioMap.Values.FirstOrDefault(radio => radio.Checked)?.Tag;
+            Properties.Settings.Default.RecordTimestampEnabled = this.uxTimestampCheck.Checked;
+            Properties.Settings.Default.RecordLimitTime = (int)this.uxLimitTimeNumeric.Value;
         }
 
         void SetupContextMenu()
@@ -364,6 +376,25 @@ namespace Suconbu.Sumacon
             {
                 ;
             }
+            this.UpdateControlState();
+        }
+
+        void ApplySettings()
+        {
+            this.uxSplitContainer.SplitterDistance = Properties.Settings.Default.RecordSplitterDistance;
+            this.uxSaveDirectoryText.Text = Properties.Settings.Default.RecordSaveDirectoryPath;
+            this.uxPatternText.Text = Properties.Settings.Default.RecordFileNamePattern;
+            if (this.viewSizeRadioMap.TryGetValue(Properties.Settings.Default.RecordViewSize, out var viewSizeRadio))
+            {
+                viewSizeRadio.Checked = true;
+            }
+            if (this.qualityRadioMap.TryGetValue(Properties.Settings.Default.RecordQuality, out var qualityRadio))
+            {
+                qualityRadio.Checked = true;
+            }
+            this.uxTimestampCheck.Checked = Properties.Settings.Default.RecordTimestampEnabled;
+            this.uxLimitTimeNumeric.Value = Math.Max(1, Math.Min(Properties.Settings.Default.RecordLimitTime, RecordContext.TimeLimitSecondsMax));
+
             this.UpdateControlState();
         }
 

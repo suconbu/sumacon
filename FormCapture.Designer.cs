@@ -207,15 +207,15 @@
             this.uxCountCheck.Location = new System.Drawing.Point(161, 3);
             this.uxCountCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
             this.uxCountCheck.Name = "uxCountCheck";
-            this.uxCountCheck.Size = new System.Drawing.Size(58, 26);
+            this.uxCountCheck.Size = new System.Drawing.Size(61, 26);
             this.uxCountCheck.TabIndex = 26;
-            this.uxCountCheck.Text = "Count";
+            this.uxCountCheck.Text = "Count:";
             this.uxCountCheck.UseVisualStyleBackColor = true;
             // 
             // uxCountNumeric
             // 
             this.uxCountNumeric.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxCountNumeric.Location = new System.Drawing.Point(225, 6);
+            this.uxCountNumeric.Location = new System.Drawing.Point(228, 6);
             this.uxCountNumeric.Margin = new System.Windows.Forms.Padding(3, 6, 3, 6);
             this.uxCountNumeric.Name = "uxCountNumeric";
             this.uxCountNumeric.Size = new System.Drawing.Size(60, 23);
@@ -224,17 +224,17 @@
             // uxSkipDuplicatedImageCheck
             // 
             this.uxSkipDuplicatedImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.uxSkipDuplicatedImageCheck.Location = new System.Drawing.Point(300, 3);
+            this.uxSkipDuplicatedImageCheck.Location = new System.Drawing.Point(303, 3);
             this.uxSkipDuplicatedImageCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
             this.uxSkipDuplicatedImageCheck.Name = "uxSkipDuplicatedImageCheck";
             this.uxSkipDuplicatedImageCheck.Size = new System.Drawing.Size(107, 26);
             this.uxSkipDuplicatedImageCheck.TabIndex = 29;
-            this.uxSkipDuplicatedImageCheck.Text = "Skip duplicated";
+            this.uxSkipDuplicatedImageCheck.Text = "Skip duplicate";
             this.uxSkipDuplicatedImageCheck.UseVisualStyleBackColor = true;
             // 
             // panel1
             // 
-            this.panel1.Location = new System.Drawing.Point(410, 0);
+            this.panel1.Location = new System.Drawing.Point(413, 0);
             this.panel1.Margin = new System.Windows.Forms.Padding(0);
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(4, 32);

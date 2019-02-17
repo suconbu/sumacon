@@ -90,10 +90,20 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
+
             foreach (var component in this.sumacon.DeviceManager.ActiveDevice.Components)
             {
                 component.ResetAsync();
             }
+
+            // 片付けているところが見えないように
+            this.Visible = false;
+            var forms = this.dockPanel.Contents.ToArray();
+            foreach (var form in forms)
+            {
+                form.DockHandler.Close();
+            }
+            Properties.Settings.Default.Save();
             this.sumacon.Dispose();
         }
 
