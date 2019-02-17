@@ -366,6 +366,15 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
+        ///   OrangeRed に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        internal static string RecordingButtonColorName {
+            get {
+                return ResourceManager.GetString("RecordingButtonColorName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   (アイコン) に類似した型 System.Drawing.Icon のローカライズされたリソースを検索します。
         /// </summary>
         internal static System.Drawing.Icon sumacon {

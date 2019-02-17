@@ -508,6 +508,7 @@ namespace Suconbu.Sumacon
                         Properties.Resources.FormCapture_ButtonLabel_ContinousLimitless,
                         this.captureContext.CapturedCount);
                 }
+                this.uxStartButton.BackColor = Color.FromName(Properties.Resources.RecordingButtonColorName);
                 this.uxStartButton.Enabled = true;
                 this.uxSettingPanel.Enabled = false;
             }
@@ -515,6 +516,7 @@ namespace Suconbu.Sumacon
             {
                 this.uxStartButton.Text = Properties.Resources.FormCapture_ButtonLabel_Start;
                 this.uxStartButton.Enabled = (this.captureContext == null);
+                this.uxStartButton.UseVisualStyleBackColor = true;
                 this.uxSettingPanel.Enabled = true;
             }
 

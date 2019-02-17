@@ -45,9 +45,9 @@
             this.uxCountCheck = new System.Windows.Forms.CheckBox();
             this.uxCountNumeric = new System.Windows.Forms.NumericUpDown();
             this.uxSkipDuplicatedImageCheck = new System.Windows.Forms.CheckBox();
+            this.panel1 = new System.Windows.Forms.Panel();
             this.uxToolTip = new System.Windows.Forms.ToolTip(this.components);
             this.uxImageList = new System.Windows.Forms.ImageList(this.components);
-            this.panel1 = new System.Windows.Forms.Panel();
             this.uxOuterPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxSplitContainer)).BeginInit();
             this.uxSplitContainer.SuspendLayout();
@@ -221,16 +221,24 @@
             this.uxCountNumeric.Size = new System.Drawing.Size(60, 23);
             this.uxCountNumeric.TabIndex = 28;
             // 
-            // uxSkipSameImageCheck
+            // uxSkipDuplicatedImageCheck
             // 
             this.uxSkipDuplicatedImageCheck.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxSkipDuplicatedImageCheck.Location = new System.Drawing.Point(300, 3);
             this.uxSkipDuplicatedImageCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
-            this.uxSkipDuplicatedImageCheck.Name = "uxSkipSameImageCheck";
+            this.uxSkipDuplicatedImageCheck.Name = "uxSkipDuplicatedImageCheck";
             this.uxSkipDuplicatedImageCheck.Size = new System.Drawing.Size(107, 26);
             this.uxSkipDuplicatedImageCheck.TabIndex = 29;
             this.uxSkipDuplicatedImageCheck.Text = "Skip duplicated";
             this.uxSkipDuplicatedImageCheck.UseVisualStyleBackColor = true;
+            // 
+            // panel1
+            // 
+            this.panel1.Location = new System.Drawing.Point(410, 0);
+            this.panel1.Margin = new System.Windows.Forms.Padding(0);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(4, 32);
+            this.panel1.TabIndex = 30;
             // 
             // uxImageList
             // 
@@ -240,14 +248,6 @@
             this.uxImageList.Images.SetKeyName(1, "folder.png");
             this.uxImageList.Images.SetKeyName(2, "page_copy.png");
             this.uxImageList.Images.SetKeyName(3, "cross.png");
-            // 
-            // panel1
-            // 
-            this.panel1.Location = new System.Drawing.Point(410, 0);
-            this.panel1.Margin = new System.Windows.Forms.Padding(0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(4, 32);
-            this.panel1.TabIndex = 30;
             // 
             // FormCapture
             // 

@@ -414,13 +414,13 @@
             this.uxQuarityEconomy.Text = "Economy";
             this.uxQuarityEconomy.UseVisualStyleBackColor = true;
             // 
-            // uxShowTimestampCheck
+            // uxTimestampCheck
             // 
             this.uxTimestampCheck.AutoSize = true;
             this.uxTimestampCheck.Dock = System.Windows.Forms.DockStyle.Fill;
             this.uxTimestampCheck.Location = new System.Drawing.Point(372, 3);
             this.uxTimestampCheck.Margin = new System.Windows.Forms.Padding(12, 3, 3, 3);
-            this.uxTimestampCheck.Name = "uxShowTimestampCheck";
+            this.uxTimestampCheck.Name = "uxTimestampCheck";
             this.uxTimestampCheck.Size = new System.Drawing.Size(113, 25);
             this.uxTimestampCheck.TabIndex = 51;
             this.uxTimestampCheck.Text = "Show timestamp";
