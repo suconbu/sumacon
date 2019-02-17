@@ -378,20 +378,23 @@ namespace Suconbu.Sumacon
                     this.uxStartButton.Text = string.Format(
                         Properties.Resources.FormRecord_ButtonLabel_Recording,
                         seconds);
+                    this.uxStartButton.BackColor = Color.FromName(Properties.Resources.RecordingButtonColorName);
+                    this.uxStartButton.Enabled = true;
                 }
                 else
                 {
-                    this.uxStartButton.Text = string.Format(Properties.Resources.FormRecord_ButtonLabel_Stop);
+                    this.uxStartButton.Text = string.Format(Properties.Resources.FormRecord_ButtonLabel_Stopping);
+                    this.uxStartButton.UseVisualStyleBackColor = true;
+                    this.uxStartButton.Enabled = false;
                 }
-                this.uxStartButton.BackColor = Color.FromName(Properties.Resources.RecordingButtonColorName);
             }
             else
             {
                 this.uxStartButton.Text = Properties.Resources.FormRecord_ButtonLabel_Start;
                 this.uxStartButton.UseVisualStyleBackColor = true;
+                this.uxStartButton.Enabled = true;
             }
 
-            this.uxStartButton.Enabled = true;
             this.uxSettingPanel.Enabled = (this.recordContext == null);
 
             if (this.sumacon.DeviceManager.ActiveDevice == null)

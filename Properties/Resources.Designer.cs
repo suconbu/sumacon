@@ -231,11 +231,11 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   Stop に類似しているローカライズされた文字列を検索します。
+        ///   Stopping... に類似しているローカライズされた文字列を検索します。
         /// </summary>
-        internal static string FormRecord_ButtonLabel_Stop {
+        internal static string FormRecord_ButtonLabel_Stopping {
             get {
-                return ResourceManager.GetString("FormRecord_ButtonLabel_Stop", resourceCulture);
+                return ResourceManager.GetString("FormRecord_ButtonLabel_Stopping", resourceCulture);
             }
         }
         
