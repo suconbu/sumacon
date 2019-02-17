@@ -24,7 +24,7 @@ namespace Suconbu.Sumacon
 
     class RecordContext : IDisposable
     {
-        public enum RecordState { Recording, Pulling, Finished, Aborted }
+        public enum RecordState { Recording, ManualStopping, Pulling, Finished, Aborted }
 
         public Device Device { get; private set; }
         public static int TimeLimitSecondsMax { get; } = 180;
@@ -41,6 +41,14 @@ namespace Suconbu.Sumacon
             }
         }
         public DateTime StartedAt { get; private set; } = DateTime.MaxValue;
+        public TimeSpan Elapsed
+        {
+            get
+            {
+                var elapsed = (this.stoppedAt == DateTime.MaxValue) ? (DateTime.Now - this.StartedAt) : (this.stoppedAt - this.StartedAt);
+                return (elapsed.TotalSeconds <= this.setting.TimeLimitSeconds) ? elapsed : TimeSpan.FromSeconds(this.setting.TimeLimitSeconds);
+            }
+        }
         public string FilePath { get; private set; }
 
         RecordSetting setting;
@@ -50,6 +58,7 @@ namespace Suconbu.Sumacon
         string filePathInDevice;
         string filePathInPc;
         RecordState state = RecordState.Recording;
+        DateTime stoppedAt = DateTime.MaxValue;
 
         Action<RecordState> onStateChanged = delegate { };
 
@@ -117,6 +126,8 @@ namespace Suconbu.Sumacon
         {
             if (this.State != RecordState.Recording) return;
 
+            this.State = RecordState.ManualStopping;
+
             // 中断後そのうちOnRecordCommandFinishedが呼ばれる
             this.recordCommandContext?.Cancel();
             this.recordCommandContext = null;
@@ -139,13 +150,9 @@ namespace Suconbu.Sumacon
                 return;
             }
 
-            this.OnRecordFinished();
-        }
-
-        void OnRecordFinished()
-        {
-            Debug.Assert(this.State == RecordState.Recording);
-
+            Debug.Assert(this.State == RecordState.Recording || this.state == RecordState.ManualStopping);
+            this.stoppedAt = (this.state == RecordState.ManualStopping) ? DateTime.Now :
+                (this.StartedAt.AddSeconds(this.setting.TimeLimitSeconds));
             this.State = RecordState.Pulling;
 
             var command = $"pull {this.filePathInDevice} {this.filePathInPc}";

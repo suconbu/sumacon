@@ -26,7 +26,7 @@ namespace Suconbu.Sumacon
         BindingList<FileInfo> fileInfos = new BindingList<FileInfo>();
         List<FileInfo> selectedFileInfos = new List<FileInfo>();
         Button[] timeButtons;
-        Timer timer = new Timer();
+        Timer elapsedTimeRedrawTimer = new Timer();
         int sequenceNo = 1;
 
         readonly string patternToolTipText;
@@ -99,8 +99,8 @@ namespace Suconbu.Sumacon
             this.uxSplitContainer.Panel1.Controls.Add(this.uxFileGridPanel);
 
             // 経過時間の表示更新用
-            this.timer.Interval = 1000;
-            this.timer.Tick += (s, e) => this.UpdateControlState();
+            this.elapsedTimeRedrawTimer.Interval = 1000;
+            this.elapsedTimeRedrawTimer.Tick += (s, e) => this.UpdateControlState();
 
             this.uxToolTip.SetToolTip(this.uxPatternText, this.patternToolTipText);
             this.uxToolTip.AutoPopDelay = 30000;
@@ -277,13 +277,13 @@ namespace Suconbu.Sumacon
                 {
                     this.SafeInvoke(() => this.OnRecordContextStateChanged(state));
                 });
-                this.timer.Start();
+                this.elapsedTimeRedrawTimer.Start();
                 this.sumacon.DeviceManager.SuspendObserve(device);
             }
             else
             {
                 this.sumacon.DeviceManager.ResumeObserve(this.recordContext.Device);
-                this.timer.Stop();
+                this.elapsedTimeRedrawTimer.Stop();
                 this.recordContext.Stop();
             }
             this.UpdateControlState();
@@ -332,7 +332,7 @@ namespace Suconbu.Sumacon
         {
             if (state == RecordContext.RecordState.Pulling)
             {
-                this.timer.Stop();
+                this.elapsedTimeRedrawTimer.Stop();
             }
             else if (state == RecordContext.RecordState.Aborted)
             {
@@ -373,11 +373,9 @@ namespace Suconbu.Sumacon
             {
                 if (this.recordContext.State == RecordContext.RecordState.Recording)
                 {
-                    var seconds = (int)(DateTime.Now - this.recordContext.StartedAt).TotalSeconds;
-                    seconds = Math.Min(seconds, this.GetLimitTimeSeconds());
                     this.uxStartButton.Text = string.Format(
                         Properties.Resources.FormRecord_ButtonLabel_Recording,
-                        seconds);
+                        (int)this.recordContext.Elapsed.TotalSeconds);
                     this.uxStartButton.BackColor = Color.FromName(Properties.Resources.RecordingButtonColorName);
                     this.uxStartButton.Enabled = true;
                 }
