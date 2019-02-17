@@ -19,6 +19,7 @@ namespace Suconbu.Sumacon
         public int TimeLimitSeconds;
         public float ViewSizeMultiply;
         public int Bitrate;
+        public bool Timestamp;
     }
 
     class RecordContext : IDisposable
@@ -100,6 +101,11 @@ namespace Suconbu.Sumacon
                 option.Append($" --size {size.Width}x{size.Height}");
             }
             option.Append($" --bit-rate {this.setting.Bitrate}");
+
+            if (this.setting.Timestamp)
+            {
+                option.Append($" --show-frame-time");
+            }
 
             this.StartedAt = DateTime.Now;
 

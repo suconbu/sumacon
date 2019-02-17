@@ -10,6 +10,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WMPLib;
@@ -24,6 +25,7 @@ namespace Suconbu.Sumacon
         ContextMenuStrip fileGridContextMenu = new ContextMenuStrip();
         BindingList<FileInfo> fileInfos = new BindingList<FileInfo>();
         List<FileInfo> selectedFileInfos = new List<FileInfo>();
+        RadioButton[] timeButtons;
         Timer timer = new Timer();
         int sequenceNo = 1;
 
@@ -49,21 +51,30 @@ namespace Suconbu.Sumacon
 
             this.uxTimeNumeric.Minimum = 1;
             this.uxTimeNumeric.Maximum = RecordContext.TimeLimitSecondsMax;
-            this.uxTimeNumeric.ValueChanged += (s, e) => this.OnVideoSettingChanged();
+            this.uxTimeNumeric.ValueChanged += (s, e) => this.UpdateApproxSize();
             this.uxTimeNumeric.Value = 10;
-            this.uxTimeBar.Minimum = 0;
-            this.uxTimeBar.Maximum = (int)this.uxTimeNumeric.Maximum;
-            this.uxTimeBar.TickFrequency = 10;
-            this.uxTimeBar.SmallChange = 10;
-            this.uxTimeBar.LargeChange = 10;
-            this.uxTimeBar.Value = (int)this.uxTimeNumeric.Value;
-            this.uxTimeBar.ValueChanged += (s, e) => this.uxTimeNumeric.Value = Math.Max(this.uxTimeNumeric.Minimum, this.uxTimeBar.Value);
 
-            this.uxSize1.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
-            this.uxSize2.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
-            this.uxSize4.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
-            this.uxQualityNormal.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
-            this.uxQuarityEconomy.CheckedChanged += (s, e) => this.OnVideoSettingChanged();
+            this.timeButtons = new[] { this.uxTime10, this.uxTime30, this.uxTime60, this.uxTime180 };
+            foreach(var button in this.timeButtons)
+            {
+                button.CheckedChanged += this.UxTime_CheckedChanged;
+            }
+            this.uxTime180.Checked = true;
+            //this.uxTimeBar.Minimum = 0;
+            //this.uxTimeBar.Maximum = (int)this.uxTimeNumeric.Maximum;
+            //this.uxTimeBar.TickFrequency = 10;
+            //this.uxTimeBar.SmallChange = 10;
+            //this.uxTimeBar.LargeChange = 10;
+            //this.uxTimeBar.Value = (int)this.uxTimeNumeric.Value;
+            //this.uxTimeBar.ValueChanged += (s, e) => this.uxTimeNumeric.Value = Math.Max(this.uxTimeNumeric.Minimum, this.uxTimeBar.Value);
+
+            this.uxTimestampCheck.Checked = true;
+
+            this.uxSize1.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            this.uxSize2.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            this.uxSize4.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            this.uxQualityNormal.CheckedChanged += (s, e) => this.UpdateApproxSize();
+            this.uxQuarityEconomy.CheckedChanged += (s, e) => this.UpdateApproxSize();
 
             this.uxStartButton.Click += this.UxStartButton_Click;
 
@@ -103,6 +114,18 @@ namespace Suconbu.Sumacon
             this.uxToolTip.AutoPopDelay = 30000;
 
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
+        }
+
+        private void UxTime_CheckedChanged(object sender, EventArgs e)
+        {
+            foreach (var button in this.timeButtons)
+            {
+                if(button.Checked)
+                {
+                    this.uxTimeNumeric.Value = int.Parse((string)button.Tag);
+                    break;
+                }
+            }
         }
 
         protected override void OnLoad(EventArgs e)
@@ -228,7 +251,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void OnVideoSettingChanged()
+        void UpdateApproxSize()
         {
             var seconds = (int)this.uxTimeNumeric.Value;
 
@@ -290,6 +313,7 @@ namespace Suconbu.Sumacon
             setting.TimeLimitSeconds = this.GetLimitTimeSeconds();
             setting.ViewSizeMultiply = this.GetViewSizeMultiply();
             setting.Bitrate = this.GetBitrate();
+            setting.Timestamp = this.GetTimestampEnabled();
 
             return setting;
         }
@@ -311,6 +335,11 @@ namespace Suconbu.Sumacon
         {
             var baseBitrate = this.uxQuarityEconomy.Checked ? this.baseBitrateEconomy : this.baseBitrateNormal;
             return (int)(baseBitrate * this.GetViewSizeMultiply());
+        }
+
+        bool GetTimestampEnabled()
+        {
+            return this.uxTimestampCheck.Checked;
         }
 
         void OnRecordContextStateChanged(RecordContext.RecordState state)
