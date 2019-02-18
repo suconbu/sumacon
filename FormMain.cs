@@ -27,9 +27,6 @@ namespace Suconbu.Sumacon
         Timer memoryTimer = new Timer() { Interval = 1000 };
 
         Sumacon sumacon = new Sumacon();
-        //DeviceManager deviceManager;
-        //CommandReceiver commandReceiver;
-        //LogReceiverManager logReceiverManager;
 
         public FormMain()
         {
@@ -42,7 +39,6 @@ namespace Suconbu.Sumacon
             this.KeyPreview = true;
 
             this.SetupDeviceManager();
-            //this.logReceiverManager = new LogReceiverManager();
         }
 
         protected override void OnLoad(EventArgs e)
@@ -80,6 +76,11 @@ namespace Suconbu.Sumacon
             this.logForm.Text = "Log";
             this.logForm.Show(this.dockPanel, DockState.Document);
 
+            foreach (var form in this.dockPanel.Contents)
+            {
+                form.DockHandler.CloseButtonVisible = false;
+            }
+
             this.sumacon.DeviceManager.StartDeviceDetection();
 
             this.memoryTimer.Tick += this.MemoryTimer_Tick;
@@ -91,7 +92,7 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
 
-            foreach (var component in this.sumacon.DeviceManager.ActiveDevice.Components)
+            foreach (var component in (this.sumacon.DeviceManager.ActiveDevice?.Components).OrEmptyIfNull())
             {
                 component.ResetAsync();
             }
