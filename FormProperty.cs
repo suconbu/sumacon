@@ -51,7 +51,7 @@ namespace Suconbu.Sumacon
                 var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
                 var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
-                device.ComponentsByCategory[category]?.ResetAsync();
+                device.GetComponent(category)?.ResetAsync();
             });
             var resetAllMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
@@ -101,7 +101,7 @@ namespace Suconbu.Sumacon
             this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.sumacon.DeviceManager.ActiveDevice);
         }
 
-        bool GetSelectedItemProperty(out string category, out DeviceComponentBase component, out string label, out Property property)
+        bool GetSelectedItemProperty(out string category, out DeviceComponent component, out string label, out Property property)
         {
             component = null;
             label = null;
@@ -109,7 +109,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor?.Category;
             if (device == null || category == null) return false;
-            component = device.ComponentsByCategory[category];
+            component = device.GetComponent(category);
             label = this.propertyGrid1.SelectedGridItem.Label;
             // 先頭のコンポーネント名は外して探す(例：ScreenSize->Size)
             var findLabel = label.StartsWith(component.Name) ? label.Substring(component.Name.Length) : label;

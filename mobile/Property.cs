@@ -104,7 +104,7 @@ namespace Suconbu.Mobile
         [XmlIgnore]
         public bool Overridden { get; private set; }
         [XmlIgnore]
-        public DeviceComponentBase Component { get; set; }
+        public DeviceComponent Component { get; set; }
         // PushAsyncを呼び出した後、値がデバイスに反映されるまでの間はtrue
         //[XmlIgnore]
         //public bool Pushing { get; private set; }

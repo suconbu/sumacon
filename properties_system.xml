@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root name="System" pull="shell getprop">
+  <property name="Serial" type="String" pattern="ro.serialno\]: \[(.+)\]"/>
+  <property name="Brand" type="String" pattern="ro.product.brand\]: \[(.+)\]"/>
+  <property name="DeviceName" type="String" pattern="ro.product.device\]: \[(.+)\]"/>
+  <property name="Manufacturer" type="String" pattern="ro.product.manufacturer\]: \[(.+)\]"/>
+  <property name="Model" type="String" pattern="ro.product.model\]: \[(.+)\]"/>
+  <property name="Name" type="String" pattern="ro.product.name\]: \[(.+)\]"/>
+  <property name="Platform" type="String" pattern="ro.board.platform\]: \[(.+)\]"/>
+  <property name="CpuAbi" type="String" pattern="ro.product.cpu.abi\]: \[(.+)\]"/>
+  <property name="AndroidVersion" type="String" pattern="ro.build.version.release\]: \[(.+)\]"/>
+  <property name="ApiLevel" type="Integer" pattern="ro.build.version.sdk\]: \[(\d+)\]"/>
+  <property name="OpenGLES" type="Integer" pattern="ro.opengles.version\]: \[(\d+)\]"/>
+  <property name="TimeZone" type="String" pattern="persist.sys.timezone\]: \[(.+)\]"/>
+</root>

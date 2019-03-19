@@ -7,18 +7,19 @@ using System.Threading.Tasks;
 
 namespace Suconbu.Mobile
 {
-    public class DeviceComponentBase
+    public class DeviceComponent
     {
         public event EventHandler<IReadOnlyList<Property>> PropertyChanged = delegate { };
 
         public string Name { get { return this.propertyGroup.Name; } }
+        public Property this[string name] { get { return this.propertyGroup[name]; } }
 
         protected readonly Device device;
         protected readonly PropertyGroup propertyGroup;
 
         readonly HashSet<string> pushing = new HashSet<string>();
 
-        public DeviceComponentBase(Device device, string xmlPath)
+        public DeviceComponent(Device device, string xmlPath)
         {
             this.device = device;
             this.propertyGroup = PropertyGroup.FromXml(xmlPath);
@@ -75,7 +76,7 @@ namespace Suconbu.Mobile
             return this.propertyGroup.Properties.Find(p => p.Name == name);
         }
 
-        protected void SetAndPushValue(string name, object value)
+        public void SetAndPushValue(string name, object value)
         {
             var property = this.propertyGroup[name];
             if (property != null && property.Value?.ToString() != value?.ToString())

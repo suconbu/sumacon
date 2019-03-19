@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("sumacon")]
-[assembly: AssemblyCopyright("Copyright © 2018 D.Miwa")]
+[assembly: AssemblyCopyright("Copyright © 2018-2019 D.Miwa")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

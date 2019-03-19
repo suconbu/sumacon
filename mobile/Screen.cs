@@ -6,7 +6,7 @@ using System.Drawing;
 
 namespace Suconbu.Mobile
 {
-    public class Screen : DeviceComponentBase
+    public class Screen : DeviceComponent
     {
         public enum RotationCode { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
 

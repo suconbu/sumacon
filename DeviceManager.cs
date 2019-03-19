@@ -51,7 +51,7 @@ namespace Suconbu.Sumacon
         public void SuspendObserve(Device device)
         {
             if (device == null) return;
-            int count = this.susupendRequestedCount[device.Id]++;
+            int count = this.susupendRequestedCount[device.Serial]++;
             if (count == 0)
             {
                 device.StartObserve(int.MaxValue);
@@ -61,11 +61,11 @@ namespace Suconbu.Sumacon
         public void ResumeObserve(Device device)
         {
             if (device == null) return;
-            int count = --this.susupendRequestedCount[device.Id];
+            int count = --this.susupendRequestedCount[device.Serial];
             if(count <= 0 && device == this.activeDevice && device.ObserveActivated)
             {
                 device.StartObserve(this.ObserveIntervalMilliseconds);
-                this.susupendRequestedCount[device.Id] = 0;
+                this.susupendRequestedCount[device.Serial] = 0;
             }
         }
 
@@ -92,7 +92,7 @@ namespace Suconbu.Sumacon
 
         void Detector_Connected(object sender, string deviceId)
         {
-            if (this.connectedDevices.Find(d => d.Id == deviceId) != null) return;
+            if (this.connectedDevices.Find(d => d.Serial == deviceId) != null) return;
 
             var device = new Device(deviceId);
             this.connectedDevices.Add(device);
@@ -108,7 +108,7 @@ namespace Suconbu.Sumacon
 
         void Detector_Disconnected(object sender, string deviceId)
         {
-            var device = this.connectedDevices.Find(d => d.Id == deviceId);
+            var device = this.connectedDevices.Find(d => d.Serial == deviceId);
             if (device == null) return;
 
             this.DeviceDisconnecting(this, device);

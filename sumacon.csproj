@@ -97,7 +97,7 @@
     </Compile>
     <Compile Include="mobile\Battery.cs" />
     <Compile Include="mobile\CommandContext.cs" />
-    <Compile Include="mobile\DeviceComponentBase.cs" />
+    <Compile Include="mobile\DeviceComponent.cs" />
     <Compile Include="mobile\Device.cs" />
     <Compile Include="mobile\DeviceDetector.cs" />
     <Compile Include="FormShortcut.cs">

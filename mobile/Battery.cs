@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Suconbu.Mobile
 {
-    public class Battery : DeviceComponentBase
+    public class Battery : DeviceComponent
     {
         public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
         public enum HealthCode { Unknown = 1, Good = 2, OverHeat = 3, Dead = 4, OverVoltage = 5, UnspecifiedFailrue, Cold = 7 }
@@ -67,32 +67,5 @@ namespace Suconbu.Mobile
         }
 
         public Battery(Device device, string xmlPath) : base(device, xmlPath) { }
-
-        ///// <summary>
-        ///// すべてのプロパティを最新の値に更新します。
-        ///// </summary>
-        //public override CommandContext PullAsync()
-        //{
-        //    base.PullAsync();
-
-        //    var changedProperties = new List<Property>();
-        //    return this.device.RunCommandAsync("shell dumpsys battery", output =>
-        //    {
-        //        if (output == null)
-        //        {
-        //            if (changedProperties.Count > 0) this.OnPropertyChanged(changedProperties);
-        //            return;
-        //        }
-
-        //        this.propertyGroup.Properties.ForEach(p =>
-        //        {
-        //            var latest = p.Value?.ToString();
-        //            if(p.TrySetValueFromString(output.Trim()))
-        //            {
-        //                if (latest != p.Value?.ToString()) changedProperties.Add(p);
-        //            }
-        //        });
-        //    });
-        //}
     }
 }

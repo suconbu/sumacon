@@ -13,20 +13,57 @@ namespace Suconbu.Mobile
     {
         public struct ComponentCategory
         {
-            public const string Device = "01.Device";
+            public const string System = "01.System";
             public const string Battery = "02.Battery";
             public const string Screen = "03.Screen";
         }
 
+        public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
+        public enum HealthCode { Unknown = 1, Good = 2, OverHeat = 3, Dead = 4, OverVoltage = 5, UnspecifiedFailrue, Cold = 7 }
+
         // e.g. HXC8KSKL24PZB
-        [Category(ComponentCategory.Device)]
-        public string Id { get { return this.deviceData.Serial; } }
+        [Category(ComponentCategory.System)]
+        public string Serial { get { return this.deviceData.Serial; } }
         // e.g. Nexus_9
-        [Category(ComponentCategory.Device)]
+        [Category(ComponentCategory.System)]
         public string Model { get { return this.deviceData.Model; } }
         // e.g. MyTablet
-        [Category(ComponentCategory.Device)]
+        [Category(ComponentCategory.System)]
         public string Name { get { return this.deviceData.Name; } }
+        // e.g. google
+        [Category(ComponentCategory.System)]
+        public string Brand { get { return (string)this.system[nameof(this.Brand)].Value; } }
+        // e.g. volantis
+        [Category(ComponentCategory.System)]
+        public string DeviceName { get { return (string)this.system[nameof(this.DeviceName)].Value; } }
+        // e.g. htc
+        [Category(ComponentCategory.System)]
+        public string Manufacturer { get { return (string)this.system[nameof(this.Manufacturer)].Value; } }
+        // e.g. tegra132
+        [Category(ComponentCategory.System)]
+        public string Platform { get { return (string)this.system[nameof(this.Platform)].Value; } }
+        // e.g. arm64-v8a
+        [Category(ComponentCategory.System)]
+        public string CpuAbi { get { return (string)this.system[nameof(this.CpuAbi)].Value; } }
+        // e.g. 7.1.1
+        [Category(ComponentCategory.System)]
+        public string AndroidVersion { get { return (string)this.system[nameof(this.AndroidVersion)].Value; } }
+        // e.g. 25
+        [Category(ComponentCategory.System)]
+        public int ApiLevel { get { return (int)this.system[nameof(this.ApiLevel)].Value; } }
+        // e.g. 3.1
+        [Category(ComponentCategory.System)]
+        public string OpenGLES
+        {
+            get
+            {
+                var v = (int)this.system[nameof(this.OpenGLES)].Value;
+                return $"{v / 0x10000}.{v % 0x10000}";
+            }
+        }
+        // e.g. Asia/Tokyo
+        [Category(ComponentCategory.System)]
+        public string TimeZone { get { return (string)this.system[nameof(this.TimeZone)].Value; } }
 
         [Category(ComponentCategory.Battery)]
         public bool ACPowered { get { return this.Battery.ACPowered; } set { this.Battery.ACPowered = value; } }
@@ -77,13 +114,11 @@ namespace Suconbu.Mobile
         public int OffTimeout { get { return this.Screen.OffTimeout / 1000; } set { this.Screen.OffTimeout = value * 1000; } }
 
         [Browsable(false)]
+        public IEnumerable<DeviceComponent> Components { get { return this.componentsByCategory.Values; } }
+        [Browsable(false)]
         public Battery Battery { get; private set; }
         [Browsable(false)]
         public Screen Screen { get; private set; }
-        [Browsable(false)]
-        public IReadOnlyList<DeviceComponentBase> Components;
-        [Browsable(false)]
-        public Dictionary<string, DeviceComponentBase> ComponentsByCategory = new Dictionary<string, DeviceComponentBase>();
         [Browsable(false)]
         public bool ObserveActivated { get; private set; }
         [Browsable(false)]
@@ -93,21 +128,28 @@ namespace Suconbu.Mobile
         int observeIntervalMilliseconds = 10000;
         string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
+        DeviceComponent system;
+        Dictionary<string, DeviceComponent> componentsByCategory = new Dictionary<string, DeviceComponent>();
 
         public Device(string id)
         {
             this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
+            this.system = new DeviceComponent(this, "properties_system.xml");
+            this.componentsByCategory.Add(ComponentCategory.System, this.system);
             this.Battery = new Battery(this, "properties_battery.xml");
+            this.componentsByCategory.Add(ComponentCategory.Battery, this.Battery);
             this.Screen = new Screen(this, "properties_screen.xml");
-            this.Components = new List<DeviceComponentBase>() { this.Battery, this.Screen };
-            this.ComponentsByCategory[ComponentCategory.Device] = null;
-            this.ComponentsByCategory[ComponentCategory.Battery] = this.Battery;
-            this.ComponentsByCategory[ComponentCategory.Screen] = this.Screen;
+            this.componentsByCategory.Add(ComponentCategory.Screen, this.Screen);
             this.RunCommandOutputBinaryAsync("shell echo \\\\r", stream =>
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
             ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
+        }
+
+        public DeviceComponent GetComponent(string category)
+        {
+            return this.componentsByCategory[category];
         }
 
         public void StartObserve(int intervalMilliseconds, bool imidiate = true)
@@ -129,24 +171,24 @@ namespace Suconbu.Mobile
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
         {
-            return CommandContext.StartNew("adb", $"-s {this.Id} {command}", onOutputReceived, onErrorReceived);
+            return CommandContext.StartNew("adb", $"-s {this.Serial} {command}", onOutputReceived, onErrorReceived);
         }
 
         public CommandContext RunCommandOutputTextAsync(string command, Action<string> onFinished)
         {
-            return CommandContext.StartNewText("adb", $"-s {this.Id} {command}", output => onFinished?.Invoke(output));
+            return CommandContext.StartNewText("adb", $"-s {this.Serial} {command}", output => onFinished?.Invoke(output));
         }
 
         public CommandContext RunCommandOutputBinaryAsync(string command, Action<Stream> onFinished)
         {
-            return CommandContext.StartNewBinary("adb", $"-s {this.Id} {command}", this.newLineMode, stream => onFinished?.Invoke(stream));
+            return CommandContext.StartNewBinary("adb", $"-s {this.Serial} {command}", this.newLineMode, stream => onFinished?.Invoke(stream));
         }
 
         public string ToString(string format)
         {
             var replacer = new Dictionary<string, string>()
             {
-                { "device-id", this.Id},
+                { "device-serial", this.Serial},
                 { "device-model", this.Model},
                 { "device-name", this.Name},
                 { "screen-width", this.ScreenSize.Width.ToString()},

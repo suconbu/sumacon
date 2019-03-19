@@ -61,7 +61,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {device-id} - {device-model} ({device-name}) に類似しているローカライズされた文字列を検索します。
+        ///   {device-serial} - {device-model} ({device-name}) に類似しているローカライズされた文字列を検索します。
         /// </summary>
         internal static string DeviceLabelFormat {
             get {
@@ -88,7 +88,7 @@ namespace Suconbu.Sumacon.Properties {
         }
         
         /// <summary>
-        ///   {device-id} : &apos;HXC8KSKL99XYZ&apos;
+        ///   {device-serial} : &apos;HXC8KSKL99XYZ&apos;
         ///{device-model} : &apos;Nexus_9&apos;
         ///{device-name} : &apos;flounder&apos;
         ///{date} : &apos;2018-12-31&apos;

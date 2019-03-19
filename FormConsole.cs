@@ -83,7 +83,7 @@ namespace Suconbu.Sumacon
 
         void DeviceManager_DeviceDisconnecting(object sender, Device device)
         {
-            this.CancelCommandRun(device.Id);
+            this.CancelCommandRun(device.Serial);
             this.sumacon.CommandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is disconnected.");
         }
 
@@ -121,14 +121,14 @@ namespace Suconbu.Sumacon
             else if(e.KeyCode == Keys.C && e.Modifiers.HasFlag(Keys.Control))
             {
                 e.SuppressKeyPress = true;
-                this.CancelCommandRun(device?.Id);
+                this.CancelCommandRun(device?.Serial);
             }
         }
 
         bool StartCommandRun(Device device, string command)
         {
             if (device == null) return false;
-            if (!this.contexts.TryGetValue(device.Id, out var context))
+            if (!this.contexts.TryGetValue(device.Serial, out var context))
             {
                 // まだshellを開いてなかったら開く
                 context = device.RunCommandAsync("shell", output =>
@@ -140,10 +140,10 @@ namespace Suconbu.Sumacon
                     else
                     {
                         // 終了
-                        this.SafeInvoke(() => this.contexts.Remove(device.Id));
+                        this.SafeInvoke(() => this.contexts.Remove(device.Serial));
                     }
                 });
-                this.contexts.Add(device.Id, context);
+                this.contexts.Add(device.Serial, context);
             }
             context.PushInput($"echo '> {command}'");
             context.PushInput(command);
