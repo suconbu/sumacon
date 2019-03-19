@@ -18,11 +18,17 @@ namespace Suconbu.Sumacon
     {
         Sumacon sumacon;
         ContextMenuStrip menu = new ContextMenuStrip();
+        ToolStripLabel uxTimestampLabel = new ToolStripLabel();
 
         public FormProperty(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
+
+            this.uxToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+            this.uxToolStrip.Items.Add("Refresh", this.imageList1.Images["arrow_refresh.png"], (s, e) => RefreshProperties());
+            this.uxToolStrip.Items.Add(new ToolStripSeparator());
+            this.uxToolStrip.Items.Add(this.uxTimestampLabel);
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
@@ -50,7 +56,7 @@ namespace Suconbu.Sumacon
             {
                 var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device == null) return;
-                var category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor.Category;
+                var category = this.uxPropertyGrid.SelectedGridItem.PropertyDescriptor.Category;
                 device.GetComponent(category)?.ResetAsync();
             });
             var resetAllMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
@@ -72,10 +78,6 @@ namespace Suconbu.Sumacon
 
                 resetPropertyMenuItem.Enabled = (property != null && property.PushCommand != null);
                 resetPropertyMenuItem.Text = string.Format(Properties.Resources.FormProperty_MenuItemLabel_ResetOne, label);
-                //if(resetPropertyMenuItem.Enabled)
-                //{
-                //    resetPropertyMenuItem.Text += $" (={property.OriginalValue.ToString()})";
-                //}
 
                 resetCategoryMenuItem.Enabled = (component != null);
                 resetCategoryMenuItem.Text = string.Format(
@@ -84,21 +86,25 @@ namespace Suconbu.Sumacon
                 resetAllMenuItem.Text = Properties.Resources.FormProperty_MenuItemLabel_ResetAll;
             };
 
-            this.propertyGrid1.ContextMenuStrip = this.menu;
+            this.uxPropertyGrid.ContextMenuStrip = this.menu;
         }
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device device)
         {
             this.SafeInvoke(() =>
             {
-                this.propertyGrid1.SelectedObject = device;
+                this.uxPropertyGrid.SelectedObject = device;
                 this.SetupContextMenu();
             });
         }
 
         void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Property> properties)
         {
-            this.SafeInvoke(() => this.propertyGrid1.SelectedObject = this.sumacon.DeviceManager.ActiveDevice);
+            this.SafeInvoke(() =>
+            {
+                this.uxPropertyGrid.SelectedObject = this.sumacon.DeviceManager.ActiveDevice;
+                this.UpdateTimestamp();
+            });
         }
 
         bool GetSelectedItemProperty(out string category, out DeviceComponent component, out string label, out Property property)
@@ -107,14 +113,41 @@ namespace Suconbu.Sumacon
             label = null;
             property = null;
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            category = this.propertyGrid1.SelectedGridItem.PropertyDescriptor?.Category;
+            category = this.uxPropertyGrid.SelectedGridItem.PropertyDescriptor?.Category;
             if (device == null || category == null) return false;
             component = device.GetComponent(category);
-            label = this.propertyGrid1.SelectedGridItem.Label;
+            label = this.uxPropertyGrid.SelectedGridItem.Label;
             // 先頭のコンポーネント名は外して探す(例：ScreenSize->Size)
             var findLabel = label.StartsWith(component.Name) ? label.Substring(component.Name.Length) : label;
             property = component?.Find(findLabel);
             return true;
+        }
+
+        void RefreshProperties()
+        {
+            var contexts = new List<CommandContext>();
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            foreach (var component in device.Components.OrEmptyIfNull())
+            {
+                contexts.Add(component.PullAsync());
+            }
+            this.Enabled = false;
+            this.uxTimestampLabel.Text = "-";
+            CommandContext.StartNew(() =>
+            {
+                contexts.ForEach(c => c?.Wait());
+                this.SafeInvoke(() =>
+                {
+                    this.Enabled = true;
+                    this.UpdateTimestamp();
+                });
+            });
+            //Delay.SetTimeout(() => this.uxPropertyGrid.Enabled = true, 1000, this);
+        }
+
+        void UpdateTimestamp()
+        {
+            this.uxTimestampLabel.Text = $"Updated at {DateTime.Now.ToLongTimeString()}";
         }
     }
 }

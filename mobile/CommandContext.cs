@@ -15,6 +15,7 @@ namespace Suconbu.Toolbox
         public string Command { get; private set; }
         public string Arguments { get; private set; }
 
+        static bool first = true;
         Task task;
         Process process;
         //StringBuilder outputBuffer;
@@ -320,6 +321,16 @@ namespace Suconbu.Toolbox
             this.task?.Wait((int)timeout.TotalMilliseconds);
             this.process = null;
             this.task = null;
+        }
+
+        CommandContext()
+        {
+            if (CommandContext.first)
+            {
+                ThreadPool.GetMinThreads(out var workerThreads, out var ioThreads);
+                ThreadPool.SetMinThreads(20, ioThreads);
+                CommandContext.first = false;
+            }
         }
     }
 }

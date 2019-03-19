@@ -125,7 +125,7 @@ namespace Suconbu.Mobile
         public ProcessInfoList Processes { get; private set; }
 
         DeviceData deviceData;
-        int observeIntervalMilliseconds = 10000;
+        int observeIntervalMilliseconds = 60 * 1000;
         string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;

@@ -35,20 +35,22 @@ namespace Suconbu.Mobile
         public virtual CommandContext PullAsync()
         {
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - Name:{this.Name}");
-            return CommandContext.StartNew(() =>
-            {
-                // グループ一括
-                this.propertyGroup.PullAsync(this.device, this.pushing, this.OnPropertyChanged);
 
-                // 個別
-                foreach (var property in this.propertyGroup.Properties)
+            var contexts = new List<CommandContext>();
+
+            // グループ一括
+            contexts.Add(this.propertyGroup.PullAsync(this.device, this.pushing, this.OnPropertyChanged));
+
+            // 個別
+            foreach (var property in this.propertyGroup.Properties)
+            {
+                if (!this.pushing.Contains(property.Name))
                 {
-                    if (!this.pushing.Contains(property.Name))
-                    {
-                        property.PullAsync(this.device, this.OnPullFinished);
-                    }
+                    contexts.Add(property.PullAsync(this.device, this.OnPullFinished));
                 }
-            });
+            }
+
+            return CommandContext.StartNew(() => contexts.ForEach(c => c?.Wait()));
         }
 
         /// <summary>
