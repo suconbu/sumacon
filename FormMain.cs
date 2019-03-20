@@ -87,13 +87,13 @@ namespace Suconbu.Sumacon
                 form.DockHandler.CloseButtonVisible = false;
             }
 
-            this.sumacon.DeviceManager.StartDeviceDetection();
-
             this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
             this.showTouchesButton.Click += this.ShowTouchesButton_Click;
 
             this.memoryTimer.Tick += this.MemoryTimer_Tick;
             this.memoryTimer.Start();
+
+            this.sumacon.DeviceManager.StartDeviceDetection();
         }
 
         protected override void OnClosing(CancelEventArgs e)

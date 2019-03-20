@@ -47,8 +47,8 @@ namespace Suconbu.Sumacon
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
 
-            this.uxOutputText.AppendText($"# Hello. {DateTime.Now.ToString()}" + Environment.NewLine);
-            CommandContext.StartNewText("adb", "version", output => this.SafeInvoke(() => this.sumacon.CommandReceiver.WriteOutput(output)));
+            this.uxOutputText.AppendText($"{Util.GetApplicationName()} version {Util.GetVersionString(3)}" + Environment.NewLine);
+            CommandContext.StartNewText("adb", "version", output => this.SafeInvoke(() => this.sumacon.CommandReceiver.WriteOutput(output))).Wait(1000);
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -78,13 +78,13 @@ namespace Suconbu.Sumacon
 
         void DeviceManager_DeviceConnected(object sender, Device device)
         {
-            this.sumacon.CommandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is connected.");
+            this.sumacon.CommandReceiver.WriteOutput($"Connected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
         }
 
         void DeviceManager_DeviceDisconnecting(object sender, Device device)
         {
             this.CancelCommandRun(device.Serial);
-            this.sumacon.CommandReceiver.WriteOutput($"# '{device.ToString(Properties.Resources.DeviceLabelFormat)}' is disconnected.");
+            this.sumacon.CommandReceiver.WriteOutput($"Disconnected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
         }
 
         private void UxInputCombo_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
