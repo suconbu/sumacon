@@ -72,7 +72,7 @@ namespace Suconbu.Mobile
     //   <property name="AC powered" type="bool" pattern="AC powered: (\w+)" push="set ac \1"/>
     public class Property
     {
-        public enum DataType { String, Integer, Bool, Size }
+        public enum DataType { String, Integer, Float, Bool, Size }
 
         [XmlAttribute("name")]
         public string Name { get; set; }
@@ -119,6 +119,7 @@ namespace Suconbu.Mobile
                 (this.Type == DataType.Size) ? Size.Empty :
                 (this.Type == DataType.Bool) ? false :
                 (this.Type == DataType.Integer) ? 0 :
+                (this.Type == DataType.Float) ? 0.0f :
                 (this.Type == DataType.String) ? string.Empty :
                 this.internalValue;
         }
@@ -193,8 +194,9 @@ namespace Suconbu.Mobile
                 (this.Type == DataType.Size) ? new Size(
                     (int)Math.Round(double.Parse(match.Groups[1].Value)),
                     (int)Math.Round(double.Parse(match.Groups[2].Value))) :
-                (this.Type == DataType.Bool) ? bool.Parse(match.Groups[1].Value) :
+                (this.Type == DataType.Bool) ? this.ParseAsBool(match.Groups[1].Value) :
                 (this.Type == DataType.Integer) ? (int)Math.Round(double.Parse(match.Groups[1].Value)) :
+                (this.Type == DataType.Float) ? float.Parse(match.Groups[1].Value) :
                 (this.Type == DataType.String) ? match.Groups[1].Value :
                 this.internalValue;
             this.OriginalValue = this.OriginalValue ?? this.internalValue;
@@ -204,6 +206,19 @@ namespace Suconbu.Mobile
         public override string ToString()
         {
             return $"{this.Name} - {this.Value} : {this.Type}";
+        }
+
+        bool ParseAsBool(string input)
+        {
+            bool result = false;
+            if (!bool.TryParse(input, out result))
+            {
+                if(int.TryParse(input, out var value))
+                {
+                    result = (value != 0);
+                }
+            }
+            return result;
         }
     }
 }

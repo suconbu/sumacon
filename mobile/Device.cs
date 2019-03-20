@@ -64,6 +64,12 @@ namespace Suconbu.Mobile
         // e.g. Asia/Tokyo
         [Category(ComponentCategory.System)]
         public string TimeZone { get { return (string)this.system[nameof(this.TimeZone)].Value; } }
+        [Category(ComponentCategory.System)]
+        public bool AirplaneMode { get { return (bool)this.system[nameof(this.AirplaneMode)].Value; } set { this.system.SetAndPushValue(nameof(this.AirplaneMode), value); } }
+        [Category(ComponentCategory.System)]
+        public bool ShowTouches { get { return (bool)this.system[nameof(this.ShowTouches)].Value; } set { this.system.SetAndPushValue(nameof(this.ShowTouches), value); } }
+        [Category(ComponentCategory.System)]
+        public float FontScale { get { return (float)this.system[nameof(this.FontScale)].Value; } set { this.system.SetAndPushValue(nameof(this.FontScale), value); } }
 
         [Category(ComponentCategory.Battery)]
         public bool ACPowered { get { return this.Battery.ACPowered; } set { this.Battery.ACPowered = value; } }
@@ -125,7 +131,7 @@ namespace Suconbu.Mobile
         public ProcessInfoList Processes { get; private set; }
 
         DeviceData deviceData;
-        int observeIntervalMilliseconds = 60 * 1000;
+        int observeIntervalMilliseconds;
         string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;

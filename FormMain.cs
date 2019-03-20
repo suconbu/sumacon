@@ -22,8 +22,10 @@ namespace Suconbu.Sumacon
         FormRecord recordForm;
         FormLog logForm;
         ToolStripDropDownButton deviceDropDown;
-        ToolStripItem deviceInfoLabel;
-        ToolStripItem memoryInfoLabel;
+        ToolStripLabel deviceInfoLabel = new ToolStripLabel();
+        ToolStripButton airplaneModeButton = new ToolStripButton() { CheckOnClick = true };
+        ToolStripButton showTouchesButton = new ToolStripButton() { CheckOnClick = true };
+        ToolStripLabel memoryInfoLabel = new ToolStripLabel();
         Timer memoryTimer = new Timer() { Interval = 1000 };
 
         Sumacon sumacon = new Sumacon();
@@ -53,9 +55,13 @@ namespace Suconbu.Sumacon
 
             this.deviceDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
             this.statusStrip1.Items.Add(this.deviceDropDown);
-            this.deviceInfoLabel = this.statusStrip1.Items.Add(string.Empty);
+            this.statusStrip1.Items.Add(this.deviceInfoLabel);
+            this.statusStrip1.Items.Add(this.airplaneModeButton);
+            this.statusStrip1.Items.Add(this.showTouchesButton);
             this.statusStrip1.Items.Add(new ToolStripStatusLabel() { Spring = true });
-            this.memoryInfoLabel = this.statusStrip1.Items.Add(string.Empty);
+#if DEBUG
+            this.statusStrip1.Items.Add(this.memoryInfoLabel);
+#endif
 
             this.consoleForm = new FormConsole(this.sumacon);
             this.consoleForm.Text = "Console";
@@ -82,6 +88,9 @@ namespace Suconbu.Sumacon
             }
 
             this.sumacon.DeviceManager.StartDeviceDetection();
+
+            this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
+            this.showTouchesButton.Click += this.ShowTouchesButton_Click;
 
             this.memoryTimer.Tick += this.MemoryTimer_Tick;
             this.memoryTimer.Start();
@@ -118,7 +127,7 @@ namespace Suconbu.Sumacon
         {
             this.sumacon.DeviceManager.PropertyChanged += (s, properties) =>
             {
-                this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
+                this.SafeInvoke(() => this.UpdateStatusStrip());
             };
             this.sumacon.DeviceManager.ConnectedDevicesChanged += (s, ee) =>
             {
@@ -126,7 +135,7 @@ namespace Suconbu.Sumacon
             };
             this.sumacon.DeviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
             {
-                this.SafeInvoke(() => this.UpdateStatusDeviceInfo());
+                this.SafeInvoke(() => this.UpdateStatusStrip());
             };
         }
 
@@ -143,7 +152,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void UpdateStatusDeviceInfo()
+        void UpdateStatusStrip()
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
 
@@ -159,6 +168,11 @@ namespace Suconbu.Sumacon
                     device.ToString(Properties.Resources.FormMain_StatusScreenFormat) +
                     " " +
                     device.ToString(Properties.Resources.FormMain_StatusBatteryFormat);
+
+                this.airplaneModeButton.Text = device.AirplaneMode ? "✈ ON" : "✈ OFF";
+                this.airplaneModeButton.Checked = device.AirplaneMode;
+                this.showTouchesButton.Text = device.ShowTouches ? "👆 ON" : "👆 OFF";
+                this.showTouchesButton.Checked = device.ShowTouches;
             }
             else
             {
@@ -166,6 +180,24 @@ namespace Suconbu.Sumacon
                 this.deviceInfoLabel.Text = string.Empty;
                 this.deviceDropDown.BackColor = SystemColors.Control;
                 this.deviceDropDown.ForeColor = SystemColors.ControlText;
+            }
+        }
+
+        void AirplaneModeButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                device.AirplaneMode = !device.AirplaneMode;
+            }
+        }
+
+        void ShowTouchesButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                device.ShowTouches = !device.ShowTouches;
             }
         }
 
