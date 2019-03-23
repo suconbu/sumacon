@@ -112,7 +112,8 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
-            this.ApplySettings();
+            this.LoadSettings();
+            this.ApplyFilterSetting();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -122,12 +123,7 @@ namespace Suconbu.Sumacon
             this.CloseLogContext();
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
 
-            Properties.Settings.Default.LogFilterPriorityF = this.priorityFilterButtons[Log.PriorityCode.F].Checked;
-            Properties.Settings.Default.LogFilterPriorityE = this.priorityFilterButtons[Log.PriorityCode.E].Checked;
-            Properties.Settings.Default.LogFilterPriorityW = this.priorityFilterButtons[Log.PriorityCode.W].Checked;
-            Properties.Settings.Default.LogFilterPriorityI = this.priorityFilterButtons[Log.PriorityCode.I].Checked;
-            Properties.Settings.Default.LogFilterPriorityD = this.priorityFilterButtons[Log.PriorityCode.D].Checked;
-            Properties.Settings.Default.LogFilterPriorityV = this.priorityFilterButtons[Log.PriorityCode.V].Checked;
+            this.SaveSettings();
         }
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
@@ -322,51 +318,7 @@ namespace Suconbu.Sumacon
         {
             this.filterSettingChangedTimeoutId = Delay.SetTimeout(() =>
             {
-                foreach (var pair in this.priorityFilterButtons)
-                {
-                    this.filterSetting.EnabledByPriority[pair.Key] = pair.Value.Checked;
-                }
-
-                if (this.IsValidFilter(this.uxPidFilterTextBox.Text))
-                {
-                    this.filterSetting.Filters[FilterSetting.FilterField.Pid] = this.uxPidFilterTextBox.Text;
-                }
-                if (this.IsValidFilter(this.uxTidFilterTextBox.Text))
-                {
-                    this.filterSetting.Filters[FilterSetting.FilterField.Tid] = this.uxTidFilterTextBox.Text;
-                }
-                if (this.IsValidFilter(this.uxTagFilterTextBox.Text))
-                {
-                    this.filterSetting.Filters[FilterSetting.FilterField.Tag] = this.uxTagFilterTextBox.Text;
-                }
-                if (this.IsValidFilter(this.uxMessageFilterTextBox.Text))
-                {
-                    this.filterSetting.Filters[FilterSetting.FilterField.Message] = this.uxMessageFilterTextBox.Text;
-                }
-
-                foreach (FilterSetting.FilterField field in Enum.GetValues(typeof(FilterSetting.FilterField)))
-                {
-                    // 先頭に'-'がついていたら除外フィルタ
-                    this.filterSetting.FilterInverteds[field] = this.filterSetting.Filters[field].StartsWith("-");
-                    if(this.filterSetting.FilterInverteds[field])
-                    {
-                        this.filterSetting.Filters[field] = this.filterSetting.Filters[field].Substring(1);
-                    }
-                    else
-                    {
-                        this.filterSetting.Filters[field] = this.filterSetting.Filters[field].TrimStart();
-                    }
-                }
-
-                this.logCache.Clear();
-                this.filteredLogs = (this.logContext != null && this.filterSetting.IsFilterEnabled()) ?
-                    this.GetFilteredLogs(this.logContext.GetRange()).ToList() :
-                    null;
-                // いったん0にしてから設定すると速い
-                this.uxLogGridPanel.RowCount = 0;
-                this.uxLogGridPanel.RowCount = this.GetLogCount();
-
-                this.UpdateControlState();
+                this.ApplyFilterSetting();
             }, this.filterSettingChangedDelayMilliseconds, this, this.filterSettingChangedTimeoutId, true);
         }
 
@@ -406,6 +358,55 @@ namespace Suconbu.Sumacon
             {
                 return false;
             }
+        }
+
+        void ApplyFilterSetting()
+        {
+            foreach (var pair in this.priorityFilterButtons)
+            {
+                this.filterSetting.EnabledByPriority[pair.Key] = pair.Value.Checked;
+            }
+
+            if (this.IsValidFilter(this.uxPidFilterTextBox.Text))
+            {
+                this.filterSetting.Filters[FilterSetting.FilterField.Pid] = this.uxPidFilterTextBox.Text;
+            }
+            if (this.IsValidFilter(this.uxTidFilterTextBox.Text))
+            {
+                this.filterSetting.Filters[FilterSetting.FilterField.Tid] = this.uxTidFilterTextBox.Text;
+            }
+            if (this.IsValidFilter(this.uxTagFilterTextBox.Text))
+            {
+                this.filterSetting.Filters[FilterSetting.FilterField.Tag] = this.uxTagFilterTextBox.Text;
+            }
+            if (this.IsValidFilter(this.uxMessageFilterTextBox.Text))
+            {
+                this.filterSetting.Filters[FilterSetting.FilterField.Message] = this.uxMessageFilterTextBox.Text;
+            }
+
+            foreach (FilterSetting.FilterField field in Enum.GetValues(typeof(FilterSetting.FilterField)))
+            {
+                // 先頭に'-'がついていたら除外フィルタ
+                this.filterSetting.FilterInverteds[field] = this.filterSetting.Filters[field].StartsWith("-");
+                if (this.filterSetting.FilterInverteds[field])
+                {
+                    this.filterSetting.Filters[field] = this.filterSetting.Filters[field].Substring(1);
+                }
+                else
+                {
+                    this.filterSetting.Filters[field] = this.filterSetting.Filters[field].TrimStart();
+                }
+            }
+
+            this.logCache.Clear();
+            this.filteredLogs = this.filterSetting.IsFilterEnabled() ?
+                this.GetFilteredLogs((this.logContext?.GetRange()).OrEmptyIfNull()).ToList() :
+                null;
+            // いったん0にしてから設定すると速い
+            this.uxLogGridPanel.RowCount = 0;
+            this.uxLogGridPanel.RowCount = this.GetLogCount();
+
+            this.UpdateControlState();
         }
 
         IEnumerable<Log> GetFilteredLogs(IEnumerable<Log> input)
@@ -451,6 +452,8 @@ namespace Suconbu.Sumacon
                 this.logContext = LogContext.Open(device, this.logSetting);
                 this.logContext.Received += this.OnLogReceived;
             }
+            this.FilterSettingChanged(this, EventArgs.Empty);
+
             this.UpdateControlState();
         }
 
@@ -518,20 +521,6 @@ namespace Suconbu.Sumacon
             return logs;
         }
 
-        //List<uint> GetSelectedLogNos()
-        //{
-        //    var logNos = new List<uint>();
-        //    foreach (DataGridViewRow row in this.uxLogGridPanel.SelectedRows)
-        //    {
-        //        var log = this.GetLog(row.Index);
-        //        if (log != null)
-        //        {
-        //            logNos.Add(log.No);
-        //        }
-        //    }
-        //    return logNos.OrderBy(no => no).ToList();
-        //}
-
         void ToggleBookmark(Log log)
         {
             if (log == null) return;
@@ -545,11 +534,6 @@ namespace Suconbu.Sumacon
             {
                 this.uxLogGridPanel.InvalidateRow(index);
             }
-
-            //if (!this.markedListOperated)
-            //{
-            //    this.uxMarkedListButton.Checked = true;
-            //}
         }
 
         void JumpPrevBookmark()
@@ -580,7 +564,6 @@ namespace Suconbu.Sumacon
                     break;
                 }
             }
-            //this.ViewLog(-1);
         }
 
         void ClearBookmark()
@@ -594,15 +577,10 @@ namespace Suconbu.Sumacon
                 }
             }
             this.bookmarkedLogs.Clear();
-            //this.bookmarkedLogIndices.Clear();
         }
 
         void SetDisplayedLog(Log log)
         {
-            //if(index < 0)
-            //{
-            //    index = this.uxLogGridPanel.RowCount + index;
-            //}
             var index = this.GetLogIndex(log);
             if (index < 0) return;
             this.uxLogGridPanel.CenterDisplayedRowIndex = index;
@@ -621,18 +599,6 @@ namespace Suconbu.Sumacon
             {
                 text.Clear();
             }
-        }
-
-        void ApplySettings()
-        {
-            this.priorityFilterButtons[Log.PriorityCode.F].Checked = Properties.Settings.Default.LogFilterPriorityF;
-            this.priorityFilterButtons[Log.PriorityCode.E].Checked = Properties.Settings.Default.LogFilterPriorityE;
-            this.priorityFilterButtons[Log.PriorityCode.W].Checked = Properties.Settings.Default.LogFilterPriorityW;
-            this.priorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
-            this.priorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
-            this.priorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
-
-            this.UpdateControlState();
         }
 
         void UpdateControlState()
@@ -661,6 +627,26 @@ namespace Suconbu.Sumacon
             {
                 this.uxSelectedInfoLabel.Text = string.Empty;
             }
+        }
+
+        void LoadSettings()
+        {
+            this.priorityFilterButtons[Log.PriorityCode.F].Checked = Properties.Settings.Default.LogFilterPriorityF;
+            this.priorityFilterButtons[Log.PriorityCode.E].Checked = Properties.Settings.Default.LogFilterPriorityE;
+            this.priorityFilterButtons[Log.PriorityCode.W].Checked = Properties.Settings.Default.LogFilterPriorityW;
+            this.priorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
+            this.priorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
+            this.priorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
+        }
+
+        void SaveSettings()
+        {
+            Properties.Settings.Default.LogFilterPriorityF = this.priorityFilterButtons[Log.PriorityCode.F].Checked;
+            Properties.Settings.Default.LogFilterPriorityE = this.priorityFilterButtons[Log.PriorityCode.E].Checked;
+            Properties.Settings.Default.LogFilterPriorityW = this.priorityFilterButtons[Log.PriorityCode.W].Checked;
+            Properties.Settings.Default.LogFilterPriorityI = this.priorityFilterButtons[Log.PriorityCode.I].Checked;
+            Properties.Settings.Default.LogFilterPriorityD = this.priorityFilterButtons[Log.PriorityCode.D].Checked;
+            Properties.Settings.Default.LogFilterPriorityV = this.priorityFilterButtons[Log.PriorityCode.V].Checked;
         }
     }
 }
