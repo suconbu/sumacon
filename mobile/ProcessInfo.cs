@@ -1,6 +1,8 @@
 ﻿using Suconbu.Toolbox;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -43,18 +45,29 @@ namespace Suconbu.Mobile
 
         PsEntry psEntry;
         Dictionary<int, ThreadInfo> threadInfoByTid = new Dictionary<int, ThreadInfo>();
+        static ConcurrentDictionary<Device, bool> oldStyleByDevice = new ConcurrentDictionary<Device, bool>();
 
         public static CommandContext GetAsync(Device device, Action<ProcessInfoCollection> onFinished)
         {
             var processInfoByPid = new Dictionary<int, ProcessInfo>();
             ProcessInfo currentProcess = null;
             string state = "header"; // header -> process -> thread -> process -> ...
+
+            var oldStyle = oldStyleByDevice.GetOrAdd(device, d =>
+            {
+                bool result = false;
+                // 新形式「ps: 0」旧形式「bad pid '0'」
+                device.RunCommandOutputTextAsync("shell ps 0", output => result = output.StartsWith("bad")).Wait();
+                return result;
+            });
+
             string command = "shell ps -eTwO PRI,NAME";
-            if (1 <= device.ApiLevel && device.ApiLevel < 26)
+            if (oldStyle)
             {
                 // 旧形式
                 command = "shell ps -p -t";
             }
+
             string[] columnNames = null;
             return device.RunCommandAsync(command, output =>
             {
@@ -101,7 +114,7 @@ namespace Suconbu.Mobile
                 }
                 if (state == "header")
                 {
-                    if (device.ApiLevel < 26)
+                    if (oldStyle)
                     {
                         output = output.Replace("PC  NAME", "PC S NAME");
                     }

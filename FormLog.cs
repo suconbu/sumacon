@@ -136,19 +136,23 @@ namespace Suconbu.Sumacon
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
-            this.SafeInvoke(() =>
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
             {
-                var device = this.sumacon.DeviceManager.ActiveDevice;
-                if (device != null)
+                device.InvokeIfProcessInfosIsReady(() => this.SafeInvoke(() =>
                 {
-                    device.InvokeIfProperyIsReady(() => this.SafeInvoke(() => this.OpenLogContext(device)));
-                }
-                else
+                    this.OpenLogContext(device);
+                    this.UpdateControlState();
+                }));
+            }
+            else
+            {
+                this.SafeInvoke(() =>
                 {
                     this.CloseLogContext();
-                }
-                this.UpdateControlState();
-            });
+                    this.UpdateControlState();
+                });
+            }
         }
 
         void SetupToolStrip()

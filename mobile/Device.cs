@@ -3,6 +3,7 @@ using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
@@ -129,8 +130,6 @@ namespace Suconbu.Mobile
         public bool ObserveActivated { get; private set; }
         [Browsable(false)]
         public ProcessInfoCollection ProcessInfos { get; private set; }
-        [Browsable(false)]
-        public bool PropertyIsReady { get; private set; }
 
         DeviceData deviceData;
         int observeIntervalMilliseconds;
@@ -138,7 +137,8 @@ namespace Suconbu.Mobile
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;
         Dictionary<string, DeviceComponent> componentsByCategory = new Dictionary<string, DeviceComponent>();
-        List<Action> propertyIsReadyChanged = new List<Action>();
+        Dictionary<string, List<Action>> propertyReadyChanged = new Dictionary<string, List<Action>>();
+        Dictionary<string, bool> propertyIsReady = new Dictionary<string, bool>();
 
         public Device(string id)
         {
@@ -153,6 +153,10 @@ namespace Suconbu.Mobile
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
+
+            this.propertyIsReady[nameof(this.ProcessInfos)] = false;
+            this.propertyIsReady[nameof(this.Components)] = false;
+
             this.UpdatePropertiesAsync();
             //ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
         }
@@ -164,6 +168,7 @@ namespace Suconbu.Mobile
 
         public void StartObserve(int intervalMilliseconds, bool imidiate = true)
         {
+            imidiate = false;//debug
             this.observeIntervalMilliseconds = intervalMilliseconds;
             if (this.ObserveActivated)
             {
@@ -182,6 +187,12 @@ namespace Suconbu.Mobile
         public CommandContext UpdatePropertiesAsync(Action onFinished = null)
         {
             var contexts = new List<CommandContext>();
+
+            contexts.Add(ProcessInfo.GetAsync(this, p =>
+            {
+                this.ProcessInfos = p;
+                this.InvokeReadyHandlers(nameof(this.ProcessInfos));
+            }));
             foreach (var component in this.Components)
             {
                 contexts.Add(component.PullAsync());
@@ -189,23 +200,19 @@ namespace Suconbu.Mobile
             return CommandContext.StartNew(() =>
             {
                 contexts.ForEach(c => c.Wait());
-                ProcessInfo.GetAsync(this, p => this.ProcessInfos = p).Wait();
+                this.InvokeReadyHandlers(nameof(this.Components));
                 onFinished?.Invoke();
             });
         }
 
-        public void InvokeIfProperyIsReady(Action onReady)
+        public void InvokeIfProcessInfosIsReady(Action onReady)
         {
-            lock (this.propertyIsReadyChanged)
-            {
-                if (!this.PropertyIsReady)
-                {
-                    // 準備できたら呼ぶ
-                    this.propertyIsReadyChanged.Add(onReady);
-                    onReady = null;
-                }
-            }
-            onReady?.Invoke();
+            this.PushReadyHandler(nameof(this.ProcessInfos), onReady);
+        }
+
+        public void InvokeIfComponentsIsReady(Action onReady)
+        {
+            this.PushReadyHandler(nameof(this.Components), onReady);
         }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
@@ -243,25 +250,48 @@ namespace Suconbu.Mobile
         {
             this.UpdatePropertiesAsync(() =>
             {
-                if( !this.PropertyIsReady)
-                {
-                    Action[] actions = null;
-                    lock (this.propertyIsReadyChanged)
-                    {
-                        this.PropertyIsReady = true;
-                        actions = this.propertyIsReadyChanged.ToArray();
-                        this.propertyIsReadyChanged.Clear();
-                    }
-                    foreach(var action in actions.OrEmptyIfNull())
-                    {
-                        action();
-                    }
-                }
                 if (this.ObserveActivated)
                 {
                     this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
                 }
             });
+        }
+
+        void PushReadyHandler(string propertyName, Action onReady)
+        {
+            lock (this.propertyReadyChanged)
+            {
+                if (!this.propertyReadyChanged.TryGetValue(propertyName, out var handlers))
+                {
+                    handlers = new List<Action>();
+                    this.propertyReadyChanged[propertyName] = handlers;
+                }
+                if (!this.propertyIsReady[propertyName])
+                {
+                    // まだ準備中なので整ってから呼ぶ
+                    handlers.Add(onReady);
+                    onReady = null;
+                }
+            }
+            onReady?.Invoke();
+        }
+
+        void InvokeReadyHandlers(string propertyName)
+        {
+            if (!this.propertyIsReady[propertyName])
+            {
+                List<Action> copiedHandlers = new List<Action>();
+                lock (this.propertyReadyChanged)
+                {
+                    this.propertyIsReady[propertyName] = true;
+                    if (this.propertyReadyChanged.TryGetValue(propertyName, out var handlers))
+                    {
+                        copiedHandlers.AddRange(handlers);
+                        handlers.Clear();
+                    }
+                }
+                copiedHandlers.ForEach(handler => handler());
+            }
         }
 
         #region IDisposable Support
