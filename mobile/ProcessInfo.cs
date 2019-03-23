@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -12,7 +13,7 @@ namespace Suconbu.Mobile
 {
     public class ProcessInfoCollection
     {
-        public IEnumerable<ProcessInfo> processInfos { get { return this.processInfoByPid.Values; } }
+        public IEnumerable<ProcessInfo> ProcessInfos { get { return this.processInfoByPid.Values; } }
         public ProcessInfo this[int pid] { get { return this.processInfoByPid.TryGetValue(pid, out var p) ? p : null; } }
 
         Dictionary<int, ProcessInfo> processInfoByPid = new Dictionary<int, ProcessInfo>();
@@ -87,6 +88,7 @@ namespace Suconbu.Mobile
                 {
                     var tid = psEntry.Tid;
                     var pid = psEntry.Pid;
+                    var priority = psEntry.Priority;
                     var name = psEntry.ThreadName;
                     if (tid == 0)
                     {
@@ -98,7 +100,7 @@ namespace Suconbu.Mobile
 
                     if (pid == currentProcess.Pid)
                     {
-                        var threadInfo = new ThreadInfo(tid, pid, name, currentProcess);
+                        var threadInfo = new ThreadInfo(tid, priority, name, currentProcess);
                         currentProcess.threadInfoByTid.Add(tid, threadInfo);
                     }
                     else

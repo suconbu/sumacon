@@ -25,6 +25,8 @@ namespace Suconbu.Mobile
         [Flags]
         public enum UpdatableProperties { Component = 0x1, ProcessInfo = 0x2 }
 
+        public event EventHandler ProcessInfosChanged = delegate { };
+
         // e.g. HXC8KSKL24PZB
         [Category(ComponentCategory.System)]
         public string Serial { get { return this.deviceData.Serial; } }
@@ -178,6 +180,7 @@ namespace Suconbu.Mobile
                 {
                     this.ProcessInfos = p;
                     this.InvokeReadyHandlers(UpdatableProperties.ProcessInfo);
+                    this.ProcessInfosChanged(this, EventArgs.Empty);
                 }));
             }
 

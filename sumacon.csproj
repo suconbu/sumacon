@@ -62,6 +62,12 @@
     <Compile Include="FormLog.Designer.cs">
       <DependentUpon>FormLog.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormPerformance.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormPerformance.Designer.cs">
+      <DependentUpon>FormPerformance.cs</DependentUpon>
+    </Compile>
     <Compile Include="mobile\LogContext.cs" />
     <Compile Include="mobile\ProcessInfo.cs" />
     <Compile Include="RecordContext.cs" />
@@ -132,6 +138,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormLog.resx">
       <DependentUpon>FormLog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormPerformance.resx">
+      <DependentUpon>FormPerformance.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormRecord.resx">
       <DependentUpon>FormRecord.cs</DependentUpon>
