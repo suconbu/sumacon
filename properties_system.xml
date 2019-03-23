@@ -12,13 +12,4 @@
   <property name="ApiLevel" type="Integer" pattern="ro.build.version.sdk\]: \[(\d+)\]"/>
   <property name="OpenGLES" type="Integer" pattern="ro.opengles.version\]: \[(\d+)\]"/>
   <property name="TimeZone" type="String" pattern="persist.sys.timezone\]: \[(.+)\]"/>
-  <property name="AirplaneMode" type="Bool"
-  	pull="shell settings get global airplane_mode_on" pattern="(\d)"
-  	push="shell settings put global airplane_mode_on {0}"/>
-  <property name="ShowTouches" type="Bool"
-  	pull="shell settings get system show_touches" pattern="(\d)"
-  	push="shell settings put system show_touches {0}"/>
-  <property name="FontScale" type="Float"
-  	pull="shell settings get system font_scale" pattern="(\S+)"
-  	push="shell settings put system font_scale {0}"/>
 </root>

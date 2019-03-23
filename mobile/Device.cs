@@ -15,8 +15,9 @@ namespace Suconbu.Mobile
         public struct ComponentCategory
         {
             public const string System = "01.System";
-            public const string Battery = "02.Battery";
-            public const string Screen = "03.Screen";
+            public const string Setting = "02.Setting";
+            public const string Battery = "03.Battery";
+            public const string Screen = "04.Screen";
         }
 
         public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
@@ -65,12 +66,13 @@ namespace Suconbu.Mobile
         // e.g. Asia/Tokyo
         [Category(ComponentCategory.System)]
         public string TimeZone { get { return (string)this.system[nameof(this.TimeZone)].Value; } }
-        [Category(ComponentCategory.System)]
-        public bool AirplaneMode { get { return (bool)this.system[nameof(this.AirplaneMode)].Value; } set { this.system.SetAndPushValue(nameof(this.AirplaneMode), value); } }
-        [Category(ComponentCategory.System)]
-        public bool ShowTouches { get { return (bool)this.system[nameof(this.ShowTouches)].Value; } set { this.system.SetAndPushValue(nameof(this.ShowTouches), value); } }
-        [Category(ComponentCategory.System)]
-        public float FontScale { get { return (float)this.system[nameof(this.FontScale)].Value; } set { this.system.SetAndPushValue(nameof(this.FontScale), value); } }
+
+        [Category(ComponentCategory.Setting)]
+        public bool AirplaneMode { get { return (bool)this.setting[nameof(this.AirplaneMode)].Value; } set { this.setting.SetAndPushValue(nameof(this.AirplaneMode), value); } }
+        [Category(ComponentCategory.Setting)]
+        public bool ShowTouches { get { return (bool)this.setting[nameof(this.ShowTouches)].Value; } set { this.setting.SetAndPushValue(nameof(this.ShowTouches), value); } }
+        [Category(ComponentCategory.Setting)]
+        public float FontScale { get { return (float)this.setting[nameof(this.FontScale)].Value; } set { this.setting.SetAndPushValue(nameof(this.FontScale), value); } }
 
         [Category(ComponentCategory.Battery)]
         public bool ACPowered { get { return this.Battery.ACPowered; } set { this.Battery.ACPowered = value; } }
@@ -136,6 +138,7 @@ namespace Suconbu.Mobile
         string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;
+        DeviceComponent setting;
         Dictionary<string, DeviceComponent> componentsByCategory = new Dictionary<string, DeviceComponent>();
         Dictionary<string, List<Action>> propertyReadyChanged = new Dictionary<string, List<Action>>();
         Dictionary<string, bool> propertyIsReady = new Dictionary<string, bool>();
@@ -145,6 +148,8 @@ namespace Suconbu.Mobile
             this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
             this.system = new DeviceComponent(this, "properties_system.xml");
             this.componentsByCategory.Add(ComponentCategory.System, this.system);
+            this.setting = new DeviceComponent(this, "properties_setting.xml");
+            this.componentsByCategory.Add(ComponentCategory.Setting, this.setting);
             this.Battery = new Battery(this, "properties_battery.xml");
             this.componentsByCategory.Add(ComponentCategory.Battery, this.Battery);
             this.Screen = new Screen(this, "properties_screen.xml");
