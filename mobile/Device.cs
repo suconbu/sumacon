@@ -22,6 +22,8 @@ namespace Suconbu.Mobile
 
         public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
         public enum HealthCode { Unknown = 1, Good = 2, OverHeat = 3, Dead = 4, OverVoltage = 5, UnspecifiedFailrue, Cold = 7 }
+        [Flags]
+        public enum UpdatableProperties { Component = 0x1, ProcessInfo = 0x2 }
 
         // e.g. HXC8KSKL24PZB
         [Category(ComponentCategory.System)]
@@ -129,19 +131,15 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public Screen Screen { get; private set; }
         [Browsable(false)]
-        public bool ObserveActivated { get; private set; }
-        [Browsable(false)]
         public ProcessInfoCollection ProcessInfos { get; private set; }
 
         DeviceData deviceData;
-        int observeIntervalMilliseconds;
-        string timeoutId;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;
         DeviceComponent setting;
         Dictionary<string, DeviceComponent> componentsByCategory = new Dictionary<string, DeviceComponent>();
-        Dictionary<string, List<Action>> propertyReadyChanged = new Dictionary<string, List<Action>>();
-        Dictionary<string, bool> propertyIsReady = new Dictionary<string, bool>();
+        Dictionary<UpdatableProperties, List<Action>> propertyReadyChanged = new Dictionary<UpdatableProperties, List<Action>>();
+        Dictionary<UpdatableProperties, bool> propertyIsReady = new Dictionary<UpdatableProperties, bool>();
 
         public Device(string id)
         {
@@ -159,11 +157,10 @@ namespace Suconbu.Mobile
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
 
-            this.propertyIsReady[nameof(this.ProcessInfos)] = false;
-            this.propertyIsReady[nameof(this.Components)] = false;
+            this.propertyIsReady[UpdatableProperties.Component] = false;
+            this.propertyIsReady[UpdatableProperties.ProcessInfo] = false;
 
-            this.UpdatePropertiesAsync();
-            //ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
+            this.UpdatePropertiesAsync(UpdatableProperties.Component | UpdatableProperties.ProcessInfo);
         }
 
         public DeviceComponent GetComponent(string category)
@@ -171,53 +168,46 @@ namespace Suconbu.Mobile
             return this.componentsByCategory[category];
         }
 
-        public void StartObserve(int intervalMilliseconds, bool imidiate = true)
-        {
-            imidiate = false;//debug
-            this.observeIntervalMilliseconds = intervalMilliseconds;
-            if (this.ObserveActivated)
-            {
-                this.StopObserve();
-            }
-            this.ObserveActivated = true;
-            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, imidiate ? 1 : this.observeIntervalMilliseconds);
-        }
-
-        public void StopObserve()
-        {
-            this.ObserveActivated = false;
-            Delay.ClearTimeout(this.timeoutId);
-        }
-
-        public CommandContext UpdatePropertiesAsync(Action onFinished = null)
+        public CommandContext UpdatePropertiesAsync(UpdatableProperties properties, Action onFinished = null)
         {
             var contexts = new List<CommandContext>();
 
-            contexts.Add(ProcessInfo.GetAsync(this, p =>
+            if (properties.HasFlag(UpdatableProperties.ProcessInfo))
             {
-                this.ProcessInfos = p;
-                this.InvokeReadyHandlers(nameof(this.ProcessInfos));
-            }));
-            foreach (var component in this.Components)
-            {
-                contexts.Add(component.PullAsync());
+                contexts.Add(ProcessInfo.GetAsync(this, p =>
+                {
+                    this.ProcessInfos = p;
+                    this.InvokeReadyHandlers(UpdatableProperties.ProcessInfo);
+                }));
             }
+
+            if (properties.HasFlag(UpdatableProperties.Component))
+            {
+                foreach (var component in this.Components)
+                {
+                    contexts.Add(component.PullAsync());
+                }
+            }
+
             return CommandContext.StartNew(() =>
             {
                 contexts.ForEach(c => c.Wait());
-                this.InvokeReadyHandlers(nameof(this.Components));
+                if (properties.HasFlag(UpdatableProperties.Component))
+                {
+                    this.InvokeReadyHandlers(UpdatableProperties.Component);
+                }
                 onFinished?.Invoke();
             });
         }
 
         public void InvokeIfProcessInfosIsReady(Action onReady)
         {
-            this.PushReadyHandler(nameof(this.ProcessInfos), onReady);
+            this.PushReadyHandler(UpdatableProperties.ProcessInfo, onReady);
         }
 
         public void InvokeIfComponentsIsReady(Action onReady)
         {
-            this.PushReadyHandler(nameof(this.Components), onReady);
+            this.PushReadyHandler(UpdatableProperties.Component, onReady);
         }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
@@ -251,27 +241,16 @@ namespace Suconbu.Mobile
             return format.Replace(replacer);
         }
 
-        void TimerElapsed()
-        {
-            this.UpdatePropertiesAsync(() =>
-            {
-                if (this.ObserveActivated)
-                {
-                    this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
-                }
-            });
-        }
-
-        void PushReadyHandler(string propertyName, Action onReady)
+        void PushReadyHandler(UpdatableProperties updatableProperty, Action onReady)
         {
             lock (this.propertyReadyChanged)
             {
-                if (!this.propertyReadyChanged.TryGetValue(propertyName, out var handlers))
+                if (!this.propertyReadyChanged.TryGetValue(updatableProperty, out var handlers))
                 {
                     handlers = new List<Action>();
-                    this.propertyReadyChanged[propertyName] = handlers;
+                    this.propertyReadyChanged[updatableProperty] = handlers;
                 }
-                if (!this.propertyIsReady[propertyName])
+                if (!this.propertyIsReady[updatableProperty])
                 {
                     // まだ準備中なので整ってから呼ぶ
                     handlers.Add(onReady);
@@ -281,15 +260,15 @@ namespace Suconbu.Mobile
             onReady?.Invoke();
         }
 
-        void InvokeReadyHandlers(string propertyName)
+        void InvokeReadyHandlers(UpdatableProperties updatableProperty)
         {
-            if (!this.propertyIsReady[propertyName])
+            if (!this.propertyIsReady[updatableProperty])
             {
                 List<Action> copiedHandlers = new List<Action>();
                 lock (this.propertyReadyChanged)
                 {
-                    this.propertyIsReady[propertyName] = true;
-                    if (this.propertyReadyChanged.TryGetValue(propertyName, out var handlers))
+                    this.propertyIsReady[updatableProperty] = true;
+                    if (this.propertyReadyChanged.TryGetValue(updatableProperty, out var handlers))
                     {
                         copiedHandlers.AddRange(handlers);
                         handlers.Clear();

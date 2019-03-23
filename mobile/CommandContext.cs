@@ -113,7 +113,6 @@ namespace Suconbu.Toolbox
                     this.finished = true;
                     Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Finished {sw.ElapsedMilliseconds}ms");
                     onFinished?.Invoke(outputBuffer.ToString());
-                    Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Invoked {sw.ElapsedMilliseconds}ms");
                     sw = null;
                 }
             };

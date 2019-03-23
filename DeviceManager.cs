@@ -25,17 +25,21 @@ namespace Suconbu.Sumacon
             set { this.ChangeActiveDevice(value); }
         }
         public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices; } }
-        public int ObserveIntervalMilliseconds { get; set; } = 30 * 1000;
 
         Device activeDevice;
         List<Device> connectedDevices = new List<Device>();
         DeviceDetector detector = new DeviceDetector();
         Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
+        Dictionary<Device, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<Device, Dictionary<Device.UpdatableProperties, string>>();
+        readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
 
         public DeviceManager()
         {
             this.detector.Connected += this.Detector_Connected;
             this.detector.Disconnected += this.Detector_Disconnected;
+
+            this.intervalMilliseconds[Device.UpdatableProperties.Component] = 30 * 1000;
+            this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 10 * 1000;
         }
 
         public void StartDeviceDetection()
@@ -48,24 +52,34 @@ namespace Suconbu.Sumacon
             this.detector.Stop();
         }
 
-        public void SuspendObserve(Device device)
+        /// <summary>
+        /// デバイスからの定期的な情報取得を一時的に停止します。
+        /// 再開するには ResumePropertyUpdate を呼び出します。
+        /// </summary>
+        public void SuspendPropertyUpdate(Device device)
         {
             if (device == null) return;
-            int count = this.susupendRequestedCount[device.Serial]++;
-            if (count == 0)
+            Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {device.Serial} count:{this.susupendRequestedCount[device.Serial]}->{this.susupendRequestedCount[device.Serial] + 1}");
+            lock (this.susupendRequestedCount)
             {
-                device.StartObserve(int.MaxValue);
+                Debug.Assert(this.susupendRequestedCount[device.Serial] >= 0);
+                this.susupendRequestedCount[device.Serial]++;
             }
         }
 
-        public void ResumeObserve(Device device)
+        /// <summary>
+        /// デバイスからの定期的な情報取得を再開します。
+        /// </summary>
+        public void ResumePropertyUpdate(Device device)
         {
             if (device == null) return;
-            int count = --this.susupendRequestedCount[device.Serial];
-            if(count <= 0 && device == this.activeDevice && device.ObserveActivated)
+            Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {device.Serial} count:{this.susupendRequestedCount[device.Serial]}->{this.susupendRequestedCount[device.Serial] - 1}");
+            lock (this.susupendRequestedCount)
             {
-                device.StartObserve(this.ObserveIntervalMilliseconds);
-                this.susupendRequestedCount[device.Serial] = 0;
+                if (this.susupendRequestedCount[device.Serial] > 0)
+                {
+                    this.susupendRequestedCount[device.Serial]--;
+                }
             }
         }
 
@@ -78,14 +92,20 @@ namespace Suconbu.Sumacon
             {
                 component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
             }
-            previousDevice?.StopObserve();
+            if(previousDevice != null)
+            {
+                this.StopPropertyUpdate(previousDevice);
+            }
 
             this.activeDevice = nextActiveDevice;
             foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
             {
                 component.PropertyChanged += this.DeviceComponent_PropertyChanged;
             }
-            activeDevice?.StartObserve(this.ObserveIntervalMilliseconds);
+            if (this.activeDevice != null)
+            {
+                this.StartPropertyUpdate(this.activeDevice);
+            }
 
             this.ActiveDeviceChanged(this, previousDevice);
         }
@@ -128,6 +148,33 @@ namespace Suconbu.Sumacon
             foreach (var p in properties) Trace.TraceInformation($"- {p.ToString()}");
 
             this.PropertyChanged(sender, properties);
+        }
+
+        void StartPropertyUpdate(Device device)
+        {
+            this.susupendRequestedCount[device.Serial] = 0;
+
+            this.intervalIds[device] = new Dictionary<Device.UpdatableProperties, string>();
+            foreach (Device.UpdatableProperties updatableProperty in Enum.GetValues(typeof(Device.UpdatableProperties)))
+            {
+                device.UpdatePropertiesAsync(updatableProperty);
+                this.intervalIds[device][updatableProperty] = Delay.SetInterval(() =>
+                {
+                    if (this.susupendRequestedCount[device.Serial] == 0)
+                    {
+                        device.UpdatePropertiesAsync(updatableProperty);
+                    }
+                }, this.intervalMilliseconds[updatableProperty]);
+            }
+        }
+
+        void StopPropertyUpdate(Device device)
+        {
+            foreach (Device.UpdatableProperties updatableProperty in Enum.GetValues(typeof(Device.UpdatableProperties)))
+            {
+                Delay.ClearInterval(this.intervalIds[device][updatableProperty]);
+            }
+            this.intervalIds.Remove(device);
         }
 
         #region IDisposable Support

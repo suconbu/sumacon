@@ -290,11 +290,10 @@ namespace Suconbu.Sumacon
                     this.SafeInvoke(() => this.OnRecordContextStateChanged(state));
                 });
                 this.elapsedTimeRedrawTimer.Start();
-                this.sumacon.DeviceManager.SuspendObserve(device);
+                this.sumacon.DeviceManager.SuspendPropertyUpdate(device);
             }
             else
             {
-                this.sumacon.DeviceManager.ResumeObserve(this.recordContext.Device);
                 this.elapsedTimeRedrawTimer.Stop();
                 this.recordContext.Stop();
             }
@@ -348,12 +347,12 @@ namespace Suconbu.Sumacon
             }
             else if (state == RecordContext.RecordState.Aborted)
             {
-                this.sumacon.DeviceManager.ResumeObserve(this.recordContext?.Device);
+                this.sumacon.DeviceManager.ResumePropertyUpdate(this.recordContext?.Device);
                 this.recordContext = null;
             }
             else if (state == RecordContext.RecordState.Finished)
             {
-                this.sumacon.DeviceManager.ResumeObserve(this.recordContext.Device);
+                this.sumacon.DeviceManager.ResumePropertyUpdate(this.recordContext.Device);
 
                 this.fileInfos.Add(new FileInfo(this.recordContext.FilePath));
 

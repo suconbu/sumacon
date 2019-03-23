@@ -406,12 +406,11 @@ namespace Suconbu.Sumacon
                 {
                     this.captureContext = CaptureContext.StartSingleCapture(device, this.OnCaptured, this.OnFinished);
                 }
-                this.sumacon.DeviceManager.SuspendObserve(device);
+                this.sumacon.DeviceManager.SuspendPropertyUpdate(device);
             }
             else
             {
                 // 連続撮影中止
-                this.sumacon.DeviceManager.ResumeObserve(this.captureContext.Device);
                 this.captureContext.Stop();
             }
 
@@ -458,7 +457,7 @@ namespace Suconbu.Sumacon
             this.captureContext = null;
             this.SafeInvoke(() =>
             {
-                this.sumacon.DeviceManager.ResumeObserve(device);
+                this.sumacon.DeviceManager.ResumePropertyUpdate(device);
                 this.UpdateControlState();
             });
         }
