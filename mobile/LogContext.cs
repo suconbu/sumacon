@@ -205,7 +205,7 @@ namespace Suconbu.Mobile
             //                                priority
             var yyyy = DateTime.Now.Year.ToString("0000");
             var time = $"{yyyy}-{input.Substring(0, timestampLength)}";
-            var match = Regex.Match(input.Substring(timestampLength), @"(\d+)\s+(\d+)\s+([A-Z])\s+([^:]+)\s*:(.+)");
+            var match = Regex.Match(input.Substring(timestampLength), @"(\d+)\s+(\d+)\s+([A-Z])\s+([^:]+)\s*: (.+)");
             if (!match.Success) return null;
             try
             {
