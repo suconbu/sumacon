@@ -51,9 +51,9 @@ namespace Suconbu.Sumacon
             new DataGridViewColumn() { Name = LogColumnNames.No, HeaderText = "No", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
             new DataGridViewColumn() { Name = LogColumnNames.Timestamp, HeaderText = "Timestamp", Width = 120, CellTemplate = new DataGridViewTextBoxCell() },
             new DataGridViewColumn() { Name = LogColumnNames.Priority, HeaderText = "Priority", Width = 20, CellTemplate = new DataGridViewTextBoxCell() },
-            new DataGridViewColumn() { Name = LogColumnNames.Pid, HeaderText = "PID", Width = 120, CellTemplate = new DataGridViewTextBoxCell() },
-            new DataGridViewColumn() { Name = LogColumnNames.Tid, HeaderText = "TID", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
-            new DataGridViewColumn() { Name = LogColumnNames.Tag, HeaderText = "Tag", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Pid, HeaderText = "PID", Width = 100, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Tid, HeaderText = "TID", Width = 100, CellTemplate = new DataGridViewTextBoxCell() },
+            new DataGridViewColumn() { Name = LogColumnNames.Tag, HeaderText = "Tag", Width = 100, CellTemplate = new DataGridViewTextBoxCell() },
             new DataGridViewColumn() { Name = LogColumnNames.Message, HeaderText = "Message", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
         };
 
