@@ -56,18 +56,6 @@
     <Setting Name="DeviceTemporaryDirectoryPath" Type="System.String" Scope="Application">
       <Value Profile="(Default)">/sdcard</Value>
     </Setting>
-    <Setting Name="LogFilterPid" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="LogFilterTid" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="LogFilterTag" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="LogFilterMessage" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
     <Setting Name="LogFilterPriorityF" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>

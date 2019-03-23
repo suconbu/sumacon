@@ -235,54 +235,6 @@ namespace Suconbu.Sumacon.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LogFilterPid {
-            get {
-                return ((string)(this["LogFilterPid"]));
-            }
-            set {
-                this["LogFilterPid"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LogFilterTid {
-            get {
-                return ((string)(this["LogFilterTid"]));
-            }
-            set {
-                this["LogFilterTid"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LogFilterTag {
-            get {
-                return ((string)(this["LogFilterTag"]));
-            }
-            set {
-                this["LogFilterTag"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string LogFilterMessage {
-            get {
-                return ((string)(this["LogFilterMessage"]));
-            }
-            set {
-                this["LogFilterMessage"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool LogFilterPriorityF {
             get {

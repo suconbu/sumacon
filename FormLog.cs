@@ -128,10 +128,6 @@ namespace Suconbu.Sumacon
             Properties.Settings.Default.LogFilterPriorityI = this.priorityFilterButtons[Log.PriorityCode.I].Checked;
             Properties.Settings.Default.LogFilterPriorityD = this.priorityFilterButtons[Log.PriorityCode.D].Checked;
             Properties.Settings.Default.LogFilterPriorityV = this.priorityFilterButtons[Log.PriorityCode.V].Checked;
-            Properties.Settings.Default.LogFilterPid = this.uxPidFilterTextBox.Text;
-            Properties.Settings.Default.LogFilterTid = this.uxTidFilterTextBox.Text;
-            Properties.Settings.Default.LogFilterTag = this.uxTagFilterTextBox.Text;
-            Properties.Settings.Default.LogFilterMessage = this.uxMessageFilterTextBox.Text;
         }
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
@@ -421,33 +417,25 @@ namespace Suconbu.Sumacon
             var pidFilter = setting.Filters[FilterSetting.FilterField.Pid];
             if (!string.IsNullOrEmpty(pidFilter))
             {
-                logs = setting.FilterInverteds[FilterSetting.FilterField.Pid] ?
-                    logs.Where(log => !Regex.IsMatch($"{log.Pid}:{log.ProcessName}", pidFilter, RegexOptions.IgnoreCase)) :
-                    logs.Where(log => Regex.IsMatch($"{log.Pid}:{log.ProcessName}", pidFilter, RegexOptions.IgnoreCase));
+                logs = logs.Where(log => setting.FilterInverteds[FilterSetting.FilterField.Pid] != Regex.IsMatch($"{log.Pid}:{log.ProcessName}", pidFilter, RegexOptions.IgnoreCase));
             }
 
             var tidFilter = setting.Filters[FilterSetting.FilterField.Tid];
             if (!string.IsNullOrEmpty(tidFilter))
             {
-                logs = setting.FilterInverteds[FilterSetting.FilterField.Tid] ?
-                    logs.Where(log => !Regex.IsMatch($"{log.Tid}:{log.ThreadName}", tidFilter, RegexOptions.IgnoreCase)) :
-                    logs.Where(log => Regex.IsMatch($"{log.Tid}:{log.ThreadName}", tidFilter, RegexOptions.IgnoreCase));
+                logs = logs.Where(log => setting.FilterInverteds[FilterSetting.FilterField.Tid] != Regex.IsMatch($"{log.Tid}:{log.ThreadName}", tidFilter, RegexOptions.IgnoreCase));
             }
 
             var tagFilter = setting.Filters[FilterSetting.FilterField.Tag];
             if (!string.IsNullOrEmpty(tagFilter))
             {
-                logs = setting.FilterInverteds[FilterSetting.FilterField.Tag] ?
-                    logs.Where(log => !Regex.IsMatch(log.Tag, tagFilter, RegexOptions.IgnoreCase)) :
-                    logs.Where(log => Regex.IsMatch(log.Tag, tagFilter, RegexOptions.IgnoreCase));
+                logs = logs.Where(log => setting.FilterInverteds[FilterSetting.FilterField.Tag] != Regex.IsMatch(log.Tag, tagFilter, RegexOptions.IgnoreCase));
             }
 
             var messageFilter = setting.Filters[FilterSetting.FilterField.Message];
             if (!string.IsNullOrEmpty(messageFilter))
             {
-                logs = setting.FilterInverteds[FilterSetting.FilterField.Message] ?
-                    logs.Where(log => !Regex.IsMatch(log.Message, messageFilter, RegexOptions.IgnoreCase)) :
-                    logs.Where(log => Regex.IsMatch(log.Message, messageFilter, RegexOptions.IgnoreCase));
+                logs = logs.Where(log => setting.FilterInverteds[FilterSetting.FilterField.Message] != Regex.IsMatch(log.Message, messageFilter, RegexOptions.IgnoreCase));
             }
 
             return logs;
@@ -643,10 +631,6 @@ namespace Suconbu.Sumacon
             this.priorityFilterButtons[Log.PriorityCode.I].Checked = Properties.Settings.Default.LogFilterPriorityI;
             this.priorityFilterButtons[Log.PriorityCode.D].Checked = Properties.Settings.Default.LogFilterPriorityD;
             this.priorityFilterButtons[Log.PriorityCode.V].Checked = Properties.Settings.Default.LogFilterPriorityV;
-            this.uxPidFilterTextBox.Text = Properties.Settings.Default.LogFilterPid;
-            this.uxTidFilterTextBox.Text = Properties.Settings.Default.LogFilterTid;
-            this.uxTagFilterTextBox.Text = Properties.Settings.Default.LogFilterTag;
-            this.uxMessageFilterTextBox.Text = Properties.Settings.Default.LogFilterMessage;
 
             this.UpdateControlState();
         }
