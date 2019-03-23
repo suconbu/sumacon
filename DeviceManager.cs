@@ -42,11 +42,21 @@ namespace Suconbu.Sumacon
             this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 10 * 1000;
         }
 
+        /// <summary>
+        /// デバイスの接続状態監視を開始します。
+        /// 接続状態の変化は下記イベントで通知します。
+        /// - ConnectedDevicesChanged
+        /// - DeviceConnected
+        /// - DeviceDisconnecting
+        /// </summary>
         public void StartDeviceDetection()
         {
             this.detector.Start();
         }
 
+        /// <summary>
+        /// デバイスの接続状態監視を停止します。
+        /// </summary>
         public void StopDeviceDetection()
         {
             this.detector.Stop();
