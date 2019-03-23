@@ -130,7 +130,7 @@ namespace Suconbu.Mobile
 
             return device.RunCommandOutputTextAsync(this.PullCommand, output =>
             {
-                var previous = this.Value.ToString();
+                var previous = this.Value?.ToString();
                 if(this.TrySetValueFromString(output.Trim()))
                 {
                     onFinished?.Invoke(this, previous != this.Value.ToString());
