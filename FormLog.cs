@@ -141,7 +141,7 @@ namespace Suconbu.Sumacon
                 var device = this.sumacon.DeviceManager.ActiveDevice;
                 if (device != null)
                 {
-                    this.OpenLogContext(device);
+                    device.InvokeIfProperyIsReady(() => this.SafeInvoke(() => this.OpenLogContext(device)));
                 }
                 else
                 {

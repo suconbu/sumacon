@@ -129,6 +129,8 @@ namespace Suconbu.Mobile
         public bool ObserveActivated { get; private set; }
         [Browsable(false)]
         public ProcessInfoCollection ProcessInfos { get; private set; }
+        [Browsable(false)]
+        public bool PropertyIsReady { get; private set; }
 
         DeviceData deviceData;
         int observeIntervalMilliseconds;
@@ -136,6 +138,7 @@ namespace Suconbu.Mobile
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
         DeviceComponent system;
         Dictionary<string, DeviceComponent> componentsByCategory = new Dictionary<string, DeviceComponent>();
+        List<Action> propertyIsReadyChanged = new List<Action>();
 
         public Device(string id)
         {
@@ -150,6 +153,7 @@ namespace Suconbu.Mobile
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
+            this.UpdatePropertiesAsync();
             //ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
         }
 
@@ -175,7 +179,7 @@ namespace Suconbu.Mobile
             Delay.ClearTimeout(this.timeoutId);
         }
 
-        public CommandContext UpdatePropertiesAsync(Action onFinished)
+        public CommandContext UpdatePropertiesAsync(Action onFinished = null)
         {
             var contexts = new List<CommandContext>();
             foreach (var component in this.Components)
@@ -188,6 +192,20 @@ namespace Suconbu.Mobile
                 ProcessInfo.GetAsync(this, p => this.ProcessInfos = p).Wait();
                 onFinished?.Invoke();
             });
+        }
+
+        public void InvokeIfProperyIsReady(Action onReady)
+        {
+            lock (this.propertyIsReadyChanged)
+            {
+                if (!this.PropertyIsReady)
+                {
+                    // 準備できたら呼ぶ
+                    this.propertyIsReadyChanged.Add(onReady);
+                    onReady = null;
+                }
+            }
+            onReady?.Invoke();
         }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
@@ -225,6 +243,20 @@ namespace Suconbu.Mobile
         {
             this.UpdatePropertiesAsync(() =>
             {
+                if( !this.PropertyIsReady)
+                {
+                    Action[] actions = null;
+                    lock (this.propertyIsReadyChanged)
+                    {
+                        this.PropertyIsReady = true;
+                        actions = this.propertyIsReadyChanged.ToArray();
+                        this.propertyIsReadyChanged.Clear();
+                    }
+                    foreach(var action in actions.OrEmptyIfNull())
+                    {
+                        action();
+                    }
+                }
                 if (this.ObserveActivated)
                 {
                     this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
