@@ -128,7 +128,7 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public bool ObserveActivated { get; private set; }
         [Browsable(false)]
-        public ProcessInfoList Processes { get; private set; }
+        public ProcessInfoCollection ProcessInfos { get; private set; }
 
         DeviceData deviceData;
         int observeIntervalMilliseconds;
@@ -150,7 +150,7 @@ namespace Suconbu.Mobile
             {
                 this.newLineMode = (stream.Length == 3) ? CommandContext.NewLineMode.CrCrLf : CommandContext.NewLineMode.CrLf;
             });
-            ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
+            //ProcessInfoList.GetAsync(this, processes => this.Processes = processes).Wait();
         }
 
         public DeviceComponent GetComponent(string category)
@@ -173,6 +173,21 @@ namespace Suconbu.Mobile
         {
             this.ObserveActivated = false;
             Delay.ClearTimeout(this.timeoutId);
+        }
+
+        public CommandContext UpdatePropertiesAsync(Action onFinished)
+        {
+            var contexts = new List<CommandContext>();
+            foreach (var component in this.Components)
+            {
+                contexts.Add(component.PullAsync());
+            }
+            return CommandContext.StartNew(() =>
+            {
+                contexts.ForEach(c => c.Wait());
+                ProcessInfo.GetAsync(this, p => this.ProcessInfos = p).Wait();
+                onFinished?.Invoke();
+            });
         }
 
         public CommandContext RunCommandAsync(string command, Action<string> onOutputReceived = null, Action<string> onErrorReceived = null)
@@ -208,11 +223,13 @@ namespace Suconbu.Mobile
 
         void TimerElapsed()
         {
-            ProcessInfoList.GetAsync(this, processes => this.Processes = processes);
-            Parallel.ForEach(this.Components, component => component.PullAsync());
-            ProcessInfoList.GetAsync(this, processes => this.Processes = processes);
-            if (!this.ObserveActivated) return;
-            this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
+            this.UpdatePropertiesAsync(() =>
+            {
+                if (this.ObserveActivated)
+                {
+                    this.timeoutId = Delay.SetTimeout(this.TimerElapsed, this.observeIntervalMilliseconds);
+                }
+            });
         }
 
         #region IDisposable Support

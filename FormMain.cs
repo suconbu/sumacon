@@ -127,7 +127,7 @@ namespace Suconbu.Sumacon
         {
             this.sumacon.DeviceManager.PropertyChanged += (s, properties) =>
             {
-                this.SafeInvoke(() => this.UpdateStatusStrip());
+                this.SafeInvoke(() => this.UpdateControlState());
             };
             this.sumacon.DeviceManager.ConnectedDevicesChanged += (s, ee) =>
             {
@@ -135,7 +135,7 @@ namespace Suconbu.Sumacon
             };
             this.sumacon.DeviceManager.ActiveDeviceChanged += (s, previousActiveDevice) =>
             {
-                this.SafeInvoke(() => this.UpdateStatusStrip());
+                this.SafeInvoke(() => this.UpdateControlState());
             };
         }
 
@@ -152,7 +152,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void UpdateStatusStrip()
+        void UpdateControlState()
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
 
@@ -168,18 +168,23 @@ namespace Suconbu.Sumacon
                     device.ToString(Properties.Resources.FormMain_StatusScreenFormat) +
                     " " +
                     device.ToString(Properties.Resources.FormMain_StatusBatteryFormat);
+                this.deviceInfoLabel.Visible = true;
 
                 this.airplaneModeButton.Text = device.AirplaneMode ? "✈ ON" : "✈ OFF";
                 this.airplaneModeButton.Checked = device.AirplaneMode;
+                this.airplaneModeButton.Visible = true;
                 this.showTouchesButton.Text = device.ShowTouches ? "👆 ON" : "👆 OFF";
                 this.showTouchesButton.Checked = device.ShowTouches;
+                this.showTouchesButton.Visible = true;
             }
             else
             {
-                this.deviceDropDown.Text = "-";
-                this.deviceInfoLabel.Text = string.Empty;
                 this.deviceDropDown.BackColor = SystemColors.Control;
                 this.deviceDropDown.ForeColor = SystemColors.ControlText;
+                this.deviceDropDown.Text = "-";
+                this.deviceInfoLabel.Visible = false;
+                this.airplaneModeButton.Visible = false;
+                this.showTouchesButton.Visible = false;
             }
         }
 

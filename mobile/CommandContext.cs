@@ -90,6 +90,7 @@ namespace Suconbu.Toolbox
 
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments}");
 
+            var sw = Stopwatch.StartNew();
             if (!this.process.Start()) return false;
             
             if (onErrorReceived != null)
@@ -110,7 +111,10 @@ namespace Suconbu.Toolbox
                     this.process?.CancelOutputRead();
                     this.process?.CancelErrorRead();
                     this.finished = true;
+                    Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Finished {sw.ElapsedMilliseconds}ms");
                     onFinished?.Invoke(outputBuffer.ToString());
+                    Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Invoked {sw.ElapsedMilliseconds}ms");
+                    sw = null;
                 }
             };
             this.process.BeginOutputReadLine();
@@ -328,7 +332,7 @@ namespace Suconbu.Toolbox
             if (CommandContext.first)
             {
                 ThreadPool.GetMinThreads(out var workerThreads, out var ioThreads);
-                ThreadPool.SetMinThreads(20, ioThreads);
+                ThreadPool.SetMinThreads(40, ioThreads);
                 CommandContext.first = false;
             }
         }

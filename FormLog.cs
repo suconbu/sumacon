@@ -67,7 +67,6 @@ namespace Suconbu.Sumacon
         ToolStripButton uxAutoScrollButton = new ToolStripButton();
         ToolStripButton uxMarkedListButton = new ToolStripButton();
         GridPanel uxLogGridPanel = new GridPanel();
-        //GridPanel uxMarkedListGridPanel = new GridPanel();
         ToolStripStatusLabel uxSelectedInfoLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxSummaryInfoLabel = new ToolStripStatusLabel();
         string logUpdateTimeoutId;
@@ -82,8 +81,6 @@ namespace Suconbu.Sumacon
         //ProcessInfo selectedProcessInfo = null;
         FilterSetting filterSetting = new FilterSetting();
         BindingList<Log> bookmarkedLogs = new BindingList<Log>();
-        //Dictionary<Log, int> bookmarkedLogIndices = new Dictionary<Log, int>();
-        //bool markedListOperated = false;
 
         readonly int logUpdateIntervalMilliseconds = 100;
         readonly int filterSettingChangedDelayMilliseconds = 100;
@@ -105,11 +102,8 @@ namespace Suconbu.Sumacon
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
 
-            this.uxSplitContainer.Orientation = Orientation.Horizontal;
-
             this.SetupToolStrip();
             this.SetupLogGridPanel();
-            //this.SetupMarkedListPanel();
             this.SetupStatusStrip();
         }
 
@@ -226,17 +220,6 @@ namespace Suconbu.Sumacon
             var uxClearBookmark = new ToolStripButton("", this.imageList1.Images["flag_blue_delete.png"], (s, e) => this.ClearBookmark());
             uxClearBookmark.ToolTipText = "Clear all bookmarks";
             this.uxToolStrip.Items.Add(uxClearBookmark);
-
-            //this.uxMarkedListButton.Text = "Marked list";
-            //this.uxMarkedListButton.CheckOnClick = true;
-            //this.uxMarkedListButton.Checked = false;
-            //this.uxMarkedListButton.Image = this.imageList1.Images["flag_blue.png"];
-            //this.uxMarkedListButton.CheckedChanged += (s, e) =>
-            //{
-            //    this.markedListOperated = true;
-            //    this.uxSplitContainer.Panel2Collapsed = !this.uxMarkedListButton.Checked;
-            //};
-            //this.uxToolStrip.Items.Add(this.uxMarkedListButton);
         }
 
         void SetupLogGridPanel()
@@ -323,29 +306,8 @@ namespace Suconbu.Sumacon
             this.uxLogGridPanel.VirtualMode = true;
             this.uxLogGridPanel.CellDoubleClick += (s, e) => this.ToggleBookmark(this.GetLog(e.RowIndex));
 
-            this.uxSplitContainer.Panel1.Controls.Add(this.uxLogGridPanel);
-            this.uxSplitContainer.Panel2Collapsed = true;
+            this.uxToolStripContainer.ContentPanel.Controls.Add(this.uxLogGridPanel);
         }
-
-        //void SetupMarkedListPanel()
-        //{
-        //    this.uxMarkedListGridPanel.Dock = DockStyle.Fill;
-        //    this.uxMarkedListGridPanel.AutoGenerateColumns = true;
-        //    this.uxMarkedListGridPanel.DataSource = this.bookmarkedLogs;
-        //    this.uxMarkedListGridPanel.SelectionChanged += (s, e) =>
-        //    {
-        //        int count = this.uxMarkedListGridPanel.SelectedRows.Count;
-        //        if(count > 0)
-        //        {
-        //            var log = this.bookmarkedLogs[this.uxMarkedListGridPanel.SelectedRows[count - 1].Index];
-        //            if (this.bookmarkedLogIndices.TryGetValue(log, out var index))
-        //            {
-        //                this.SetDisplayedLogIndex(index);
-        //            }
-        //        }
-        //    };
-        //    this.uxSplitContainer.Panel2.Controls.Add(this.uxMarkedListGridPanel);
-        //}
 
         void SetupStatusStrip()
         {
@@ -464,8 +426,8 @@ namespace Suconbu.Sumacon
             if (!string.IsNullOrEmpty(tidFilter))
             {
                 logs = setting.FilterInverteds[FilterSetting.FilterField.Tid] ?
-                    logs.Where(log => !Regex.IsMatch($"{log.Tid}", tidFilter, RegexOptions.IgnoreCase)) :
-                    logs.Where(log => Regex.IsMatch($"{log.Tid}", tidFilter, RegexOptions.IgnoreCase));
+                    logs.Where(log => !Regex.IsMatch($"{log.Tid}:{log.ThreadName}", tidFilter, RegexOptions.IgnoreCase)) :
+                    logs.Where(log => Regex.IsMatch($"{log.Tid}:{log.ThreadName}", tidFilter, RegexOptions.IgnoreCase));
             }
 
             var tagFilter = setting.Filters[FilterSetting.FilterField.Tag];

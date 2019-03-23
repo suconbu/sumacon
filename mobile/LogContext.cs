@@ -153,7 +153,7 @@ namespace Suconbu.Mobile
 
         void OnOutput(string output)
         {
-            var log = Log.FromString(this.nextNo, output, this.Device.Processes);
+            var log = Log.FromString(this.nextNo, output, this.Device.ProcessInfos);
             if (log == null) return;
             //this.receivedLogsSemaphore.Wait();
             this.nextNo++;
@@ -195,7 +195,7 @@ namespace Suconbu.Mobile
         public string ThreadName { get; private set; }
         public string Message { get; private set; }
 
-        public static Log FromString(int no, string input, ProcessInfoList process = null)
+        public static Log FromString(int no, string input, ProcessInfoCollection processInfos = null)
         {
             var timestampLength = 18;
             if (string.IsNullOrEmpty(input) || input.Length < timestampLength) return null;
@@ -213,7 +213,7 @@ namespace Suconbu.Mobile
                 instance.No = no;
                 instance.Timestamp = DateTime.Parse(time);
                 instance.Pid = int.Parse(match.Groups[1].Value);
-                var processInfo = process?[instance.Pid];
+                var processInfo = processInfos?[instance.Pid];
                 instance.ProcessName = processInfo?.Name ?? string.Empty;
                 instance.Tid = int.Parse(match.Groups[2].Value);
                 instance.ThreadName = processInfo?[instance.Tid]?.Name ?? string.Empty;
