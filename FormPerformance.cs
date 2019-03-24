@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -16,11 +17,19 @@ namespace Suconbu.Sumacon
     public partial class FormPerformance : FormBase
     {
         Sumacon sumacon;
+        ToolStrip uxProcessToolStrip = new ToolStrip();
+        ToolStrip uxThreadToolStrip = new ToolStrip();
+        ToolStripTextBox uxProcessFilterTextBox = new ToolStripTextBox();
+        ToolStripButton uxProcessFilterClearButton = new ToolStripButton();
+        ToolStripButton uxProcessApplicationOnlyButton = new ToolStripButton();
+        ToolStripTextBox uxThreadFilterTextBox = new ToolStripTextBox();
+        ToolStripButton uxThreadFilterClearButton = new ToolStripButton();
         GridPanel processGridPanel = new GridPanel();
         GridPanel threadGridPanel = new GridPanel();
         ColorSet colorSet = ColorSet.Light;
-        DataTable processInfoDataTable;
-        DataTable threadInfoDataTable;
+        DataTable processDataTable;
+        DataTable threadDataTable;
+        bool selectAll = true;
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -38,6 +47,7 @@ namespace Suconbu.Sumacon
 
             this.SetupProcessGridPanel();
             this.SetupThreadGridPanel();
+            this.SetupToolStrip();
 
             this.uxProcessAndThreadSplitContainer.FixedPanel = FixedPanel.Panel1;
             this.uxProcessAndThreadSplitContainer.SplitterDistance = 500;
@@ -62,7 +72,6 @@ namespace Suconbu.Sumacon
                 device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
                 device.InvokeIfProcessInfosIsReady(() => this.SafeInvoke(() =>
                 {
-                    this.UpdateProcessInfoGridPanel(device);
                     this.UpdateControlState();
                 }));
             }
@@ -71,7 +80,6 @@ namespace Suconbu.Sumacon
                 this.SafeInvoke(() =>
                 {
                     device.ProcessInfosChanged -= this.Device_ProcessInfosChanged;
-                    this.UpdateProcessInfoGridPanel(null);
                     this.UpdateControlState();
                 });
             }
@@ -81,10 +89,42 @@ namespace Suconbu.Sumacon
         {
             this.SafeInvoke(() =>
             {
-                this.processInfoDataTable = null;
-                this.threadInfoDataTable = null;
-                this.UpdateProcessInfoGridPanel(this.sumacon.DeviceManager.ActiveDevice);
+                this.processDataTable = null;
+                this.threadDataTable = null;
+                this.UpdateControlState();
             });
+        }
+
+        void SetupToolStrip()
+        {
+            this.uxProcessToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+            this.uxProcessToolStrip.Items.Add("Filter:");
+            this.uxProcessFilterTextBox.TextChanged += (s, e) =>
+            {
+                this.selectAll = true;
+                this.UpdateControlState();
+            };
+            this.uxProcessToolStrip.Items.Add(this.uxProcessFilterTextBox);
+            this.uxProcessFilterClearButton.Image = this.imageList1.Images["cross.png"];
+            this.uxProcessFilterClearButton.Click += (s,e) => this.uxProcessFilterTextBox.Clear();
+            this.uxProcessFilterClearButton.Enabled = false;
+            this.uxProcessToolStrip.Items.Add(this.uxProcessFilterClearButton);
+            this.uxProcessToolStrip.Items.Add(new ToolStripSeparator());
+            this.uxProcessApplicationOnlyButton.Text = "App. only";
+            this.uxProcessApplicationOnlyButton.CheckOnClick = true;
+            this.uxProcessApplicationOnlyButton.Click += (s, e) => this.UpdateControlState();
+            this.uxProcessToolStrip.Items.Add(this.uxProcessApplicationOnlyButton);
+            this.uxProcessAndThreadSplitContainer.Panel1.Controls.Add(this.uxProcessToolStrip);
+
+            this.uxThreadToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+            this.uxThreadToolStrip.Items.Add("Filter:");
+            this.uxThreadFilterTextBox.TextChanged += (s, e) => this.UpdateControlState();
+            this.uxThreadToolStrip.Items.Add(this.uxThreadFilterTextBox);
+            this.uxThreadFilterClearButton.Image = this.imageList1.Images["cross.png"];
+            this.uxThreadFilterClearButton.Click += (s, e) => this.uxThreadFilterTextBox.Clear();
+            this.uxThreadFilterClearButton.Enabled = false;
+            this.uxThreadToolStrip.Items.Add(this.uxThreadFilterClearButton);
+            this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(this.uxThreadToolStrip);
         }
 
         void SetupProcessGridPanel()
@@ -98,8 +138,8 @@ namespace Suconbu.Sumacon
                 new DataGridViewColumn() { Name = nameof(ProcessInfo.Pid), HeaderText = "PID", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ProcessInfo.User), HeaderText = "User", Width = 60, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ProcessInfo.Priority), HeaderText = "Pri", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
-                new DataGridViewColumn() { Name = nameof(ProcessInfo.Vsize), HeaderText = "VSS", Width = 60, CellTemplate = new DataGridViewTextBoxCell() },
-                new DataGridViewColumn() { Name = nameof(ProcessInfo.Rsize), HeaderText = "RSS", Width = 60, CellTemplate = new DataGridViewTextBoxCell() },
+                new DataGridViewColumn() { Name = nameof(ProcessInfo.Vsize), HeaderText = "VSS", Width = 70, CellTemplate = new DataGridViewTextBoxCell() },
+                new DataGridViewColumn() { Name = nameof(ProcessInfo.Rsize), HeaderText = "RSS", Width = 70, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = "Threads", HeaderText = "Threads", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ProcessInfo.Name), HeaderText = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
             };
@@ -126,7 +166,7 @@ namespace Suconbu.Sumacon
 
         void ProcessGridPanel_SuppressibleSelectionChanged(object sender, EventArgs e)
         {
-            this.UpdateThreadInfoGridPanel(this.sumacon.DeviceManager.ActiveDevice);
+            this.UpdateThreadGridPanel(this.sumacon.DeviceManager.ActiveDevice);
         }
 
         void SetupThreadGridPanel()
@@ -156,29 +196,49 @@ namespace Suconbu.Sumacon
             this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(this.threadGridPanel);
         }
 
-        void UpdateProcessInfoGridPanel(Device device)
+        void UpdateControlState()
         {
-            bool selectAll = this.processGridPanel.DataSource == null; // 初回だけ全選択
+            this.uxProcessFilterClearButton.Enabled = !string.IsNullOrEmpty(this.uxProcessFilterTextBox.Text);
+            this.uxThreadFilterClearButton.Enabled = !string.IsNullOrEmpty(this.uxThreadFilterTextBox.Text);
+            this.UpdateProcessGridPanel(this.sumacon.DeviceManager.ActiveDevice);
+        }
+
+        void UpdateProcessGridPanel(Device device)
+        {
             var processInfos = device?.ProcessInfos;
-            if (processInfos != null && this.processInfoDataTable == null)
+            if (processInfos != null && this.processDataTable == null)
             {
-                this.processInfoDataTable = this.CreateProcessInfoDataTable(processInfos.ProcessInfos);
+                this.processDataTable = this.CreateProcessInfoDataTable(processInfos.ProcessInfos);
+            }
+
+            var rows = this.processDataTable.AsEnumerable();
+            var filterText = this.uxProcessFilterTextBox.Text;
+            if (!string.IsNullOrEmpty(filterText))
+            {
+                // フィルタ適用
+                var inverted = filterText.StartsWith("-");
+                filterText = inverted ? filterText.Substring(1) : filterText;
+                rows = rows.Where(row =>
+                    inverted != Regex.IsMatch(
+                        $"{row[nameof(ProcessInfo.Pid)]}{row[nameof(ProcessInfo.User)]}{row[nameof(ProcessInfo.Name)]}",
+                        filterText, RegexOptions.IgnoreCase));
             }
 
             this.processGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
             var state = this.processGridPanel.GetViewState();
-            this.processGridPanel.DataSource = this.processInfoDataTable;
+            this.processGridPanel.DataSource = rows.AsDataView();
             this.processGridPanel.SetViewState(state);
-            if (selectAll)
+            if (this.selectAll)
             {
                 this.processGridPanel.SelectAll();
+                this.selectAll = false;
             }
             this.processGridPanel.UnsuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
-            this.UpdateThreadInfoGridPanel(device);
+            this.UpdateThreadGridPanel(device);
         }
 
-        void UpdateThreadInfoGridPanel(Device device)
+        void UpdateThreadGridPanel(Device device)
         {
             var processInfos = device?.ProcessInfos;
 
@@ -187,18 +247,30 @@ namespace Suconbu.Sumacon
             {
                 foreach (DataGridViewRow row in this.processGridPanel.SelectedRows)
                 {
-                    threadInfos.AddRange(processInfos[(int)row.Cells["PID"].Value].ThreadInfos);
+                    threadInfos.AddRange((processInfos[(int)row.Cells["PID"].Value]?.ThreadInfos).OrEmptyIfNull());
                 }
             }
 
-            this.threadInfoDataTable = this.CreateThreadInfoDataTable(threadInfos);
-            var state = this.threadGridPanel.GetViewState();
-            this.threadGridPanel.DataSource = this.threadInfoDataTable;
-            this.threadGridPanel.SetViewState(state);
-        }
+            //TODO: 前回と同じか判断して使いまわしたいなあ
+            this.threadDataTable = this.CreateThreadInfoDataTable(threadInfos);
+            var rows = this.threadDataTable.AsEnumerable();
+            var filterText = this.uxThreadFilterTextBox.Text;
+            if (!string.IsNullOrEmpty(filterText))
+            {
+                // フィルタ適用
+                var inverted = filterText.StartsWith("-");
+                filterText = inverted ? filterText.Substring(1) : filterText;
+                rows = rows.Where(row =>
+                    inverted != Regex.IsMatch(
+                        $"{row[nameof(ThreadInfo.Tid)]}{row["Process"]}{row[nameof(ThreadInfo.Name)]}",
+                        filterText, RegexOptions.IgnoreCase));
+            }
 
-        void UpdateControlState()
-        {
+            this.threadGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
+            var state = this.threadGridPanel.GetViewState();
+            this.threadGridPanel.DataSource = rows.AsDataView();
+            this.threadGridPanel.SetViewState(state);
+            this.threadGridPanel.UnsuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
         }
 
         DataTable CreateProcessInfoDataTable(IEnumerable<ProcessInfo> processInfos)
