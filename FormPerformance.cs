@@ -30,6 +30,7 @@ namespace Suconbu.Sumacon
         DataTable processDataTable;
         DataTable threadDataTable;
         bool selectAll = true;
+        TopContext topContext;
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -69,14 +70,20 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null)
             {
-                device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
                 device.InvokeIfProcessInfosIsReady(() => this.SafeInvoke(() =>
                 {
                     this.UpdateControlState();
                 }));
+                this.SafeInvoke(() =>
+                {
+                    device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
+                    this.topContext?.Close();
+                    this.topContext = TopContext.Start(device);
+                });
             }
             else
             {
+                this.topContext?.Close();
                 this.SafeInvoke(() =>
                 {
                     device.ProcessInfosChanged -= this.Device_ProcessInfosChanged;
@@ -166,6 +173,7 @@ namespace Suconbu.Sumacon
 
         void ProcessGridPanel_SuppressibleSelectionChanged(object sender, EventArgs e)
         {
+            this.selectAll = this.processGridPanel.SelectedRows.Count == this.processGridPanel.Rows.Count;
             this.UpdateThreadGridPanel(this.sumacon.DeviceManager.ActiveDevice);
         }
 
@@ -179,7 +187,7 @@ namespace Suconbu.Sumacon
             {
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Tid), HeaderText = "TID", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Priority), HeaderText = "Pri", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
-                new DataGridViewColumn() { Name = "Process", HeaderText = "Process", Width = 200, CellTemplate = new DataGridViewTextBoxCell() },
+                new DataGridViewColumn() { Name = nameof(ThreadInfo.Process.Pid), HeaderText = "PID", Width = 80, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Name), HeaderText = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
             };
             foreach (var column in columns)
@@ -231,7 +239,6 @@ namespace Suconbu.Sumacon
             if (this.selectAll)
             {
                 this.processGridPanel.SelectAll();
-                this.selectAll = false;
             }
             this.processGridPanel.UnsuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
@@ -262,7 +269,7 @@ namespace Suconbu.Sumacon
                 filterText = inverted ? filterText.Substring(1) : filterText;
                 rows = rows.Where(row =>
                     inverted != Regex.IsMatch(
-                        $"{row[nameof(ThreadInfo.Tid)]}{row["Process"]}{row[nameof(ThreadInfo.Name)]}",
+                        $"{row[nameof(ThreadInfo.Tid)]}{row[nameof(ThreadInfo.Process.Pid)]}{row[nameof(ThreadInfo.Name)]}",
                         filterText, RegexOptions.IgnoreCase));
             }
 
@@ -307,16 +314,16 @@ namespace Suconbu.Sumacon
             var dataTable = new DataTable();
             dataTable.Columns.Add(nameof(ThreadInfo.Tid), typeof(int));
             dataTable.Columns.Add(nameof(ThreadInfo.Priority), typeof(int));
+            dataTable.Columns.Add(nameof(ThreadInfo.Process.Pid), typeof(string));
             dataTable.Columns.Add(nameof(ThreadInfo.Name), typeof(string));
-            dataTable.Columns.Add("Process", typeof(string));
 
             foreach (var t in threadInfos)
             {
                 var row = dataTable.NewRow();
                 row[nameof(ThreadInfo.Tid)] = t.Tid;
                 row[nameof(ThreadInfo.Priority)] = t.Priority;
+                row[nameof(ThreadInfo.Process.Pid)] = $"{t.Process.Pid}:{t.Process.Name}";
                 row[nameof(ThreadInfo.Name)] = t.Name;
-                row["Process"] = $"{t.Process.Pid}:{t.Process.Name}";
                 dataTable.Rows.Add(row);
             }
 
