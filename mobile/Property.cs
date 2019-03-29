@@ -128,7 +128,7 @@ namespace Suconbu.Mobile
         {
             if (string.IsNullOrEmpty(this.PullCommand)) return null;
 
-            return device.RunCommandOutputTextAsync(this.PullCommand, output =>
+            return device.RunCommandOutputTextAsync(this.PullCommand, (output, error) =>
             {
                 var previous = this.Value?.ToString();
                 if(this.TrySetValueFromString(output.Trim()))
@@ -158,7 +158,7 @@ namespace Suconbu.Mobile
             {
                 command = string.Format(this.PushCommand, this.internalValue.ToString());
             }
-            return device.RunCommandOutputTextAsync(command, output => onFinished?.Invoke(this, EventArgs.Empty));
+            return device.RunCommandOutputTextAsync(command, (output, error) => onFinished?.Invoke(this, EventArgs.Empty));
         }
 
         public CommandContext ResetAsync(Device device)
@@ -166,7 +166,7 @@ namespace Suconbu.Mobile
             if (!string.IsNullOrEmpty(this.ResetCommand))
             {
                 this.Overridden = false;
-                return device.RunCommandOutputTextAsync(this.ResetCommand, output =>
+                return device.RunCommandOutputTextAsync(this.ResetCommand, (output, error) =>
                 {
                     if (string.IsNullOrEmpty(this.PullCommand))
                     {

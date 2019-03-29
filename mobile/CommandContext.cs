@@ -34,7 +34,7 @@ namespace Suconbu.Toolbox
         /// <summary>
         /// コマンド実行終了時に標準出力内容の全体を文字列としてonFinishedに渡します。
         /// </summary>
-        public static CommandContext StartNewText(string command, string arguments, Action<string> onFinished)
+        public static CommandContext StartNewText(string command, string arguments, Action<string, string> onFinished)
         {
             //return StartNewInternal(command, arguments, false, null, null, context =>
             //{
@@ -74,7 +74,7 @@ namespace Suconbu.Toolbox
             }
         }
 
-        bool StartCommandTextOutput(string command, string arguments, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<string> onFinished)
+        bool StartCommandTextOutput(string command, string arguments, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<string, string> onFinished)
         {
             this.process = new Process();
             var info = this.process.StartInfo;
@@ -87,16 +87,21 @@ namespace Suconbu.Toolbox
             info.UseShellExecute = false;
 
             var outputBuffer = (onFinished != null) ? new StringBuilder() : null;
+            var errorBuffer = (onFinished != null) ? new StringBuilder() : null;
 
             Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments}");
 
             var sw = Stopwatch.StartNew();
             if (!this.process.Start()) return false;
-            
-            if (onErrorReceived != null)
+
+            this.process.ErrorDataReceived += (s, e) =>
             {
-                this.process.ErrorDataReceived += (s, e) => onErrorReceived(e.Data);
-            }
+                if(e.Data != null && errorBuffer !=null)
+                {
+                    errorBuffer.AppendLine(e.Data);
+                }
+                onErrorReceived?.Invoke(e.Data);
+            };
             this.process.BeginErrorReadLine();
 
             this.process.OutputDataReceived += (s, e) =>
@@ -112,7 +117,7 @@ namespace Suconbu.Toolbox
                     this.process?.CancelErrorRead();
                     this.finished = true;
                     Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Finished {sw.ElapsedMilliseconds}ms");
-                    onFinished?.Invoke(outputBuffer.ToString());
+                    onFinished?.Invoke(outputBuffer.ToString(), errorBuffer.ToString());
                     sw = null;
                 }
             };

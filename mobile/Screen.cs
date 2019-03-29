@@ -89,7 +89,7 @@ namespace Suconbu.Mobile
 
         public CommandContext CaptureIntoDeviceAsync(string saveTo, Action<string> onCaptured)
         {
-            return this.device.RunCommandOutputTextAsync($"shell screencap -p {saveTo}", output => onCaptured(saveTo));
+            return this.device.RunCommandOutputTextAsync($"shell screencap -p {saveTo}", (output, error) => onCaptured(saveTo));
         }
 
         string GetDensityClass(int density)

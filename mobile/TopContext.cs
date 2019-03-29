@@ -1,6 +1,7 @@
 ﻿using Suconbu.Mobile;
 using Suconbu.Toolbox;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,14 +17,30 @@ namespace Suconbu.Mobile
         CommandContext context;
         List<TopInfo> snapshots = new List<TopInfo>();
         TopInfo currentTopInfo;
-        int maxSnapshots;
+        readonly int maxSnapshots = 100;
+        EventHandler<TopInfo> onReceived;
 
-        public static TopContext Start(Device device, int intervalSeconds = 3, int maxSnapshots = 100)
+        static ConcurrentDictionary<Device, bool> oldStyleByDevice = new ConcurrentDictionary<Device, bool>();
+
+        public static TopContext Start(Device device, int intervalSeconds, EventHandler<TopInfo> onReceived)
         {
             var instance = new TopContext();
-            instance.maxSnapshots = maxSnapshots;
+            instance.onReceived = onReceived;
 
-            var command = $"shell top -b -q -H -s 1 -d {intervalSeconds} -o TID,%CPU";
+            var oldStyle = oldStyleByDevice.GetOrAdd(device, d =>
+            {
+                bool result = false;
+                // 新形式「See top --help」旧形式「Invalid argument "0".」
+                device.RunCommandOutputTextAsync("shell top 0", (output, error) => result = !error.StartsWith("See")).Wait();
+                return result;
+            });
+
+            var command = $"shell top -H -d {intervalSeconds} -s 2 -o TID,%CPU";
+            //var command = $"shell top -b -H -d {intervalSeconds} -s 2 -o TID,%CPU";
+            if(oldStyle)
+            {
+                command = $"shell top -H -m 50 -d {intervalSeconds} -s cpu";
+            }
             instance.context = instance.context = device.RunCommandAsync(command, instance.OnOutput);
 
             return instance;
@@ -38,29 +55,67 @@ namespace Suconbu.Mobile
         {
             if (string.IsNullOrEmpty(output)) return;
 
-            if (this.currentTopInfo == null)
+            if ((output.StartsWith("Mem") || output.StartsWith("Tasks")) &&
+                (this.currentTopInfo == null || this.currentTopInfo.CpuByThreads.Count > 0))
             {
+                this.AddToSnapshots(this.currentTopInfo);
                 this.currentTopInfo = new TopInfo(DateTime.Now);
             }
 
-            var tokens = output.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (this.currentTopInfo == null) return;
+
+            if (!this.ParseLine(output, out var tid, out var cpu)) return;
+
+            if (cpu <= 0.0f)
+            {
+                // 以降は全部0%なので無視
+                this.AddToSnapshots(this.currentTopInfo);
+                this.currentTopInfo = null;
+            }
+            else
+            {
+                this.currentTopInfo.CpuByThreads[tid] = cpu;
+            }
+        }
+
+        bool ParseLine(string line, out int tid, out float cpu)
+        {
+            bool result = false;
+            tid = 0;
+            cpu = 0.0f;
+
+            var tokens = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (!int.TryParse(tokens[0], out var dummy)) return false;
+
             try
             {
-                var tid = int.Parse(tokens[0]);
-                var cpu = float.Parse(tokens[1]);
-                var threadTopInfo = new ThreadTopInfo(tid, cpu);
-                this.currentTopInfo.Push(threadTopInfo);
-                if(tid == 1)
+                if (tokens.Length == 2)
                 {
-                    if (this.snapshots.Count >= this.maxSnapshots) this.snapshots.RemoveAt(0);
-                    this.snapshots.Add(this.currentTopInfo);
-                    this.currentTopInfo = null;
+                    tid = int.Parse(tokens[0]);
+                    cpu = float.Parse(tokens[1]);
+                    result = true;
+                }
+                else if (tokens.Length == 12)
+                {
+                    // 旧形式
+                    tid = int.Parse(tokens[1]);
+                    cpu = int.Parse(tokens[5].TrimEnd('%')) / 100.0f;
+                    result = true;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Trace.TraceError(ex.ToString());
             }
+            return result;
+        }
+
+        void AddToSnapshots(TopInfo topInfo)
+        {
+            if (topInfo == null) return;
+            if (this.snapshots.Count >= this.maxSnapshots) this.snapshots.RemoveAt(0);
+            this.snapshots.Add(topInfo);
+            this.onReceived(this, topInfo);
         }
 
         #region IDisposable Support
@@ -78,32 +133,31 @@ namespace Suconbu.Mobile
 
     class TopInfo
     {
-        public IReadOnlyList<ThreadTopInfo> Threads { get { return this.threads.Values.ToList(); } }
-        public ThreadTopInfo this[int tid] { get { return this.threads[tid]; } }
+        public float this[int tid] { get { return this.CpuByThreads.TryGetValue(tid, out var value) ? value : 0.0f; } }
         public DateTime Timestamp { get; private set; }
 
-        Dictionary<int, ThreadTopInfo> threads = new Dictionary<int, ThreadTopInfo>();
+        internal Dictionary<int, float> CpuByThreads = new Dictionary<int, float>();
+        //Dictionary<int, TopInfoRecord> records = new Dictionary<int, TopInfoRecord>();
 
         internal TopInfo(DateTime timestamp)
         {
             this.Timestamp = timestamp;
         }
-
-        internal void Push(ThreadTopInfo threadTopInfo)
-        {
-            this.threads.Add(threadTopInfo.Tid, threadTopInfo);
-        }
     }
 
-    struct ThreadTopInfo
-    {
-        public int Tid { get; private set; }
-        public float Cpu { get; private set; }
+    //struct TopInfoRecord
+    //{
+    //    public int Tid { get; private set; }
+    //    public float Cpu { get; private set; }
 
-        internal ThreadTopInfo(int tid, float cpu)
-        {
-            this.Tid = tid;
-            this.Cpu = cpu;
-        }
-    }
+    //    public static TopInfoRecord Null = new TopInfoRecord();
+
+    //    public bool IsNull() { return this.Tid == 0; }
+
+    //    internal TopInfoRecord(int tid, float cpu)
+    //    {
+    //        this.Tid = tid;
+    //        this.Cpu = cpu;
+    //    }
+    //}
 }

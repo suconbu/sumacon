@@ -218,9 +218,9 @@ namespace Suconbu.Mobile
             return CommandContext.StartNew("adb", $"-s {this.Serial} {command}", onOutputReceived, onErrorReceived);
         }
 
-        public CommandContext RunCommandOutputTextAsync(string command, Action<string> onFinished)
+        public CommandContext RunCommandOutputTextAsync(string command, Action<string, string> onFinished)
         {
-            return CommandContext.StartNewText("adb", $"-s {this.Serial} {command}", output => onFinished?.Invoke(output));
+            return CommandContext.StartNewText("adb", $"-s {this.Serial} {command}", (output, error) => onFinished?.Invoke(output, error));
         }
 
         public CommandContext RunCommandOutputBinaryAsync(string command, Action<Stream> onFinished)

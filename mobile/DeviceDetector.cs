@@ -23,7 +23,7 @@ namespace Suconbu.Mobile
         {
             if(string.IsNullOrWhiteSpace(adbPath))
             {
-                CommandContext.StartNewText("where", "adb.exe", output => adbPath = output.Trim()).Wait();
+                CommandContext.StartNewText("where", "adb.exe", (output, error) => adbPath = output.Trim()).Wait();
             }
             AdbServer.Instance.StartServer(adbPath, false);
         }

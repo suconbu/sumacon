@@ -31,6 +31,9 @@ namespace Suconbu.Sumacon
         DataTable threadDataTable;
         bool selectAll = true;
         TopContext topContext;
+        IReadOnlyList<ThreadInfo> testReadOnlyList;
+        BindingList<ThreadInfo> testBindingList = new BindingList<ThreadInfo>();
+        GridPanel testGridPanel = new GridPanel();
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -39,6 +42,21 @@ namespace Suconbu.Sumacon
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+
+            PsContext x = new PsContext();
+            //BindingList<ProcessInfo> a = new BindingList<ProcessInfo>(x.ProcessInfos);
+
+            this.testGridPanel.Dock = DockStyle.Fill;
+            this.uxBaseSplitContainer.Panel2.Controls.Add(this.testGridPanel);
+
+            this.testBindingList = new BindingList<ThreadInfo>();
+            this.testReadOnlyList = this.testBindingList;
+            this.testGridPanel.DataSource = this.testReadOnlyList;
+
+            this.testGridPanel.Columns["Priority"].Visible = false;
+            var c = this.testGridPanel.Columns.Add("a", "a");
+
+            Delay.SetInterval(() => this.SafeInvoke(() =>this.testBindingList.Add(new ThreadInfo(10, 0, "aaa", null))), 500);
         }
 
         protected override void OnLoad(EventArgs e)
@@ -52,6 +70,9 @@ namespace Suconbu.Sumacon
 
             this.uxProcessAndThreadSplitContainer.FixedPanel = FixedPanel.Panel1;
             this.uxProcessAndThreadSplitContainer.SplitterDistance = 500;
+            this.testBindingList.Add(new ThreadInfo(10, 0, "aaa", null));
+            this.testBindingList.Add(new ThreadInfo(20, 0, "bbb", null));
+            this.testBindingList.Add(new ThreadInfo(30, 0, "ccc", null));
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -78,7 +99,7 @@ namespace Suconbu.Sumacon
                 {
                     device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
                     this.topContext?.Close();
-                    this.topContext = TopContext.Start(device);
+                    this.topContext = TopContext.Start(device, 1, this.TopContext_Received);
                 });
             }
             else
@@ -100,6 +121,22 @@ namespace Suconbu.Sumacon
                 this.threadDataTable = null;
                 this.UpdateControlState();
             });
+        }
+
+        void TopContext_Received(object sender, TopInfo topInfo)
+        {
+            //Debug.Print($"{topInfo.Timestamp.ToString()}");
+            //foreach (var r in topInfo.Records)
+            //{
+            //    Debug.Print($"{r.Tid}:{r.Cpu:.0}");
+            //}
+            if (this.threadDataTable == null) return;
+
+            foreach (DataRow row in this.threadDataTable.Rows)
+            {
+                var tid = (int)row[nameof(ThreadInfo.Tid)];
+                row["Cpu"] = topInfo[tid];
+            }
         }
 
         void SetupToolStrip()
@@ -188,6 +225,7 @@ namespace Suconbu.Sumacon
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Tid), HeaderText = "TID", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Priority), HeaderText = "Pri", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Process.Pid), HeaderText = "PID", Width = 80, CellTemplate = new DataGridViewTextBoxCell() },
+                new DataGridViewColumn() { Name = "Cpu", HeaderText = "CPU%", Width = 40, CellTemplate = new DataGridViewTextBoxCell() },
                 new DataGridViewColumn() { Name = nameof(ThreadInfo.Name), HeaderText = "Name", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, CellTemplate = new DataGridViewTextBoxCell() },
             };
             foreach (var column in columns)
@@ -197,6 +235,7 @@ namespace Suconbu.Sumacon
             }
             this.threadGridPanel.Columns[nameof(ThreadInfo.Tid)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             this.threadGridPanel.Columns[nameof(ThreadInfo.Priority)].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            this.threadGridPanel.Columns["Cpu"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
             this.threadGridPanel.KeyColumnName = nameof(ThreadInfo.Tid);
             this.threadGridPanel.SortColumn(this.threadGridPanel.Columns[nameof(ThreadInfo.Tid)], ListSortDirection.Ascending);
@@ -315,6 +354,7 @@ namespace Suconbu.Sumacon
             dataTable.Columns.Add(nameof(ThreadInfo.Tid), typeof(int));
             dataTable.Columns.Add(nameof(ThreadInfo.Priority), typeof(int));
             dataTable.Columns.Add(nameof(ThreadInfo.Process.Pid), typeof(string));
+            dataTable.Columns.Add("Cpu", typeof(float));
             dataTable.Columns.Add(nameof(ThreadInfo.Name), typeof(string));
 
             foreach (var t in threadInfos)
@@ -323,6 +363,7 @@ namespace Suconbu.Sumacon
                 row[nameof(ThreadInfo.Tid)] = t.Tid;
                 row[nameof(ThreadInfo.Priority)] = t.Priority;
                 row[nameof(ThreadInfo.Process.Pid)] = $"{t.Process.Pid}:{t.Process.Name}";
+                row["Cpu"] = 0.0f;
                 row[nameof(ThreadInfo.Name)] = t.Name;
                 dataTable.Rows.Add(row);
             }

@@ -57,8 +57,8 @@ namespace Suconbu.Mobile
             var oldStyle = oldStyleByDevice.GetOrAdd(device, d =>
             {
                 bool result = false;
-                // 新形式「ps: 0」旧形式「bad pid '0'」
-                device.RunCommandOutputTextAsync("shell ps 0", output => result = output.StartsWith("bad")).Wait();
+                // 新形式「」旧形式「bad pid '0'」
+                device.RunCommandOutputTextAsync("shell ps 0", (output, error) => result = output.StartsWith("bad")).Wait();
                 return result;
             });
 

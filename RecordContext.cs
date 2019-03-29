@@ -134,7 +134,7 @@ namespace Suconbu.Sumacon
             this.Dispose();
         }
 
-        void OnRecordCommandFinished(string output)
+        void OnRecordCommandFinished(string output, string error)
         {
             this.recordCommandContext = null;
 
@@ -158,7 +158,7 @@ namespace Suconbu.Sumacon
             this.pullCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
         }
 
-        void OnPullCommandFinished(string output)
+        void OnPullCommandFinished(string output, string error)
         {
             this.pullCommandContext = null;
 
