@@ -30,9 +30,10 @@ namespace Suconbu.Sumacon
         SortableBindingList<ProcessViewInfo> processList = new SortableBindingList<ProcessViewInfo>();
         SortableBindingList<ThreadViewInfo> threadList = new SortableBindingList<ThreadViewInfo>();
         TopContext topContext;
-        //TopInfo lastTopInfo;
 
-        readonly int gridPanelColumnDefaultWidth = 70;
+        readonly int kGridPanelColumnDefaultWidth = 70;
+        readonly int kTopIntervalSeconds = 1;
+        readonly int kCpuPeakRange = 10;
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -51,9 +52,6 @@ namespace Suconbu.Sumacon
             this.SetupProcessGridPanel();
             this.SetupThreadGridPanel();
             this.SetupToolStrip();
-
-            this.uxProcessAndThreadSplitContainer.FixedPanel = FixedPanel.Panel1;
-            this.uxProcessAndThreadSplitContainer.SplitterDistance = 200;
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -81,7 +79,7 @@ namespace Suconbu.Sumacon
                 {
                     device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
                     this.topContext?.Close();
-                    this.topContext = TopContext.Start(device, 1, this.TopContext_Received);
+                    this.topContext = TopContext.Start(device, this.kTopIntervalSeconds, this.TopContext_Received);
                 });
             }
             else
@@ -150,15 +148,19 @@ namespace Suconbu.Sumacon
             panel.Dock = DockStyle.Fill;
             panel.ApplyColorSet(this.colorSet);
             panel.DataSource = this.processList;
-            panel.KeyColumnName = nameof(ProcessInfo.Pid);
+            panel.KeyColumnName = nameof(ProcessViewInfo.Pid);
 
             panel.SuppressibleSelectionChanged += this.ProcessGridPanel_SuppressibleSelectionChanged;
 
             this.uxProcessAndThreadSplitContainer.Panel1.Controls.Add(panel);
 
-            panel.SetAllColumnWidth(this.gridPanelColumnDefaultWidth);
+            panel.SetAllColumnWidth(this.kGridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
-            panel.Columns[nameof(ProcessInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
+            panel.Columns[nameof(ProcessViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+
+            // デフォルトはCPU使用率の降順
+            panel.SortColumn(panel.Columns[nameof(ProcessViewInfo.Cpu)], ListSortDirection.Descending);
         }
 
         void ProcessGridPanel_SuppressibleSelectionChanged(object sender, EventArgs e)
@@ -178,10 +180,14 @@ namespace Suconbu.Sumacon
 
             this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(panel);
 
-            panel.SetAllColumnWidth(this.gridPanelColumnDefaultWidth);
+            panel.SetAllColumnWidth(this.kGridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
+            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
             panel.Columns[nameof(ThreadViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             panel.Columns[nameof(ThreadViewInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+
+            // デフォルトはCPU使用率の降順
+            panel.SortColumn(panel.Columns[nameof(ThreadViewInfo.Cpu)], ListSortDirection.Descending);
         }
 
         void UpdateControlState()
@@ -199,7 +205,7 @@ namespace Suconbu.Sumacon
                 return;
             }
 
-            var pv = processInfos.Select(p => new ProcessViewInfo(p));
+            var pv = processInfos.Select(p => new ProcessViewInfo(p, this.kCpuPeakRange));
 
             var filterText = this.uxProcessFilterTextBox.Text;
             if (!string.IsNullOrEmpty(filterText))
@@ -255,7 +261,7 @@ namespace Suconbu.Sumacon
                 var processInfo = processInfos[(int)row.Cells[nameof(ProcessViewInfo.Pid)].Value];
                 if (processInfo != null)
                 {
-                    tvList.AddRange(processInfo.Threads.Values.Select(t => new ThreadViewInfo(t)));
+                    tvList.AddRange(processInfo.Threads.Values.Select(t => new ThreadViewInfo(t, this.kCpuPeakRange)));
                 }
             }
 
@@ -295,11 +301,11 @@ namespace Suconbu.Sumacon
         {
             foreach (var p in this.processList)
             {
-                p.Cpu = top.GetProcessCpu(p.Pid);
+                p.SetCpuUsage(top.GetProcessCpu(p.Pid));
             }
             foreach (var t in this.threadList)
             {
-                t.Cpu = top.GetThreadCpu(t.Tid);
+                t.SetCpuUsage(top.GetThreadCpu(t.Tid));
             }
             Console.Beep(1000, 200);
         }
@@ -309,14 +315,18 @@ namespace Suconbu.Sumacon
     {
         public int Pid { get; private set; }
         public int Priority { get; private set; }
-        public float Cpu { get; set; }
+        public float Cpu { get; private set; }
+        public float CpuPeak { get { return this.cpuHistory.Max(); } }
         public uint Vsize { get; private set; }
         public uint Rsize { get; private set; }
         public string User { get; private set; }
         public int ThreadCount { get; private set; }
         public string Name { get; private set; }
 
-        public ProcessViewInfo(ProcessInfo pi)
+        Queue<float> cpuHistory = new Queue<float>(new[] { 0.0f });
+        readonly int cpuPeakRange;
+
+        public ProcessViewInfo(ProcessInfo pi, int cpuPeakRange)
         {
             this.Pid = pi.Pid;
             this.Priority = pi.Priority;
@@ -326,6 +336,17 @@ namespace Suconbu.Sumacon
             this.User = pi.User;
             this.ThreadCount = pi.Threads.Count;
             this.Name = pi.Name;
+            this.cpuPeakRange = cpuPeakRange;
+        }
+
+        public void SetCpuUsage(float cpu)
+        {
+            this.Cpu = cpu;
+            if(this.cpuHistory.Count >= this.cpuPeakRange)
+            {
+                this.cpuHistory.Dequeue();
+            }
+            this.cpuHistory.Enqueue(cpu);
         }
     }
 
@@ -353,17 +374,32 @@ namespace Suconbu.Sumacon
     {
         public int Tid { get; private set; }
         public int Priority { get; private set; }
-        public float Cpu { get; set; }
+        public float Cpu { get; private set; }
+        public float CpuPeak { get { return this.cpuHistory.Max(); } }
         public string Name { get; private set; }
         public string ProcessName { get; private set; }
 
-        public ThreadViewInfo(ThreadInfo ti)
+        Queue<float> cpuHistory = new Queue<float>(new[] { 0.0f });
+        readonly int cpuPeakRange;
+
+        public ThreadViewInfo(ThreadInfo ti, int cpuPeakRange)
         {
             this.Tid = ti.Tid;
             this.Priority = ti.Priority;
             this.Cpu = 0.0f;
             this.Name = ti.Name;
             this.ProcessName = $"{ti.Process.Pid}: {ti.Process.Name}";
+            this.cpuPeakRange = cpuPeakRange;
+        }
+
+        public void SetCpuUsage(float cpu)
+        {
+            this.Cpu = cpu;
+            if (this.cpuHistory.Count >= this.cpuPeakRange)
+            {
+                this.cpuHistory.Dequeue();
+            }
+            this.cpuHistory.Enqueue(cpu);
         }
     }
 
