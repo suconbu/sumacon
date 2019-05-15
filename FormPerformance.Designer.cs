@@ -30,36 +30,30 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormPerformance));
-            this.toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
-            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
+            this.uxTsContainer = new System.Windows.Forms.ToolStripContainer();
             this.uxProcessAndThreadSplitContainer = new System.Windows.Forms.SplitContainer();
-            this.toolStripContainer1.ContentPanel.SuspendLayout();
-            this.toolStripContainer1.SuspendLayout();
+            this.imageList1 = new System.Windows.Forms.ImageList(this.components);
+            this.uxTsContainer.ContentPanel.SuspendLayout();
+            this.uxTsContainer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxProcessAndThreadSplitContainer)).BeginInit();
             this.uxProcessAndThreadSplitContainer.SuspendLayout();
             this.SuspendLayout();
             // 
-            // toolStripContainer1
+            // uxTsContainer
             // 
             // 
-            // toolStripContainer1.ContentPanel
+            // uxTsContainer.ContentPanel
             // 
-            this.toolStripContainer1.ContentPanel.Controls.Add(this.uxProcessAndThreadSplitContainer);
-            this.toolStripContainer1.ContentPanel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(933, 537);
-            this.toolStripContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.toolStripContainer1.Location = new System.Drawing.Point(0, 0);
-            this.toolStripContainer1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
-            this.toolStripContainer1.Name = "toolStripContainer1";
-            this.toolStripContainer1.Size = new System.Drawing.Size(933, 562);
-            this.toolStripContainer1.TabIndex = 0;
-            this.toolStripContainer1.Text = "toolStripContainer1";
-            // 
-            // imageList1
-            // 
-            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
-            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
-            this.imageList1.Images.SetKeyName(0, "cross.png");
+            this.uxTsContainer.ContentPanel.Controls.Add(this.uxProcessAndThreadSplitContainer);
+            this.uxTsContainer.ContentPanel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.uxTsContainer.ContentPanel.Size = new System.Drawing.Size(933, 562);
+            this.uxTsContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.uxTsContainer.Location = new System.Drawing.Point(0, 0);
+            this.uxTsContainer.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.uxTsContainer.Name = "uxTsContainer";
+            this.uxTsContainer.Size = new System.Drawing.Size(933, 562);
+            this.uxTsContainer.TabIndex = 0;
+            this.uxTsContainer.Text = "toolStripContainer1";
             // 
             // uxProcessAndThreadSplitContainer
             // 
@@ -68,24 +62,30 @@
             this.uxProcessAndThreadSplitContainer.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.uxProcessAndThreadSplitContainer.Name = "uxProcessAndThreadSplitContainer";
             this.uxProcessAndThreadSplitContainer.Orientation = System.Windows.Forms.Orientation.Horizontal;
-            this.uxProcessAndThreadSplitContainer.Size = new System.Drawing.Size(933, 537);
-            this.uxProcessAndThreadSplitContainer.SplitterDistance = 275;
+            this.uxProcessAndThreadSplitContainer.Size = new System.Drawing.Size(933, 562);
+            this.uxProcessAndThreadSplitContainer.SplitterDistance = 287;
             this.uxProcessAndThreadSplitContainer.SplitterWidth = 5;
             this.uxProcessAndThreadSplitContainer.TabIndex = 1;
+            // 
+            // imageList1
+            // 
+            this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+            this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageList1.Images.SetKeyName(0, "cross.png");
             // 
             // FormPerformance
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(933, 562);
-            this.Controls.Add(this.toolStripContainer1);
+            this.Controls.Add(this.uxTsContainer);
             this.Font = new System.Drawing.Font("Yu Gothic UI", 9F);
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.Name = "FormPerformance";
             this.Text = "FormPerformance";
-            this.toolStripContainer1.ContentPanel.ResumeLayout(false);
-            this.toolStripContainer1.ResumeLayout(false);
-            this.toolStripContainer1.PerformLayout();
+            this.uxTsContainer.ContentPanel.ResumeLayout(false);
+            this.uxTsContainer.ResumeLayout(false);
+            this.uxTsContainer.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.uxProcessAndThreadSplitContainer)).EndInit();
             this.uxProcessAndThreadSplitContainer.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -94,7 +94,7 @@
 
         #endregion
 
-        private System.Windows.Forms.ToolStripContainer toolStripContainer1;
+        private System.Windows.Forms.ToolStripContainer uxTsContainer;
         private System.Windows.Forms.ImageList imageList1;
         private System.Windows.Forms.SplitContainer uxProcessAndThreadSplitContainer;
     }

@@ -29,11 +29,17 @@ namespace Suconbu.Sumacon
         ColorSet colorSet = ColorSet.Light;
         SortableBindingList<ProcessViewInfo> processList = new SortableBindingList<ProcessViewInfo>();
         SortableBindingList<ThreadViewInfo> threadList = new SortableBindingList<ThreadViewInfo>();
+        StatusStrip uxStatusStrip = new StatusStrip();
+        ToolStripStatusLabel uxStatusLabel = new ToolStripStatusLabel();
         TopContext topContext;
+        TopSnapshot lastTop;
 
         readonly int kGridPanelColumnDefaultWidth = 70;
         readonly int kTopIntervalSeconds = 1;
         readonly int kCpuPeakRange = 10;
+        readonly Color kCpuCellPaintColor;
+        readonly double kCpuCellPaintValueMin = 0.0;
+        readonly double kCpuCellPaintValueMax = 50.0;
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -42,6 +48,8 @@ namespace Suconbu.Sumacon
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+
+            this.kCpuCellPaintColor = this.colorSet.Accent3;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -52,6 +60,7 @@ namespace Suconbu.Sumacon
             this.SetupProcessGridPanel();
             this.SetupThreadGridPanel();
             this.SetupToolStrip();
+            this.SetupStatusStrip();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -80,6 +89,7 @@ namespace Suconbu.Sumacon
                     device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
                     this.topContext?.Close();
                     this.topContext = TopContext.Start(device, this.kTopIntervalSeconds, this.TopContext_Received);
+                    this.UpdateControlState();
                 });
             }
             else
@@ -95,6 +105,7 @@ namespace Suconbu.Sumacon
             {
                 this.UpdateProcessList();
                 this.UpdateThreadList();
+                this.UpdateControlState();
             });
         }
 
@@ -142,6 +153,15 @@ namespace Suconbu.Sumacon
             this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(this.uxThreadToolStrip);
         }
 
+        void SetupStatusStrip()
+        {
+            this.uxStatusLabel.TextAlign = ContentAlignment.MiddleLeft;
+            this.uxStatusLabel.Spring = true;
+            this.uxStatusStrip.Items.Add(this.uxStatusLabel);
+            this.uxTsContainer.BottomToolStripPanel.Controls.Add(this.uxStatusStrip);
+            this.uxTsContainer.BottomToolStripPanelVisible = true;
+        }
+
         void SetupProcessGridPanel()
         {
             var panel = this.processGridPanel;
@@ -159,15 +179,15 @@ namespace Suconbu.Sumacon
             panel.Columns[nameof(ProcessViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
             panel.Columns[nameof(ProcessViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
-            var barPainter = new GridPanel.NumericCellPaintData()
+            var cpuCellPainter = new GridPanel.NumericCellPaintData()
             {
-                Type = GridPanel.CellPaintType.Bar,
-                PaintColor = this.colorSet.Accent1,
-                MinValue = 0.0,
-                MaxValue = 100.0
+                Type = GridPanel.CellPaintType.Fill,
+                PaintColor = this.kCpuCellPaintColor,
+                MinValue = this.kCpuCellPaintValueMin,
+                MaxValue = this.kCpuCellPaintValueMax
             };
-            panel.Columns[nameof(ProcessViewInfo.Cpu)].Tag = barPainter;
-            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].Tag = barPainter;
+            panel.Columns[nameof(ProcessViewInfo.Cpu)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].Tag = cpuCellPainter;
 
             // デフォルトはCPU使用率の降順
             panel.SortColumn(panel.Columns[nameof(ProcessViewInfo.Cpu)], ListSortDirection.Descending);
@@ -176,6 +196,7 @@ namespace Suconbu.Sumacon
         void ProcessGridPanel_SuppressibleSelectionChanged(object sender, EventArgs e)
         {
             this.UpdateThreadList();
+            this.UpdateControlState();
         }
 
         void SetupThreadGridPanel()
@@ -196,15 +217,15 @@ namespace Suconbu.Sumacon
             panel.Columns[nameof(ThreadViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             panel.Columns[nameof(ThreadViewInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
-            var barPainter = new GridPanel.NumericCellPaintData()
+            var cpuCellPainter = new GridPanel.NumericCellPaintData()
             {
-                Type = GridPanel.CellPaintType.Bar,
-                PaintColor = this.colorSet.Accent1,
-                MinValue = 0.0,
-                MaxValue = 100.0
+                Type = GridPanel.CellPaintType.Fill,
+                PaintColor = this.kCpuCellPaintColor,
+                MinValue = this.kCpuCellPaintValueMin,
+                MaxValue = this.kCpuCellPaintValueMax
             };
-            panel.Columns[nameof(ThreadViewInfo.Cpu)].Tag = barPainter;
-            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].Tag = barPainter;
+            panel.Columns[nameof(ThreadViewInfo.Cpu)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].Tag = cpuCellPainter;
 
             // デフォルトはCPU使用率の降順
             panel.SortColumn(panel.Columns[nameof(ThreadViewInfo.Cpu)], ListSortDirection.Descending);
@@ -212,6 +233,14 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
+            var processInfos = this.sumacon.DeviceManager.ActiveDevice?.ProcessInfos?.ProcessInfos;
+            
+            int pShown = this.processGridPanel.RowCount;
+            int pTotal = processInfos?.Count() ?? 0;
+            int tShown = this.threadGridPanel.RowCount;
+            int tTotal = processInfos?.Sum(p => p.Threads.Count) ?? 0;
+            this.uxStatusLabel.Text = $"{pShown}/{pTotal} processes, {tShown}/{tTotal} threads. CPU:{this.lastTop?.TotalCpu ?? 0}%";
+
             this.uxProcessFilterClearButton.Enabled = !string.IsNullOrEmpty(this.uxProcessFilterTextBox.Text);
             this.uxThreadFilterClearButton.Enabled = !string.IsNullOrEmpty(this.uxThreadFilterTextBox.Text);
         }
@@ -327,7 +356,10 @@ namespace Suconbu.Sumacon
             {
                 t.SetCpuUsage(top.GetThreadCpu(t.Tid));
             }
-            Console.Beep(1000, 200);
+            this.processGridPanel.Invalidate();
+            this.threadGridPanel.Invalidate();
+            this.lastTop = top;
+            //Console.Beep(1000, 200);
         }
     }
 

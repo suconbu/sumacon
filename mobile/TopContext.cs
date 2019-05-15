@@ -85,6 +85,7 @@ namespace Suconbu.Mobile
             {
                 this.currentTop.CpuByPid[pid] = this.currentTop.CpuByPid.TryGetValue(pid, out var pCpu) ? (pCpu + cpu) : cpu;
                 this.currentTop.CpuByTid[tid] = cpu;
+                this.currentTop.TotalCpu += cpu;
             }
         }
 
@@ -148,6 +149,7 @@ namespace Suconbu.Mobile
     {
         //public float this[int tid] { get { return this.CpuUsageByThreadId.TryGetValue(tid, out var value) ? value : 0.0f; } }
         public DateTime Timestamp { get; private set; }
+        public float TotalCpu { get; internal set; }
 
         internal Dictionary<int, float> CpuByTid = new Dictionary<int, float>();
         internal Dictionary<int, float> CpuByPid = new Dictionary<int, float>();
