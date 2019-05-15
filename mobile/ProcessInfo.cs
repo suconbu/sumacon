@@ -38,8 +38,6 @@ namespace Suconbu.Mobile
         public uint Vsize { get { return this.psEntry.Vsize; } }
         // Resident set size [KB]
         public uint Rsize { get { return this.psEntry.Rsize; } }
-        // Number of threads
-        public int ThreadCount { get { return this.Threads.Count; } }
         // Name
         public string Name { get { return this.psEntry.ProcessName; } }
 
@@ -144,8 +142,6 @@ namespace Suconbu.Mobile
         public int Priority { get; private set; }
         // Name
         public string Name { get; private set; }
-        // Owner process name
-        public string ProcessName { get { return this.Process.Name; } }
         // Owner process
         public ProcessInfo Process { get; private set; }
 
@@ -155,46 +151,6 @@ namespace Suconbu.Mobile
             this.Priority = priority;
             this.Name = name;
             this.Process = process;
-        }
-    }
-
-    class ProcessInfoEqualityComparer : IEqualityComparer<ProcessInfo>
-    {
-        public bool Equals(ProcessInfo a, ProcessInfo b)
-        {
-            if (b == null && a == null)
-                return true;
-            else if (a == null || b == null)
-                return false;
-            else if (a.Pid == b.Pid)
-                return true;
-            else
-                return false;
-        }
-
-        public int GetHashCode(ProcessInfo p)
-        {
-            return p.Pid;
-        }
-    }
-
-    class ThreadInfoEqualityComparer : IEqualityComparer<ThreadInfo>
-    {
-        public bool Equals(ThreadInfo a, ThreadInfo b)
-        {
-            if (b == null && a == null)
-                return true;
-            else if (a == null || b == null)
-                return false;
-            else if (a.Tid == b.Tid)
-                return true;
-            else
-                return false;
-        }
-
-        public int GetHashCode(ThreadInfo p)
-        {
-            return p.Tid;
         }
     }
 

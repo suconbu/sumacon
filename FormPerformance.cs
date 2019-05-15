@@ -27,10 +27,12 @@ namespace Suconbu.Sumacon
         GridPanel processGridPanel = new GridPanel();
         GridPanel threadGridPanel = new GridPanel();
         ColorSet colorSet = ColorSet.Light;
-        SortableBindingList<ProcessInfo> processList = new SortableBindingList<ProcessInfo>();
-        SortableBindingList<ThreadInfo> threadList = new SortableBindingList<ThreadInfo>();
+        SortableBindingList<ProcessViewInfo> processList = new SortableBindingList<ProcessViewInfo>();
+        SortableBindingList<ThreadViewInfo> threadList = new SortableBindingList<ThreadViewInfo>();
         TopContext topContext;
-        TopInfo lastTopInfo;
+        //TopInfo lastTopInfo;
+
+        readonly int gridPanelColumnDefaultWidth = 70;
 
         public FormPerformance(Sumacon sumacon)
         {
@@ -39,9 +41,6 @@ namespace Suconbu.Sumacon
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
-
-            //PsContext x = new PsContext();
-            //BindingList<ProcessInfo> a = new BindingList<ProcessInfo>(x.ProcessInfos);
         }
 
         protected override void OnLoad(EventArgs e)
@@ -61,7 +60,8 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
-            if(this.sumacon.DeviceManager.ActiveDevice != null)
+            this.topContext?.Close();
+            if (this.sumacon.DeviceManager.ActiveDevice != null)
             {
                 this.sumacon.DeviceManager.ActiveDevice.ProcessInfosChanged -= this.Device_ProcessInfosChanged;
             }
@@ -100,48 +100,42 @@ namespace Suconbu.Sumacon
             });
         }
 
-        void TopContext_Received(object sender, TopInfo topInfo)
+        void TopContext_Received(object sender, TopSnapshot top)
         {
-            this.lastTopInfo = topInfo;
-            //Debug.Print($"{topInfo.Timestamp.ToString()}");
-            //foreach (var r in topInfo.Records)
-            //{
-            //    Debug.Print($"{r.Tid}:{r.Cpu:.0}");
-            //}
-            //if (this.threadDataTable == null) return;
-
-            //foreach (DataRow row in this.threadDataTable.Rows)
-            //{
-            //    var tid = (int)row[nameof(ThreadInfo.Tid)];
-            //    row["Cpu"] = topInfo[tid];
-            //}
+            this.SafeInvoke(() => this.UpdateCpuUsage(top));
         }
 
         void SetupToolStrip()
         {
             this.uxProcessToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+            this.uxProcessToolStrip.Items.Add(new ToolStripLabel("Process"));
+            this.uxProcessToolStrip.Items.Add(new ToolStripSeparator());
             this.uxProcessToolStrip.Items.Add("Filter:");
             this.uxProcessFilterTextBox.TextChanged += (s, e) =>
             {
-                //this.selectAll = true;
                 this.UpdateProcessList();
                 this.UpdateControlState();
             };
             this.uxProcessToolStrip.Items.Add(this.uxProcessFilterTextBox);
             this.uxProcessFilterClearButton.Image = this.imageList1.Images["cross.png"];
-            this.uxProcessFilterClearButton.Click += (s,e) => this.uxProcessFilterTextBox.Clear();
+            this.uxProcessFilterClearButton.Click += (s, e) => this.uxProcessFilterTextBox.Clear();
             this.uxProcessFilterClearButton.Enabled = false;
             this.uxProcessToolStrip.Items.Add(this.uxProcessFilterClearButton);
             this.uxProcessToolStrip.Items.Add(new ToolStripSeparator());
             this.uxProcessAppsOnlyButton.Text = "Apps only";
-            //this.uxProcessAppsOnlyButton.CheckOnClick = true;
             this.uxProcessAppsOnlyButton.Click += (s, e) => this.uxProcessFilterTextBox.Text = @"^\w{2,3}\.";
             this.uxProcessToolStrip.Items.Add(this.uxProcessAppsOnlyButton);
             this.uxProcessAndThreadSplitContainer.Panel1.Controls.Add(this.uxProcessToolStrip);
 
             this.uxThreadToolStrip.GripStyle = ToolStripGripStyle.Hidden;
+            this.uxThreadToolStrip.Items.Add(new ToolStripLabel("Thread"));
+            this.uxThreadToolStrip.Items.Add(new ToolStripSeparator());
             this.uxThreadToolStrip.Items.Add("Filter:");
-            this.uxThreadFilterTextBox.TextChanged += (s, e) => this.UpdateControlState();
+            this.uxThreadFilterTextBox.TextChanged += (s, e) =>
+            {
+                this.UpdateThreadList();
+                this.UpdateControlState();
+            };
             this.uxThreadToolStrip.Items.Add(this.uxThreadFilterTextBox);
             this.uxThreadFilterClearButton.Image = this.imageList1.Images["cross.png"];
             this.uxThreadFilterClearButton.Click += (s, e) => this.uxThreadFilterTextBox.Clear();
@@ -162,9 +156,8 @@ namespace Suconbu.Sumacon
 
             this.uxProcessAndThreadSplitContainer.Panel1.Controls.Add(panel);
 
-            panel.SetAllColumnWidth(70);
+            panel.SetAllColumnWidth(this.gridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
-            panel.Columns[nameof(ProcessInfo.Threads)].Visible = false;
             panel.Columns[nameof(ProcessInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         }
 
@@ -185,11 +178,10 @@ namespace Suconbu.Sumacon
 
             this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(panel);
 
-            panel.SetAllColumnWidth(70);
+            panel.SetAllColumnWidth(this.gridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
-            panel.Columns[nameof(ThreadInfo.Process)].Visible = false;
-            panel.Columns[nameof(ThreadInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            panel.Columns[nameof(ThreadInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ThreadViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ThreadViewInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
         }
 
         void UpdateControlState()
@@ -207,6 +199,8 @@ namespace Suconbu.Sumacon
                 return;
             }
 
+            var pv = processInfos.Select(p => new ProcessViewInfo(p));
+
             var filterText = this.uxProcessFilterTextBox.Text;
             if (!string.IsNullOrEmpty(filterText))
             {
@@ -216,21 +210,22 @@ namespace Suconbu.Sumacon
                     var inverted = filterText.StartsWith("-");
                     filterText = inverted ? filterText.Substring(1) : filterText;
                     var pattern = new Regex(filterText, RegexOptions.IgnoreCase);
-                    processInfos = processInfos.Where(p =>
+                    pv = pv.Where(p =>
                         inverted != (pattern.IsMatch($"{p.Pid}") || pattern.IsMatch($"{p.User}") || pattern.IsMatch($"{p.Name}")));
                 }
-                catch(ArgumentException ex)
+                catch (ArgumentException ex)
                 {
-                    ;// 正規表現の不正
+                    // 正規表現の不正
+                    Trace.TraceError(ex.ToString());
                 }
             }
 
             var processViewState = this.processGridPanel.GetViewState();
             this.processGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
-            var removes = this.processList.Except(processInfos, new ProcessInfoEqualityComparer()).ToArray();
+            var removes = this.processList.Except(pv, new ProcessInfoEqualityComparer()).ToArray();
             foreach (var p in removes) this.processList.Remove(p);
-            var adds = processInfos.Except(this.processList, new ProcessInfoEqualityComparer()).ToArray();
+            var adds = pv.Except(this.processList, new ProcessInfoEqualityComparer()).ToArray();
             foreach (var p in adds) this.processList.Add(p);
 
             this.processGridPanel.SetViewState(processViewState, GridViewState.ApplyTargets.SortedColumn | GridViewState.ApplyTargets.Selection);
@@ -246,37 +241,149 @@ namespace Suconbu.Sumacon
                 return;
             }
 
-            var threadInfos = new List<ThreadInfo>();
-            if (processInfos != null)
+            var tvList = new List<ThreadViewInfo>();
+            var processRows = new List<DataGridViewRow>();
+            foreach (DataGridViewRow row in this.processGridPanel.SelectedRows) processRows.Add(row);
+            if (processRows.Count == 0)
             {
-                var rows = new List<DataGridViewRow>();
-                foreach (DataGridViewRow row in this.processGridPanel.SelectedRows) rows.Add(row);
-                if (rows.Count == 0)
-                {
-                    // 何も選択されてなければ全部
-                    foreach (DataGridViewRow row in this.processGridPanel.Rows) rows.Add(row);
-                }
+                // 何も選択されてなければ全部
+                foreach (DataGridViewRow row in this.processGridPanel.Rows) processRows.Add(row);
+            }
 
-                foreach (DataGridViewRow row in rows)
+            foreach (DataGridViewRow row in processRows)
+            {
+                var processInfo = processInfos[(int)row.Cells[nameof(ProcessViewInfo.Pid)].Value];
+                if (processInfo != null)
                 {
-                    var p = processInfos[(int)row.Cells["PID"].Value];
-                    if (p != null)
-                    {
-                        threadInfos.AddRange(p.Threads.Values);
-                    }
+                    tvList.AddRange(processInfo.Threads.Values.Select(t => new ThreadViewInfo(t)));
+                }
+            }
+
+            var tv = (IEnumerable<ThreadViewInfo>)tvList;
+            var filterText = this.uxThreadFilterTextBox.Text;
+            if (!string.IsNullOrEmpty(filterText))
+            {
+                // フィルタ適用
+                try
+                {
+                    var inverted = filterText.StartsWith("-");
+                    filterText = inverted ? filterText.Substring(1) : filterText;
+                    var pattern = new Regex(filterText, RegexOptions.IgnoreCase);
+                    tv = tv.Where(t =>
+                        inverted != (pattern.IsMatch($"{t.Tid}") || pattern.IsMatch($"{t.Name}") || pattern.IsMatch($"{t.ProcessName}")));
+                }
+                catch (ArgumentException ex)
+                {
+                    // 正規表現の不正
+                    Trace.TraceError(ex.ToString());
                 }
             }
 
             var threadViewState = this.threadGridPanel.GetViewState();
             this.threadGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
-            var removes = this.threadList.Except(threadInfos, new ThreadInfoEqualityComparer()).ToArray();
+            var removes = this.threadList.Except(tv, new ThreadInfoEqualityComparer()).ToArray();
             foreach (var t in removes) this.threadList.Remove(t);
-            var adds = threadInfos.Except(this.threadList, new ThreadInfoEqualityComparer()).ToArray();
+            var adds = tv.Except(this.threadList, new ThreadInfoEqualityComparer()).ToArray();
             foreach (var t in adds) this.threadList.Add(t);
 
             this.threadGridPanel.SetViewState(threadViewState, GridViewState.ApplyTargets.SortedColumn | GridViewState.ApplyTargets.Selection);
             this.threadGridPanel.UnsuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
+        }
+
+        void UpdateCpuUsage(TopSnapshot top)
+        {
+            foreach (var p in this.processList)
+            {
+                p.Cpu = top.GetProcessCpu(p.Pid);
+            }
+            foreach (var t in this.threadList)
+            {
+                t.Cpu = top.GetThreadCpu(t.Tid);
+            }
+            Console.Beep(1000, 200);
+        }
+    }
+
+    class ProcessViewInfo
+    {
+        public int Pid { get; private set; }
+        public int Priority { get; private set; }
+        public float Cpu { get; set; }
+        public uint Vsize { get; private set; }
+        public uint Rsize { get; private set; }
+        public string User { get; private set; }
+        public int ThreadCount { get; private set; }
+        public string Name { get; private set; }
+
+        public ProcessViewInfo(ProcessInfo pi)
+        {
+            this.Pid = pi.Pid;
+            this.Priority = pi.Priority;
+            this.Cpu = 0.0f;
+            this.Vsize = pi.Vsize;
+            this.Rsize = pi.Rsize;
+            this.User = pi.User;
+            this.ThreadCount = pi.Threads.Count;
+            this.Name = pi.Name;
+        }
+    }
+
+    class ProcessInfoEqualityComparer : IEqualityComparer<ProcessViewInfo>
+    {
+        public bool Equals(ProcessViewInfo a, ProcessViewInfo b)
+        {
+            if (b == null && a == null)
+                return true;
+            else if (a == null || b == null)
+                return false;
+            else if (a.Pid == b.Pid)
+                return true;
+            else
+                return false;
+        }
+
+        public int GetHashCode(ProcessViewInfo p)
+        {
+            return p.Pid;
+        }
+    }
+
+    class ThreadViewInfo
+    {
+        public int Tid { get; private set; }
+        public int Priority { get; private set; }
+        public float Cpu { get; set; }
+        public string Name { get; private set; }
+        public string ProcessName { get; private set; }
+
+        public ThreadViewInfo(ThreadInfo ti)
+        {
+            this.Tid = ti.Tid;
+            this.Priority = ti.Priority;
+            this.Cpu = 0.0f;
+            this.Name = ti.Name;
+            this.ProcessName = $"{ti.Process.Pid}: {ti.Process.Name}";
+        }
+    }
+
+    class ThreadInfoEqualityComparer : IEqualityComparer<ThreadViewInfo>
+    {
+        public bool Equals(ThreadViewInfo a, ThreadViewInfo b)
+        {
+            if (b == null && a == null)
+                return true;
+            else if (a == null || b == null)
+                return false;
+            else if (a.Tid == b.Tid)
+                return true;
+            else
+                return false;
+        }
+
+        public int GetHashCode(ThreadViewInfo p)
+        {
+            return p.Tid;
         }
     }
 }
