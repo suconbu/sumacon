@@ -159,6 +159,16 @@ namespace Suconbu.Sumacon
             panel.Columns[nameof(ProcessViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
             panel.Columns[nameof(ProcessViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
+            var barPainter = new GridPanel.NumericCellPaintData()
+            {
+                Type = GridPanel.CellPaintType.Bar,
+                PaintColor = this.colorSet.Accent1,
+                MinValue = 0.0,
+                MaxValue = 100.0
+            };
+            panel.Columns[nameof(ProcessViewInfo.Cpu)].Tag = barPainter;
+            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].Tag = barPainter;
+
             // デフォルトはCPU使用率の降順
             panel.SortColumn(panel.Columns[nameof(ProcessViewInfo.Cpu)], ListSortDirection.Descending);
         }
@@ -185,6 +195,16 @@ namespace Suconbu.Sumacon
             panel.Columns[nameof(ThreadViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
             panel.Columns[nameof(ThreadViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             panel.Columns[nameof(ThreadViewInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+
+            var barPainter = new GridPanel.NumericCellPaintData()
+            {
+                Type = GridPanel.CellPaintType.Bar,
+                PaintColor = this.colorSet.Accent1,
+                MinValue = 0.0,
+                MaxValue = 100.0
+            };
+            panel.Columns[nameof(ThreadViewInfo.Cpu)].Tag = barPainter;
+            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].Tag = barPainter;
 
             // デフォルトはCPU使用率の降順
             panel.SortColumn(panel.Columns[nameof(ThreadViewInfo.Cpu)], ListSortDirection.Descending);
