@@ -38,7 +38,7 @@ namespace Suconbu.Sumacon
             this.detector.Connected += this.Detector_Connected;
             this.detector.Disconnected += this.Detector_Disconnected;
 
-            this.intervalMilliseconds[Device.UpdatableProperties.Component] = 30 * 1000;
+            //this.intervalMilliseconds[Device.UpdatableProperties.Component] = 30 * 1000;
             this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 10 * 1000;
 #if DEBUG
             this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 5 * 1000;
@@ -168,7 +168,7 @@ namespace Suconbu.Sumacon
             this.susupendRequestedCount[device.Serial] = 0;
 
             this.intervalIds[device] = new Dictionary<Device.UpdatableProperties, string>();
-            foreach (Device.UpdatableProperties updatableProperty in Enum.GetValues(typeof(Device.UpdatableProperties)))
+            foreach(var updatableProperty in this.intervalMilliseconds.Keys)
             {
                 device.UpdatePropertiesAsync(updatableProperty);
                 this.intervalIds[device][updatableProperty] = Delay.SetInterval(() =>
@@ -183,7 +183,7 @@ namespace Suconbu.Sumacon
 
         void StopPropertyUpdate(Device device)
         {
-            foreach (Device.UpdatableProperties updatableProperty in Enum.GetValues(typeof(Device.UpdatableProperties)))
+            foreach (var updatableProperty in this.intervalMilliseconds.Keys)
             {
                 Delay.ClearInterval(this.intervalIds[device][updatableProperty]);
             }
