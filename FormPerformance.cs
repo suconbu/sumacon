@@ -27,16 +27,17 @@ namespace Suconbu.Sumacon
         GridPanel processGridPanel = new GridPanel();
         GridPanel threadGridPanel = new GridPanel();
         ColorSet colorSet = ColorSet.Light;
-        SortableBindingList<ProcessViewInfo> processList = new SortableBindingList<ProcessViewInfo>();
-        SortableBindingList<ThreadViewInfo> threadList = new SortableBindingList<ThreadViewInfo>();
+        SortableBindingList<ProcessViewEntry> processList = new SortableBindingList<ProcessViewEntry>();
+        SortableBindingList<ThreadViewEntry> threadList = new SortableBindingList<ThreadViewEntry>();
         StatusStrip uxStatusStrip = new StatusStrip();
         ToolStripStatusLabel uxStatusLabel = new ToolStripStatusLabel();
         TopContext topContext;
         TopSnapshot lastTop;
+        bool processesUpdated;
 
         readonly int kGridPanelColumnDefaultWidth = 70;
-        readonly int kTopIntervalSeconds = 1;
-        readonly int kCpuPeakRange = 10;
+        readonly int kTopIntervalSeconds = 2;
+        readonly int kCpuPeakRange = 5;
         readonly Color kCpuCellPaintColor;
         readonly double kCpuCellPaintValueMin = 0.0;
         readonly double kCpuCellPaintValueMax = 50.0;
@@ -70,7 +71,7 @@ namespace Suconbu.Sumacon
             this.topContext?.Close();
             if (this.sumacon.DeviceManager.ActiveDevice != null)
             {
-                this.sumacon.DeviceManager.ActiveDevice.ProcessInfosChanged -= this.Device_ProcessInfosChanged;
+                this.sumacon.DeviceManager.ActiveDevice.ProcessesChanged -= this.Device_ProcessesChanged;
             }
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
@@ -86,7 +87,7 @@ namespace Suconbu.Sumacon
                 //}));
                 this.SafeInvoke(() =>
                 {
-                    device.ProcessInfosChanged += this.Device_ProcessInfosChanged;
+                    device.ProcessesChanged += this.Device_ProcessesChanged;
                     this.topContext?.Close();
                     this.topContext = TopContext.Start(device, this.kTopIntervalSeconds, this.TopContext_Received);
                     this.UpdateControlState();
@@ -99,19 +100,24 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void Device_ProcessInfosChanged(object sender, EventArgs e)
+        void Device_ProcessesChanged(object sender, EventArgs e)
         {
-            this.SafeInvoke(() =>
-            {
-                this.UpdateProcessList();
-                this.UpdateThreadList();
-                this.UpdateControlState();
-            });
+            this.SafeInvoke(() => this.processesUpdated = true);
         }
 
         void TopContext_Received(object sender, TopSnapshot top)
         {
-            this.SafeInvoke(() => this.UpdateCpuUsage(top));
+            this.SafeInvoke(() =>
+            {
+                if (this.processesUpdated)
+                {
+                    this.processesUpdated = false;
+                    this.UpdateProcessList();
+                    this.UpdateThreadList();
+                    this.UpdateControlState();
+                }
+                this.UpdateCpuUsage(top);
+            });
         }
 
         void SetupToolStrip()
@@ -168,7 +174,7 @@ namespace Suconbu.Sumacon
             panel.Dock = DockStyle.Fill;
             panel.ApplyColorSet(this.colorSet);
             panel.DataSource = this.processList;
-            panel.KeyColumnName = nameof(ProcessViewInfo.Pid);
+            panel.KeyColumnName = nameof(ProcessViewEntry.Pid);
 
             panel.SuppressibleSelectionChanged += this.ProcessGridPanel_SuppressibleSelectionChanged;
 
@@ -176,8 +182,10 @@ namespace Suconbu.Sumacon
 
             panel.SetAllColumnWidth(this.kGridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
-            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
-            panel.Columns[nameof(ProcessViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ProcessViewEntry.Vss)].DefaultCellStyle.Format = "#,0";
+            panel.Columns[nameof(ProcessViewEntry.Rss)].DefaultCellStyle.Format = "#,0";
+            panel.Columns[nameof(ProcessViewEntry.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
+            panel.Columns[nameof(ProcessViewEntry.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             var cpuCellPainter = new GridPanel.NumericCellPaintData()
             {
@@ -186,11 +194,11 @@ namespace Suconbu.Sumacon
                 MinValue = this.kCpuCellPaintValueMin,
                 MaxValue = this.kCpuCellPaintValueMax
             };
-            panel.Columns[nameof(ProcessViewInfo.Cpu)].Tag = cpuCellPainter;
-            panel.Columns[nameof(ProcessViewInfo.CpuPeak)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ProcessViewEntry.Cpu)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ProcessViewEntry.CpuPeak)].Tag = cpuCellPainter;
 
             // デフォルトはCPU使用率の降順
-            panel.SortColumn(panel.Columns[nameof(ProcessViewInfo.Cpu)], ListSortDirection.Descending);
+            panel.SortColumn(panel.Columns[nameof(ProcessViewEntry.Cpu)], ListSortDirection.Descending);
         }
 
         void ProcessGridPanel_SuppressibleSelectionChanged(object sender, EventArgs e)
@@ -207,15 +215,15 @@ namespace Suconbu.Sumacon
             panel.AutoGenerateColumns = true;
 
             panel.DataSource = this.threadList;
-            panel.KeyColumnName = nameof(ThreadInfo.Tid);
+            panel.KeyColumnName = nameof(ThreadEntry.Tid);
 
             this.uxProcessAndThreadSplitContainer.Panel2.Controls.Add(panel);
 
             panel.SetAllColumnWidth(this.kGridPanelColumnDefaultWidth);
             panel.SetDefaultCellStyle();
-            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
-            panel.Columns[nameof(ThreadViewInfo.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            panel.Columns[nameof(ThreadViewInfo.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ThreadViewEntry.CpuPeak)].ToolTipText = $"Peak CPU usage (%) for the last {this.kTopIntervalSeconds * this.kCpuPeakRange} seconds.";
+            panel.Columns[nameof(ThreadViewEntry.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            panel.Columns[nameof(ThreadViewEntry.ProcessName)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             var cpuCellPainter = new GridPanel.NumericCellPaintData()
             {
@@ -224,21 +232,21 @@ namespace Suconbu.Sumacon
                 MinValue = this.kCpuCellPaintValueMin,
                 MaxValue = this.kCpuCellPaintValueMax
             };
-            panel.Columns[nameof(ThreadViewInfo.Cpu)].Tag = cpuCellPainter;
-            panel.Columns[nameof(ThreadViewInfo.CpuPeak)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ThreadViewEntry.Cpu)].Tag = cpuCellPainter;
+            panel.Columns[nameof(ThreadViewEntry.CpuPeak)].Tag = cpuCellPainter;
 
             // デフォルトはCPU使用率の降順
-            panel.SortColumn(panel.Columns[nameof(ThreadViewInfo.Cpu)], ListSortDirection.Descending);
+            panel.SortColumn(panel.Columns[nameof(ThreadViewEntry.Cpu)], ListSortDirection.Descending);
         }
 
         void UpdateControlState()
         {
-            var processInfos = this.sumacon.DeviceManager.ActiveDevice?.ProcessInfos?.ProcessInfos;
+            var processes = this.sumacon.DeviceManager.ActiveDevice?.Processes;
             
             int pShown = this.processGridPanel.RowCount;
-            int pTotal = processInfos?.Count() ?? 0;
+            int pTotal = processes?.Count() ?? 0;
             int tShown = this.threadGridPanel.RowCount;
-            int tTotal = processInfos?.Sum(p => p.Threads.Count) ?? 0;
+            int tTotal = processes?.Sum(p => p.Threads.Count()) ?? 0;
             this.uxStatusLabel.Text = $"{pShown}/{pTotal} processes, {tShown}/{tTotal} threads. CPU:{this.lastTop?.TotalCpu ?? 0}%";
 
             this.uxProcessFilterClearButton.Enabled = !string.IsNullOrEmpty(this.uxProcessFilterTextBox.Text);
@@ -247,14 +255,14 @@ namespace Suconbu.Sumacon
 
         void UpdateProcessList()
         {
-            var processInfos = this.sumacon.DeviceManager.ActiveDevice?.ProcessInfos?.ProcessInfos;
-            if (processInfos == null)
+            var processes = this.sumacon.DeviceManager.ActiveDevice?.Processes;
+            if (processes == null)
             {
                 this.processList.Clear();
                 return;
             }
 
-            var pv = processInfos.Select(p => new ProcessViewInfo(p, this.kCpuPeakRange));
+            var pv = processes.Select(p => new ProcessViewEntry(p, this.kCpuPeakRange));
 
             var filterText = this.uxProcessFilterTextBox.Text;
             if (!string.IsNullOrEmpty(filterText))
@@ -278,9 +286,9 @@ namespace Suconbu.Sumacon
             var processViewState = this.processGridPanel.GetViewState();
             this.processGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
-            var removes = this.processList.Except(pv, new ProcessInfoEqualityComparer()).ToArray();
+            var removes = this.processList.Except(pv, new ProcessRecordEqualityComparer()).ToArray();
             foreach (var p in removes) this.processList.Remove(p);
-            var adds = pv.Except(this.processList, new ProcessInfoEqualityComparer()).ToArray();
+            var adds = pv.Except(this.processList, new ProcessRecordEqualityComparer()).ToArray();
             foreach (var p in adds) this.processList.Add(p);
 
             this.processGridPanel.SetViewState(processViewState, GridViewState.ApplyTargets.SortedColumn | GridViewState.ApplyTargets.Selection);
@@ -289,14 +297,14 @@ namespace Suconbu.Sumacon
 
         void UpdateThreadList()
         {
-            var processInfos = this.sumacon.DeviceManager.ActiveDevice?.ProcessInfos;
-            if (processInfos == null)
+            var processes = this.sumacon.DeviceManager.ActiveDevice?.Processes;
+            if (processes == null)
             {
                 this.threadList.Clear();
                 return;
             }
 
-            var tvList = new List<ThreadViewInfo>();
+            var tvList = new List<ThreadViewEntry>();
             var processRows = new List<DataGridViewRow>();
             foreach (DataGridViewRow row in this.processGridPanel.SelectedRows) processRows.Add(row);
             if (processRows.Count == 0)
@@ -307,14 +315,14 @@ namespace Suconbu.Sumacon
 
             foreach (DataGridViewRow row in processRows)
             {
-                var processInfo = processInfos[(int)row.Cells[nameof(ProcessViewInfo.Pid)].Value];
-                if (processInfo != null)
+                var process = processes[(int)row.Cells[nameof(ProcessViewEntry.Pid)].Value];
+                if (process != null)
                 {
-                    tvList.AddRange(processInfo.Threads.Values.Select(t => new ThreadViewInfo(t, this.kCpuPeakRange)));
+                    tvList.AddRange(process.Threads.Select(t => new ThreadViewEntry(t, this.kCpuPeakRange)));
                 }
             }
 
-            var tv = (IEnumerable<ThreadViewInfo>)tvList;
+            var tv = (IEnumerable<ThreadViewEntry>)tvList;
             var filterText = this.uxThreadFilterTextBox.Text;
             if (!string.IsNullOrEmpty(filterText))
             {
@@ -337,9 +345,9 @@ namespace Suconbu.Sumacon
             var threadViewState = this.threadGridPanel.GetViewState();
             this.threadGridPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
 
-            var removes = this.threadList.Except(tv, new ThreadInfoEqualityComparer()).ToArray();
+            var removes = this.threadList.Except(tv, new ThreadRecordEqualityComparer()).ToArray();
             foreach (var t in removes) this.threadList.Remove(t);
-            var adds = tv.Except(this.threadList, new ThreadInfoEqualityComparer()).ToArray();
+            var adds = tv.Except(this.threadList, new ThreadRecordEqualityComparer()).ToArray();
             foreach (var t in adds) this.threadList.Add(t);
 
             this.threadGridPanel.SetViewState(threadViewState, GridViewState.ApplyTargets.SortedColumn | GridViewState.ApplyTargets.Selection);
@@ -364,14 +372,14 @@ namespace Suconbu.Sumacon
         }
     }
 
-    class ProcessViewInfo
+    class ProcessViewEntry
     {
         public int Pid { get; private set; }
         public int Priority { get; private set; }
         public float Cpu { get; private set; }
         public float CpuPeak { get { return this.cpuHistory.Max(); } }
-        public uint Vsize { get; private set; }
-        public uint Rsize { get; private set; }
+        public uint Vss { get; private set; }
+        public uint Rss { get; private set; }
         public string User { get; private set; }
         public int ThreadCount { get; private set; }
         public string Name { get; private set; }
@@ -379,15 +387,15 @@ namespace Suconbu.Sumacon
         Queue<float> cpuHistory = new Queue<float>(new[] { 0.0f });
         readonly int cpuPeakRange;
 
-        public ProcessViewInfo(ProcessInfo pi, int cpuPeakRange)
+        public ProcessViewEntry(ProcessEntry pi, int cpuPeakRange)
         {
             this.Pid = pi.Pid;
             this.Priority = pi.Priority;
             this.Cpu = 0.0f;
-            this.Vsize = pi.Vsize;
-            this.Rsize = pi.Rsize;
+            this.Vss = pi.Vss;
+            this.Rss = pi.Rss;
             this.User = pi.User;
-            this.ThreadCount = pi.Threads.Count;
+            this.ThreadCount = pi.Threads.Count();
             this.Name = pi.Name;
             this.cpuPeakRange = cpuPeakRange;
         }
@@ -403,27 +411,13 @@ namespace Suconbu.Sumacon
         }
     }
 
-    class ProcessInfoEqualityComparer : IEqualityComparer<ProcessViewInfo>
+    class ProcessRecordEqualityComparer : IEqualityComparer<ProcessViewEntry>
     {
-        public bool Equals(ProcessViewInfo a, ProcessViewInfo b)
-        {
-            if (b == null && a == null)
-                return true;
-            else if (a == null || b == null)
-                return false;
-            else if (a.Pid == b.Pid)
-                return true;
-            else
-                return false;
-        }
-
-        public int GetHashCode(ProcessViewInfo p)
-        {
-            return p.Pid;
-        }
+        public bool Equals(ProcessViewEntry a, ProcessViewEntry b) { return a?.Pid == b?.Pid; }
+        public int GetHashCode(ProcessViewEntry p) { return p.Pid; }
     }
 
-    class ThreadViewInfo
+    class ThreadViewEntry
     {
         public int Tid { get; private set; }
         public int Priority { get; private set; }
@@ -433,22 +427,22 @@ namespace Suconbu.Sumacon
         public string ProcessName { get; private set; }
 
         Queue<float> cpuHistory = new Queue<float>(new[] { 0.0f });
-        readonly int cpuPeakRange;
+        readonly int cpuPeakCount;
 
-        public ThreadViewInfo(ThreadInfo ti, int cpuPeakRange)
+        public ThreadViewEntry(ThreadEntry ti, int cpuPeakCount)
         {
             this.Tid = ti.Tid;
             this.Priority = ti.Priority;
             this.Cpu = 0.0f;
             this.Name = ti.Name;
             this.ProcessName = $"{ti.Process.Pid}: {ti.Process.Name}";
-            this.cpuPeakRange = cpuPeakRange;
+            this.cpuPeakCount = cpuPeakCount;
         }
 
         public void SetCpuUsage(float cpu)
         {
             this.Cpu = cpu;
-            if (this.cpuHistory.Count >= this.cpuPeakRange)
+            if (this.cpuHistory.Count >= this.cpuPeakCount)
             {
                 this.cpuHistory.Dequeue();
             }
@@ -456,23 +450,9 @@ namespace Suconbu.Sumacon
         }
     }
 
-    class ThreadInfoEqualityComparer : IEqualityComparer<ThreadViewInfo>
+    class ThreadRecordEqualityComparer : IEqualityComparer<ThreadViewEntry>
     {
-        public bool Equals(ThreadViewInfo a, ThreadViewInfo b)
-        {
-            if (b == null && a == null)
-                return true;
-            else if (a == null || b == null)
-                return false;
-            else if (a.Tid == b.Tid)
-                return true;
-            else
-                return false;
-        }
-
-        public int GetHashCode(ThreadViewInfo p)
-        {
-            return p.Tid;
-        }
+        public bool Equals(ThreadViewEntry a, ThreadViewEntry b) { return a?.Tid == b?.Tid; }
+        public int GetHashCode(ThreadViewEntry p) { return p.Tid; }
     }
 }

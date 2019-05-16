@@ -25,7 +25,7 @@ namespace Suconbu.Mobile
         [Flags]
         public enum UpdatableProperties { Component = 0x1, ProcessInfo = 0x2 }
 
-        public event EventHandler ProcessInfosChanged = delegate { };
+        public event EventHandler ProcessesChanged = delegate { };
 
         // e.g. HXC8KSKL24PZB
         [Category(ComponentCategory.System)]
@@ -133,7 +133,7 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public Screen Screen { get; private set; }
         [Browsable(false)]
-        public ProcessInfoCollection ProcessInfos { get; private set; }
+        public EntryCollection<int, ProcessEntry> Processes { get; private set; }
 
         DeviceData deviceData;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
@@ -176,11 +176,11 @@ namespace Suconbu.Mobile
 
             if (properties.HasFlag(UpdatableProperties.ProcessInfo))
             {
-                contexts.Add(ProcessInfo.GetAsync(this, p =>
+                contexts.Add(ProcessEntry.GetAsync(this, p =>
                 {
-                    this.ProcessInfos = p;
+                    this.Processes = p;
                     this.InvokeReadyHandlers(UpdatableProperties.ProcessInfo);
-                    this.ProcessInfosChanged(this, EventArgs.Empty);
+                    this.ProcessesChanged(this, EventArgs.Empty);
                 }));
             }
 

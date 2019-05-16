@@ -21,22 +21,9 @@ namespace Suconbu.Mobile
         public int Count { get { return this.receivedLogs.Count; } }
 
         readonly List<Log> receivedLogs = new List<Log>();
-        //readonly List<Log> temporaryLogs = new List<Log>();
-        //SemaphoreSlim receivedLogsSemaphore = new SemaphoreSlim(1);
         CommandContext logcatContext;
         bool suspended;
         int nextNo = 0;
-
-        /// <summary>
-        ///// Initialize instance.
-        ///// Does not start receiving until you call the 'Start' method.
-        ///// </summary>
-        //public LogContext(Device device, LogSetting setting)
-        //{
-        //    this.Device = device ?? throw new ArgumentNullException(nameof(device));
-        //    this.Setting = setting ?? throw new ArgumentNullException(nameof(setting));
-        //    this.StartInternal(false);
-        //}
 
         public static LogContext Open(Device device, LogSetting setting)
         {
@@ -65,17 +52,6 @@ namespace Suconbu.Mobile
             }
             return takens;
         }
-
-        //public IReadOnlyList<Log> LockLogs()
-        //{
-        //    this.receivedLogsSemaphore.Wait();
-        //    return this.receivedLogs;
-        //}
-
-        //public void UnlockLogs()
-        //{
-        //    this.receivedLogsSemaphore.Release();
-        //}
 
         public bool Suspended
         {
@@ -153,19 +129,13 @@ namespace Suconbu.Mobile
 
         void OnOutput(string output)
         {
-            var log = Log.FromString(this.nextNo, output, this.Device.ProcessInfos);
+            var log = Log.FromString(this.nextNo, output, this.Device.Processes);
             if (log == null) return;
-            //this.receivedLogsSemaphore.Wait();
             this.nextNo++;
             lock (this.receivedLogs)
             {
                 this.receivedLogs.Add(log);
             }
-            //this.receivedLogsSemaphore.Release();
-            //lock (this.receivedLogs)
-            //{
-            //    this.receivedLogs.Add(log);
-            //}
             this.Received(this, log);
         }
 
@@ -195,7 +165,7 @@ namespace Suconbu.Mobile
         public string ThreadName { get; private set; }
         public string Message { get; private set; }
 
-        public static Log FromString(int no, string input, ProcessInfoCollection processInfos = null)
+        public static Log FromString(int no, string input, EntryCollection<int, ProcessEntry> processes = null)
         {
             var timestampLength = 18;
             if (string.IsNullOrEmpty(input) || input.Length < timestampLength) return null;
@@ -216,13 +186,13 @@ namespace Suconbu.Mobile
                 instance.Tid = int.Parse(match.Groups[2].Value);
                 instance.ProcessName = string.Empty;
                 instance.ThreadName = string.Empty;
-                if (processInfos != null)
+                if (processes != null)
                 {
-                    var processInfo = processInfos[instance.Pid];
+                    var processInfo = processes[instance.Pid];
                     if (processInfo != null)
                     {
                         instance.ProcessName = processInfo.Name;
-                        instance.ThreadName = processInfo.Threads.TryGetValue(instance.Tid, out var thread) ? thread.Name : string.Empty;
+                        instance.ThreadName = processInfo.Threads[instance.Tid]?.Name ?? string.Empty;
                     }
                 }
                 instance.Priority = (PriorityCode)Enum.Parse(typeof(PriorityCode), match.Groups[3].Value);
