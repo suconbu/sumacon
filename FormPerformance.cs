@@ -76,28 +76,14 @@ namespace Suconbu.Sumacon
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            this.ChangeDevice(this.Visible ? this.sumacon.DeviceManager.ActiveDevice : null);
+        }
+
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null)
-            {
-                //device.InvokeIfProcessInfosIsReady(() => this.SafeInvoke(() =>
-                //{
-                //    this.UpdateControlState();
-                //}));
-                this.SafeInvoke(() =>
-                {
-                    device.ProcessesChanged += this.Device_ProcessesChanged;
-                    this.topContext?.Close();
-                    this.topContext = TopContext.Start(device, this.kTopIntervalSeconds, this.TopContext_Received);
-                    this.UpdateControlState();
-                });
-            }
-            else
-            {
-                this.topContext?.Close();
-                this.SafeInvoke(this.UpdateControlState);
-            }
+            this.SafeInvoke(() => this.ChangeDevice(this.sumacon.DeviceManager.ActiveDevice));
         }
 
         void Device_ProcessesChanged(object sender, EventArgs e)
@@ -118,6 +104,21 @@ namespace Suconbu.Sumacon
                 }
                 this.UpdateCpuUsage(top);
             });
+        }
+
+        void ChangeDevice(Device device)
+        {
+            if (device != null)
+            {
+                device.ProcessesChanged += this.Device_ProcessesChanged;
+                this.topContext?.Close();
+                this.topContext = TopContext.Start(device, this.kTopIntervalSeconds, this.TopContext_Received);
+            }
+            else
+            {
+                this.topContext?.Close();
+            }
+            this.UpdateControlState();
         }
 
         void SetupToolStrip()
