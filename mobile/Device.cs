@@ -54,6 +54,9 @@ namespace Suconbu.Mobile
         // e.g. arm64-v8a
         [Category(ComponentCategory.System)]
         public string CpuAbi { get { return (string)this.system[nameof(this.CpuAbi)].Value; } }
+        // e.g. 1836
+        [Category(ComponentCategory.System), Description("(MB)")]
+        public int RAM { get { return (int)this.system[nameof(this.RAM)].Value / 1024; } }
         // e.g. 7.1.1
         [Category(ComponentCategory.System)]
         public string AndroidVersion { get { return (string)this.system[nameof(this.AndroidVersion)].Value; } }
