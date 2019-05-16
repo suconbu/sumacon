@@ -48,6 +48,9 @@ namespace Suconbu.Mobile
         // e.g. tegra132
         [Category(ComponentCategory.System)]
         public string Platform { get { return (string)this.system[nameof(this.Platform)].Value; } }
+        // e.g. 8
+        [Category(ComponentCategory.System)]
+        public int CpuCount { get { return (int)this.system[nameof(this.CpuCount)].Value; } }
         // e.g. arm64-v8a
         [Category(ComponentCategory.System)]
         public string CpuAbi { get { return (string)this.system[nameof(this.CpuAbi)].Value; } }
