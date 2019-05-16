@@ -26,7 +26,7 @@ namespace Suconbu.Sumacon
         ToolStripLabel deviceInfoLabel = new ToolStripLabel();
         ToolStripButton airplaneModeButton = new ToolStripButton() { CheckOnClick = true };
         ToolStripButton showTouchesButton = new ToolStripButton() { CheckOnClick = true };
-        ToolStripLabel memoryInfoLabel = new ToolStripLabel();
+        //ToolStripLabel memoryInfoLabel = new ToolStripLabel();
         Timer memoryTimer = new Timer() { Interval = 1000 };
 
         Sumacon sumacon = new Sumacon();
@@ -60,9 +60,9 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(this.airplaneModeButton);
             this.statusStrip1.Items.Add(this.showTouchesButton);
             this.statusStrip1.Items.Add(new ToolStripStatusLabel() { Spring = true });
-#if DEBUG
-            this.statusStrip1.Items.Add(this.memoryInfoLabel);
-#endif
+//#if DEBUG
+//            this.statusStrip1.Items.Add(this.memoryInfoLabel);
+//#endif
 
             this.consoleForm = new FormConsole(this.sumacon);
             this.consoleForm.Text = "Console";
@@ -94,8 +94,8 @@ namespace Suconbu.Sumacon
             this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
             this.showTouchesButton.Click += this.ShowTouchesButton_Click;
 
-            this.memoryTimer.Tick += this.MemoryTimer_Tick;
-            this.memoryTimer.Start();
+            //this.memoryTimer.Tick += this.MemoryTimer_Tick;
+            //this.memoryTimer.Start();
 
             this.sumacon.DeviceManager.StartDeviceDetection();
         }
@@ -210,9 +210,9 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void MemoryTimer_Tick(object sender, EventArgs e)
-        {
-            this.memoryInfoLabel.Text = $"{GC.GetTotalMemory(false):#,##0} byte";
-        }
+        //void MemoryTimer_Tick(object sender, EventArgs e)
+        //{
+        //    this.memoryInfoLabel.Text = $"{GC.GetTotalMemory(false):#,##0} byte";
+        //}
     }
 }
