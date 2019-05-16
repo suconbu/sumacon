@@ -219,8 +219,11 @@ namespace Suconbu.Mobile
                 if (processInfos != null)
                 {
                     var processInfo = processInfos[instance.Pid];
-                    instance.ProcessName = processInfo.Name;
-                    instance.ThreadName = processInfo.Threads.TryGetValue(instance.Tid, out var thread) ? thread.Name : string.Empty;
+                    if (processInfo != null)
+                    {
+                        instance.ProcessName = processInfo.Name;
+                        instance.ThreadName = processInfo.Threads.TryGetValue(instance.Tid, out var thread) ? thread.Name : string.Empty;
+                    }
                 }
                 instance.Priority = (PriorityCode)Enum.Parse(typeof(PriorityCode), match.Groups[3].Value);
                 instance.Tag = match.Groups[4].Value;

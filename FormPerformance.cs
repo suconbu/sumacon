@@ -352,14 +352,15 @@ namespace Suconbu.Sumacon
             {
                 p.SetCpuUsage(top.GetProcessCpu(p.Pid));
             }
+            this.processGridPanel.SortColumn(this.processGridPanel.SortedColumn, this.processGridPanel.SortOrder == SortOrder.Descending ? ListSortDirection.Descending : ListSortDirection.Ascending);
+
             foreach (var t in this.threadList)
             {
                 t.SetCpuUsage(top.GetThreadCpu(t.Tid));
             }
-            this.processGridPanel.Invalidate();
-            this.threadGridPanel.Invalidate();
+            this.threadGridPanel.SortColumn(this.threadGridPanel.SortedColumn, this.threadGridPanel.SortOrder == SortOrder.Descending ? ListSortDirection.Descending : ListSortDirection.Ascending);
+
             this.lastTop = top;
-            //Console.Beep(1000, 200);
         }
     }
 

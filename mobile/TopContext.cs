@@ -37,12 +37,9 @@ namespace Suconbu.Mobile
                 return result;
             });
 
-            var command = $"shell top -H -d {intervalSeconds} -s 2 -o PID,TID,%CPU";
-            //var command = $"shell top -b -H -d {intervalSeconds} -s 2 -o TID,%CPU";
-            if(instance.oldStyle)
-            {
-                command = $"shell top -H -m 50 -d {intervalSeconds} -s cpu";
-            }
+            var command = instance.oldStyle ?
+                $"shell top -H -m 50 -d {intervalSeconds} -s cpu" :
+                $"shell top -H -d {intervalSeconds} -s 3 -o PID,TID,%CPU";
             instance.context = instance.context = device.RunCommandAsync(command, instance.OnOutput);
 
             return instance;
@@ -57,10 +54,9 @@ namespace Suconbu.Mobile
         {
             if (string.IsNullOrEmpty(output)) return;
 
-            if(this.oldStyle && output.StartsWith("user", StringComparison.CurrentCultureIgnoreCase) ||
-                !this.oldStyle && output.StartsWith("tasks", StringComparison.CurrentCultureIgnoreCase))
-            //if ((output.StartsWith("Mem") || output.StartsWith("Tasks")) &&
-            //    (this.currentTopInfo == null || this.currentTopInfo.CpuByThreads.Count > 0))
+            if (!this.oldStyle && output.StartsWith("tasks", StringComparison.CurrentCultureIgnoreCase) ||
+                !this.oldStyle && output.StartsWith("mem:", StringComparison.CurrentCultureIgnoreCase) ||
+                this.oldStyle && output.StartsWith("user", StringComparison.CurrentCultureIgnoreCase))
             {
                 // はじまり
                 if (this.currentTop == null || this.currentTop.CpuByTid.Count > 0)
@@ -91,36 +87,19 @@ namespace Suconbu.Mobile
 
         bool ParseLine(string input, out int pid, out int tid, out float cpu)
         {
-            bool result = false;
+            // Old: 27732 27732 shell    20   0  24% R   9080K   2488K  fg top             top
+
             pid = 0;
             tid = 0;
             cpu = 0.0f;
 
             var tokens = input.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (!int.TryParse(tokens[0], out var dummy)) return false;
 
-            try
-            {
-                if (tokens.Length == 2)
-                {
-                    pid = int.Parse(tokens[0]);
-                    tid = int.Parse(tokens[1]);
-                    cpu = float.Parse(tokens[2]);
-                    result = true;
-                }
-                else if (tokens.Length == 12)
-                {
-                    // 旧形式
-                    pid = int.Parse(tokens[0]);
-                    tid = int.Parse(tokens[1]);
-                    cpu = int.Parse(tokens[5].TrimEnd('%'));
-                    result = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError(ex.ToString());
-            }
+            if (!int.TryParse(tokens[0], out pid)) return false;
+            if (!int.TryParse(tokens[1], out tid)) return false;
+            var result = this.oldStyle ?
+                float.TryParse(tokens[5].TrimEnd('%'), out cpu) :
+                float.TryParse(tokens[2], out cpu);
             return result;
         }
 
