@@ -276,6 +276,8 @@ namespace Suconbu.Sumacon
             panel.DefaultCellStyle.Format = "#,0";
             panel.Columns[nameof(MeminfoViewData.Pid)].Visible = false;
             panel.Columns[nameof(MeminfoViewData.Process)].Width = 200;
+            panel.Columns[nameof(MeminfoViewData.PssTotal)].ToolTipText = "'Pss' is a measurement of your app’s RAM use that takes into account sharing pages across processes.";
+            panel.Columns[nameof(MeminfoViewData.UssTotal)].ToolTipText = "'Uss' is memory that is being used by only your process.";
         }
 
         void UpdateProcessList()
