@@ -27,11 +27,16 @@ namespace Suconbu.Sumacon
         public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices; } }
 
         Device activeDevice;
-        List<Device> connectedDevices = new List<Device>();
-        DeviceDetector detector = new DeviceDetector();
-        Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
-        Dictionary<Device, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<Device, Dictionary<Device.UpdatableProperties, string>>();
+        readonly List<Device> connectedDevices = new List<Device>();
+        readonly DeviceDetector detector = new DeviceDetector();
+        readonly Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
+        readonly Dictionary<Device, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<Device, Dictionary<Device.UpdatableProperties, string>>();
         readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
+        readonly Dictionary<string/*serial*/, int/*port*/> wirelessWaitingDevices = new Dictionary<string, int>();
+
+        readonly int kWirelessPortMin = 5500;
+        readonly int kWirelessPortMax = 5600;
+        readonly Random random = new Random();
 
         public DeviceManager()
         {
@@ -96,6 +101,22 @@ namespace Suconbu.Sumacon
             }
         }
 
+        public void StartWireless(Device device)
+        {
+            if (!this.wirelessWaitingDevices.ContainsKey(device.Serial))
+            {
+                var port = this.GenerateWirelessPortNo();
+                this.wirelessWaitingDevices[device.Serial] = port;
+                device.RunCommandAsync($"tcpip {port}");
+                // 一旦接続切れてまたつながる
+            }
+        }
+
+        int GenerateWirelessPortNo()
+        {
+            return this.random.Next(this.kWirelessPortMin, this.kWirelessPortMax);
+        }
+
         void ChangeActiveDevice(Device nextActiveDevice)
         {
             if (this.activeDevice == nextActiveDevice) return;
@@ -123,36 +144,24 @@ namespace Suconbu.Sumacon
             this.ActiveDeviceChanged(this, previousDevice);
         }
 
-        void Detector_Connected(object sender, string deviceId)
+        void Detector_Connected(object sender, string serial)
         {
-            if (this.connectedDevices.Find(d => d.Serial == deviceId) != null) return;
-
-            var device = new Device(deviceId);
-            this.connectedDevices.Add(device);
-            this.susupendRequestedCount[deviceId] = 0;
-            this.ConnectedDevicesChanged(this, EventArgs.Empty);
-            this.DeviceConnected(this, device);
-
-            if (this.activeDevice == null)
+            var port = this.wirelessWaitingDevices.GetValue(serial, 0);
+            if(port > 0)
             {
-                this.ChangeActiveDevice(device);
+                // ワイヤレス希望なので登録はせず接続試行
+                this.wirelessWaitingDevices.Remove(serial);
+                this.ReconnectDeviceAsWireless(serial, port);
+            }
+            else
+            {
+                this.AddConnectedDevice(serial);
             }
         }
 
-        void Detector_Disconnected(object sender, string deviceId)
+        void Detector_Disconnected(object sender, string serial)
         {
-            var device = this.connectedDevices.Find(d => d.Serial == deviceId);
-            if (device == null) return;
-
-            this.DeviceDisconnecting(this, device);
-            this.connectedDevices.Remove(device);
-            this.ConnectedDevicesChanged(this, EventArgs.Empty);
-            if (this.activeDevice == device)
-            {
-                var nextActiveDevice = this.connectedDevices.FirstOrDefault();
-                this.ChangeActiveDevice(nextActiveDevice);
-            }
-            device.Dispose();
+            this.RemoveConnectedDevice(serial);
         }
 
         void DeviceComponent_PropertyChanged(object sender, IReadOnlyList<Property> properties)
@@ -188,6 +197,47 @@ namespace Suconbu.Sumacon
                 Delay.ClearInterval(this.intervalIds[device][updatableProperty]);
             }
             this.intervalIds.Remove(device);
+        }
+
+        void AddConnectedDevice(string serial)
+        {
+            if (this.connectedDevices.Find(d => d.Serial == serial) != null) return;
+
+            var device = new Device(serial);
+            this.connectedDevices.Add(device);
+            this.susupendRequestedCount[serial] = 0;
+            this.ConnectedDevicesChanged(this, EventArgs.Empty);
+            this.DeviceConnected(this, device);
+
+            if (this.activeDevice == null)
+            {
+                this.ChangeActiveDevice(device);
+            }
+        }
+
+        void RemoveConnectedDevice(string serial)
+        {
+            var device = this.connectedDevices.Find(d => d.Serial == serial);
+            if (device == null) return;
+
+            this.DeviceDisconnecting(this, device);
+            this.connectedDevices.Remove(device);
+            this.ConnectedDevicesChanged(this, EventArgs.Empty);
+            if (this.activeDevice == device)
+            {
+                var nextActiveDevice = this.connectedDevices.FirstOrDefault();
+                this.ChangeActiveDevice(nextActiveDevice);
+            }
+            device.Dispose();
+        }
+
+        void ReconnectDeviceAsWireless(string serial, int port)
+        {
+            var device = new Device(serial);    // Update掛けるのやめたい
+            var wirelessSerial = $"{device.IpAddress}:{port}";
+            device.RunCommandAsync($"connect {wirelessSerial}");
+            device.Dispose();
+            // この後、serial=wirelessSerialでDetector_Connectedくる
         }
 
         #region IDisposable Support

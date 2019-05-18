@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Suconbu.Mobile
@@ -76,6 +77,9 @@ namespace Suconbu.Mobile
         // e.g. Asia/Tokyo
         [Category(ComponentCategory.System)]
         public string TimeZone { get { return (string)this.system[nameof(this.TimeZone)].Value; } }
+        // e.g. 192.168.0.1
+        [Category(ComponentCategory.System)]
+        public string IpAddress { get { return (string)this.system[nameof(this.IpAddress)].Value; } }
 
         [Category(ComponentCategory.Setting)]
         public bool AirplaneMode { get { return (bool)this.setting[nameof(this.AirplaneMode)].Value; } set { this.setting.SetAndPushValue(nameof(this.AirplaneMode), value); } }
@@ -140,6 +144,10 @@ namespace Suconbu.Mobile
         public Screen Screen { get; private set; }
         [Browsable(false)]
         public EntryCollection<int, ProcessEntry> Processes { get; private set; }
+        [Browsable(false)]
+        public bool HasWirelessConnection { get => (this.WirelessPort > 0); }
+        [Browsable(false)]
+        public int WirelessPort { get; private set; }
 
         DeviceData deviceData;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;
@@ -149,9 +157,16 @@ namespace Suconbu.Mobile
         Dictionary<UpdatableProperties, List<Action>> propertyReadyChanged = new Dictionary<UpdatableProperties, List<Action>>();
         Dictionary<UpdatableProperties, bool> propertyIsReady = new Dictionary<UpdatableProperties, bool>();
 
-        public Device(string id)
+        public Device(string serial, bool updateProperty = true)
         {
-            this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == id);
+            this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == serial);
+
+            var match = Regex.Match(serial, @"(?:\d+\.){3}\d+:(\d+)");
+            if (match.Success)
+            {
+                this.WirelessPort = int.TryParse(match.Groups[1].Value, out var p) ? p : 0;
+            }
+
             this.system = new DeviceComponent(this, "properties_system.xml");
             this.componentsByCategory.Add(ComponentCategory.System, this.system);
             this.setting = new DeviceComponent(this, "properties_setting.xml");
@@ -293,6 +308,11 @@ namespace Suconbu.Mobile
         public virtual void Dispose()
         {
             if (this.disposed) return;
+            if(this.HasWirelessConnection)
+            {
+                // Disconnect wireless connection for close listening_port.
+                this.RunCommandAsync("usb");
+            }
             this.disposed = true;
         }
         #endregion

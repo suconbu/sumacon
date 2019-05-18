@@ -24,8 +24,9 @@ namespace Suconbu.Sumacon
         FormPerformance performanceForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripLabel deviceInfoLabel = new ToolStripLabel();
-        ToolStripButton airplaneModeButton = new ToolStripButton() { CheckOnClick = true };
-        ToolStripButton showTouchesButton = new ToolStripButton() { CheckOnClick = true };
+        ToolStripButton airplaneModeButton = new ToolStripButton();
+        ToolStripButton showTouchesButton = new ToolStripButton();
+        ToolStripButton wirelessAdbButton = new ToolStripButton();
         //ToolStripLabel memoryInfoLabel = new ToolStripLabel();
         Timer memoryTimer = new Timer() { Interval = 1000 };
 
@@ -59,6 +60,7 @@ namespace Suconbu.Sumacon
             this.statusStrip1.Items.Add(this.deviceInfoLabel);
             this.statusStrip1.Items.Add(this.airplaneModeButton);
             this.statusStrip1.Items.Add(this.showTouchesButton);
+            this.statusStrip1.Items.Add(this.wirelessAdbButton);
             this.statusStrip1.Items.Add(new ToolStripStatusLabel() { Spring = true });
 //#if DEBUG
 //            this.statusStrip1.Items.Add(this.memoryInfoLabel);
@@ -93,6 +95,7 @@ namespace Suconbu.Sumacon
 
             this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
             this.showTouchesButton.Click += this.ShowTouchesButton_Click;
+            this.wirelessAdbButton.Click += this.WirelessAdbButton_Click;
 
             //this.memoryTimer.Tick += this.MemoryTimer_Tick;
             //this.memoryTimer.Start();
@@ -180,6 +183,10 @@ namespace Suconbu.Sumacon
                 this.showTouchesButton.Text = device.ShowTouches ? "👆 ON" : "👆 OFF";
                 this.showTouchesButton.Checked = device.ShowTouches;
                 this.showTouchesButton.Visible = true;
+                var wireless = device.HasWirelessConnection;
+                this.wirelessAdbButton.Text = wireless ? $"WirelessADB ON ({device.WirelessPort})" : "WirelessADB OFF";
+                this.wirelessAdbButton.Checked = wireless;
+                this.wirelessAdbButton.Visible = true;
             }
             else
             {
@@ -189,6 +196,7 @@ namespace Suconbu.Sumacon
                 this.deviceInfoLabel.Visible = false;
                 this.airplaneModeButton.Visible = false;
                 this.showTouchesButton.Visible = false;
+                this.wirelessAdbButton.Visible = false;
             }
         }
 
@@ -207,6 +215,22 @@ namespace Suconbu.Sumacon
             if (device != null)
             {
                 device.ShowTouches = !device.ShowTouches;
+            }
+        }
+
+        private void WirelessAdbButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                if (!this.wirelessAdbButton.Checked)
+                {
+                    this.sumacon.DeviceManager.StartWireless(device);
+                }
+                else
+                {
+                    device.Dispose();
+                }
             }
         }
 

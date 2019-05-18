@@ -14,10 +14,10 @@ namespace Suconbu.Mobile
         public event EventHandler<string> Connected = delegate { };
         public event EventHandler<string> Disconnected = delegate { };
 
-        public IReadOnlyList<string> DeviceIds { get { return this.deviceIds; } }
+        public IReadOnlyList<string> Serials { get { return this.serials; } }
 
         DeviceMonitor monitor;
-        readonly List<string> deviceIds = new List<string>();
+        readonly List<string> serials = new List<string>();
 
         public DeviceDetector(string adbPath = null)
         {
@@ -37,26 +37,26 @@ namespace Suconbu.Mobile
             this.monitor = new DeviceMonitor(new AdbSocket(new IPEndPoint(IPAddress.Loopback, AdbClient.AdbServerPort)));
             this.monitor.DeviceConnected += (s, e) =>
             {
-                var deviceId = e.Device.Serial;
-                Trace.TraceInformation($"DeviceConnected - deviceId:{deviceId}");
-                this.deviceIds.RemoveAll(id => id == deviceId);
-                this.deviceIds.Add(deviceId);
+                var serial = e.Device.Serial;
+                Trace.TraceInformation($"DeviceConnected - serial:{serial}");
+                this.serials.RemoveAll(id => id == serial);
+                this.serials.Add(serial);
                 Task.Run(() =>
                 {
                     // Online状態になるまでちょっと時間かかる
-                    while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == deviceId)?.State != DeviceState.Online)
+                    while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == serial)?.State != DeviceState.Online)
                     {
                         Thread.Sleep(10);
                     }
-                    this.Connected(this, deviceId);
+                    this.Connected(this, serial);
                 });
             };
             this.monitor.DeviceDisconnected += (s, e) =>
             {
-                var deviceId = e.Device.Serial;
-                Trace.TraceInformation($"DeviceDisconnected - deviceId:{deviceId}");
-                this.deviceIds.RemoveAll(id => id == deviceId);
-                Task.Run(() => this.Disconnected(this, deviceId));
+                var serial = e.Device.Serial;
+                Trace.TraceInformation($"DeviceDisconnected - serial:{serial}");
+                this.serials.RemoveAll(id => id == serial);
+                Task.Run(() => this.Disconnected(this, serial));
             };
             this.monitor.Start();
         }

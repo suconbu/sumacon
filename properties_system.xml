@@ -14,4 +14,5 @@
   <property name="ApiLevel" type="Integer" pattern="ro.build.version.sdk\]: \[(\d+)\]"/>
   <property name="OpenGLES" type="Integer" pattern="ro.opengles.version\]: \[(\d+)\]"/>
   <property name="TimeZone" type="String" pattern="persist.sys.timezone\]: \[(.+)\]"/>
+  <property name="IpAddress" type="String" pull="shell ip addr show wlan0" pattern="inet ((?:\d+\.){3}\d+)"/>
 </root>
