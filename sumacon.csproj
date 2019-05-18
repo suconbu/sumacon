@@ -69,6 +69,7 @@
       <DependentUpon>FormPerformance.cs</DependentUpon>
     </Compile>
     <Compile Include="mobile\LogContext.cs" />
+    <Compile Include="mobile\ProcessMeminfo.cs" />
     <Compile Include="mobile\ProcessEntry.cs" />
     <Compile Include="mobile\TopContext.cs" />
     <Compile Include="RecordContext.cs" />
