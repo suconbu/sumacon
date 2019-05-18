@@ -89,11 +89,11 @@ namespace Suconbu.Sumacon
             this.uxPropertyGrid.ContextMenuStrip = this.menu;
         }
 
-        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.SafeInvoke(() =>
             {
-                this.uxPropertyGrid.SelectedObject = device;
+                this.uxPropertyGrid.SelectedObject = this.sumacon.DeviceManager.ActiveDevice;
                 this.SetupContextMenu();
             });
         }

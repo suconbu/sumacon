@@ -289,7 +289,7 @@ namespace Suconbu.Sumacon
             return cachedImage;
         }
 
-        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.SafeInvoke(this.UpdateControlState);
         }

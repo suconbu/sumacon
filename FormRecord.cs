@@ -271,7 +271,7 @@ namespace Suconbu.Sumacon
             return column;
         }
 
-        void DeviceManager_ActiveDeviceChanged(object sender, Device device)
+        void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.SafeInvoke(this.UpdateControlState);
         }
