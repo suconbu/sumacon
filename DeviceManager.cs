@@ -4,8 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Suconbu.Sumacon
 {
@@ -24,15 +23,15 @@ namespace Suconbu.Sumacon
             get { return this.activeDevice; }
             set { this.ChangeActiveDevice(value); }
         }
-        public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices; } }
+        public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices.Values.ToList(); } }
 
         Device activeDevice;
-        readonly List<Device> connectedDevices = new List<Device>();
+        readonly ConcurrentDictionary<string/*serial*/, Device> connectedDevices = new ConcurrentDictionary<string, Device>();
+        readonly ConcurrentDictionary<string/*serial*/, int/*port*/> wirelessWaitingDevices = new ConcurrentDictionary<string, int>();
         readonly DeviceDetector detector = new DeviceDetector();
         readonly Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
         readonly Dictionary<Device, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<Device, Dictionary<Device.UpdatableProperties, string>>();
         readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
-        readonly Dictionary<string/*serial*/, int/*port*/> wirelessWaitingDevices = new Dictionary<string, int>();
 
         readonly int kWirelessPortMin = 5500;
         readonly int kWirelessPortMax = 5600;
@@ -146,11 +145,9 @@ namespace Suconbu.Sumacon
 
         void Detector_Connected(object sender, string serial)
         {
-            var port = this.wirelessWaitingDevices.GetValue(serial, 0);
-            if(port > 0)
+            if(this.wirelessWaitingDevices.TryRemove(serial, out var port))
             {
                 // ワイヤレス希望なので登録はせず接続試行
-                this.wirelessWaitingDevices.Remove(serial);
                 this.ReconnectDeviceAsWireless(serial, port);
             }
             else
@@ -201,10 +198,10 @@ namespace Suconbu.Sumacon
 
         void AddConnectedDevice(string serial)
         {
-            if (this.connectedDevices.Find(d => d.Serial == serial) != null) return;
+            if (this.connectedDevices.ContainsKey(serial)) return;
 
             var device = new Device(serial);
-            this.connectedDevices.Add(device);
+            this.connectedDevices[serial] = device;
             this.susupendRequestedCount[serial] = 0;
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
             this.DeviceConnected(this, device);
@@ -219,15 +216,14 @@ namespace Suconbu.Sumacon
 
         void RemoveConnectedDevice(string serial)
         {
-            var device = this.connectedDevices.Find(d => d.Serial == serial);
-            if (device == null) return;
+            if (!this.connectedDevices.TryGetValue(serial, out var device)) return;
 
             this.DeviceDisconnecting(this, device);
-            this.connectedDevices.Remove(device);
+            this.connectedDevices.TryRemove(serial, out var removed);
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
             if (this.activeDevice == device)
             {
-                var nextActiveDevice = this.connectedDevices.FirstOrDefault();
+                var nextActiveDevice = this.connectedDevices.Values.FirstOrDefault();
                 this.ChangeActiveDevice(nextActiveDevice);
             }
             device.Dispose();
@@ -253,7 +249,7 @@ namespace Suconbu.Sumacon
             if (this.disposed) return;
 
             this.StopDeviceDetection();
-            this.connectedDevices.ForEach(d => d.Dispose());
+            foreach (var device in this.connectedDevices.Values) device.Dispose();
 
             this.disposed = true;
         }
