@@ -1,5 +1,6 @@
 ﻿using Suconbu.Toolbox;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -35,7 +36,7 @@ namespace Suconbu.Mobile
 
         public Property this[string name]
         {
-            get { return this.Properties.Find(p => p.Name == name); }
+            get { return this.Properties.FirstOrDefault(p => p.Name == name); }
         }
 
         public CommandContext PullAsync(Device device, ICollection<string> exceptedPropertyNames = null, Action<List<Property>> onPropertyChanged = null)
@@ -88,6 +89,8 @@ namespace Suconbu.Mobile
         public string PushCommand { get; set; }
         [XmlAttribute("reset")]
         public string ResetCommand { get; set; }
+        [XmlAttribute("update")]
+        public string PropertyNameToUpdateAfterPush { get; set; }
 
         [XmlIgnore]
         public object Value

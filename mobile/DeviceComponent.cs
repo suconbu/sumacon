@@ -44,7 +44,7 @@ namespace Suconbu.Mobile
             // 個別
             foreach (var property in this.propertyGroup.Properties)
             {
-                if (!this.pushing.Contains(property.Name))
+                if (!this.pushing.Contains(property.Name) && !string.IsNullOrEmpty(property.PullCommand))
                 {
                     contexts.Add(property.PullAsync(this.device, this.OnPullFinished));
                 }
@@ -107,6 +107,18 @@ namespace Suconbu.Mobile
         {
             var property = sender as Property;
             this.pushing.Remove(property.Name);
+            if(!string.IsNullOrEmpty(property.PropertyNameToUpdateAfterPush))
+            {
+                var pullProperty = this.propertyGroup[property.PropertyNameToUpdateAfterPush];
+                if (!string.IsNullOrEmpty(pullProperty.PullCommand))
+                {
+                    pullProperty?.PullAsync(this.device);
+                }
+                else
+                {
+                    this.PullAsync();
+                }
+            }
         }
     }
 }
