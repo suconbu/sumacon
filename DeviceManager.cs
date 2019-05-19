@@ -206,7 +206,7 @@ namespace Suconbu.Sumacon
             this.ConnectedDevicesChanged(this, EventArgs.Empty);
             this.DeviceConnected(this, device);
 
-            if (this.activeDevice == null)
+            if (this.activeDevice == null || device.HasWirelessConnection)
             {
                 this.ChangeActiveDevice(device);
             }
