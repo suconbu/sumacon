@@ -49,7 +49,8 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.ColumnHeadersVisible = false;
             this.uxActionsGridPanel.DataSource = this.actionGroup.Actions;
             this.uxActionsGridPanel.SetDefaultCellStyle();
-            this.uxActionsGridPanel.MouseDoubleClick += this.UxActionsGridPanel_MouseDoubleClick; ;
+            this.uxActionsGridPanel.MouseDoubleClick += this.UxActionsGridPanel_MouseDoubleClick;
+            this.uxActionsGridPanel.KeyDown += this.UxActionsGridPanel_KeyDown;
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
@@ -75,6 +76,7 @@ namespace Suconbu.Sumacon
 
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
+            this.uxActionsGridPanel.Columns[nameof(ControlAction.Proc)].Visible = false;
 
             this.UpdateScreenPicture();
         }
@@ -86,17 +88,23 @@ namespace Suconbu.Sumacon
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
 
-        void DeviceManager_ActiveDeviceChanged(object sender, Device e)
+        void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.UpdateScreenPicture();
         }
 
         void UxActionsGridPanel_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-            var action = this.GetSelectedAction();
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (action == null || device == null) return;
-            device.RunCommandAsync(action.Command);
+            this.ExecuteAction(this.GetSelectedAction());
+        }
+
+        private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                this.ExecuteAction(this.GetSelectedAction());
+                e.SuppressKeyPress = true;
+            }
         }
 
         void UxActionsGridPanel_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
@@ -113,6 +121,44 @@ namespace Suconbu.Sumacon
             if (device != null)
             {
                 device.Screen.CaptureAsync(bitmap => this.uxScreenPictureBox.Image = bitmap);
+            }
+        }
+
+        enum ProcAction { RotateCw, RotateCcw }
+
+        void ExecuteAction(ControlAction action)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (action == null || device == null) return;
+
+            if (!string.IsNullOrEmpty(action.Command))
+            {
+                device.RunCommandAsync(action.Command);
+            }
+            if(!string.IsNullOrEmpty(action.Proc))
+            {
+                this.ExecuteProc(device, action.Proc);
+            }
+        }
+
+        void ExecuteProc(Device device, string proc)
+        {
+            if (proc == ProcAction.RotateCw.ToString() ||
+                proc == ProcAction.RotateCcw.ToString())
+            {
+                var current = device.UserRotation;
+                if (device.AutoRotate)
+                {
+                    current = device.CurrentRotation;
+                    device.AutoRotate = false;
+                }
+                int direction = (proc == ProcAction.RotateCw.ToString()) ? 1 : -1;
+                int code = (int)current + direction;
+                code =
+                    (code < 0) ? 3 :
+                    (code > 3) ? 0 :
+                    code;
+                device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
             }
         }
 
@@ -145,5 +191,7 @@ namespace Suconbu.Sumacon
         public string Name { get; set; }
         [XmlAttribute("command")]
         public string Command { get; set; }
+        [XmlAttribute("proc")]
+        public string Proc { get; set; }
     }
 }

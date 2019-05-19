@@ -7,4 +7,6 @@
   <action name="Menu" command="shell input keyevent KEYCODE_MENU"/>
   <action name="Brightness -" command="shell input keyevent KEYCODE_BRIGHTNESS_DOWN"/>
   <action name="Brightness +" command="shell input keyevent KEYCODE_BRIGHTNESS_UP"/>
+  <action name="Rotate CW" proc="RotateCw"/>
+  <action name="Rotate CCW" proc="RotateCcw"/>
 </root>
