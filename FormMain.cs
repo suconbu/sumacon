@@ -22,6 +22,7 @@ namespace Suconbu.Sumacon
         FormRecord recordForm;
         FormLog logForm;
         FormPerformance performanceForm;
+        FormControl controlForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripLabel deviceInfoLabel = new ToolStripLabel();
         ToolStripButton airplaneModeButton = new ToolStripButton();
@@ -87,6 +88,9 @@ namespace Suconbu.Sumacon
             this.performanceForm = new FormPerformance(this.sumacon);
             this.performanceForm.Text = "Performace";
             this.performanceForm.Show(this.dockPanel, DockState.Document);
+            this.controlForm = new FormControl(this.sumacon);
+            this.controlForm.Text = "Control";
+            this.controlForm.Show(this.dockPanel, DockState.Document);
 
             foreach (var form in this.dockPanel.Contents)
             {

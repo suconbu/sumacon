@@ -68,6 +68,12 @@
     <Compile Include="FormPerformance.Designer.cs">
       <DependentUpon>FormPerformance.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormControl.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormControl.Designer.cs">
+      <DependentUpon>FormControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="mobile\LogContext.cs" />
     <Compile Include="mobile\ProcessMeminfo.cs" />
     <Compile Include="mobile\ProcessEntry.cs" />
@@ -147,6 +153,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormRecord.resx">
       <DependentUpon>FormRecord.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormControl.resx">
+      <DependentUpon>FormControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormShortcut.resx">
       <DependentUpon>FormShortcut.cs</DependentUpon>

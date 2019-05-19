@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <action name="◁ Back" command="shell input keyevent KEYCODE_BACK"/>
+  <action name="○ Home" command="shell input keyevent KEYCODE_HOME"/>
+  <action name="□ AppSwitch" command="shell input keyevent KEYCODE_APP_SWITCH"/>
+  <action name="🔍 Search" command="shell input keyevent KEYCODE_SEARCH"/>
+  <action name="Menu" command="shell input keyevent KEYCODE_MENU"/>
+  <action name="Brightness -" command="shell input keyevent KEYCODE_BRIGHTNESS_DOWN"/>
+  <action name="Brightness +" command="shell input keyevent KEYCODE_BRIGHTNESS_UP"/>
+</root>
