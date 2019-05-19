@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="Screen" pull="shell dumpsys display">
+<root name="04.Screen" pull="shell dumpsys display">
   <property name="RealSize" type="Size" pattern="PhysicalDisplayInfo{(\d+) x (\d+)"/>
   <property name="Size" type="Size" pull="shell wm size" pattern="(\d+)x(\d+)$" push="shell wm size {0}x{1}" reset="shell wm size reset"/>
   <property name="RealDensity" type="Integer" pattern="DisplayDeviceInfo.+density (\d+)"/>

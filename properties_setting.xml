@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="Setting">
+<root name="02.Setting">
   <property name="AirplaneMode" type="Bool"
   	pull="shell settings get global airplane_mode_on" pattern="(\d)"
   	push="shell settings put global airplane_mode_on {0}"/>

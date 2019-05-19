@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="System" pull="shell getprop">
+<root name="01.System" pull="shell getprop">
   <property name="Serial" type="String" pattern="ro.serialno\]: \[(.+)\]"/>
   <property name="Brand" type="String" pattern="ro.product.brand\]: \[(.+)\]"/>
   <property name="DeviceName" type="String" pattern="ro.product.device\]: \[(.+)\]"/>

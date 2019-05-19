@@ -131,7 +131,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null)
             {
-                device.InvokeIfProcessInfosIsReady(() => this.SafeInvoke(() =>
+                device.InvokeIfPropertyIsReady(Device.UpdatableProperties.ProcessInfo, () => this.SafeInvoke(() =>
                 {
                     this.OpenLogContext(device);
                     this.UpdateControlState();

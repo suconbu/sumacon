@@ -213,6 +213,8 @@ namespace Suconbu.Sumacon
             {
                 this.ChangeActiveDevice(device);
             }
+
+            device.UpdatePropertiesAsync();
         }
 
         void RemoveConnectedDevice(string serial)
@@ -234,10 +236,13 @@ namespace Suconbu.Sumacon
         void ReconnectDeviceAsWireless(string serial, int port)
         {
             var device = new Device(serial);    // Update掛けるのやめたい
-            var wirelessSerial = $"{device.IpAddress}:{port}";
-            device.RunCommandAsync($"connect {wirelessSerial}");
-            device.Dispose();
-            // この後、serial=wirelessSerialでDetector_Connectedくる
+            device.UpdatePropertiesAsync(Device.UpdatableProperties.SystemComponent, () =>
+            {
+                var wirelessSerial = $"{device.IpAddress}:{port}";
+                device.RunCommandAsync($"connect {wirelessSerial}");
+                device.Dispose();
+                // この後、serial=wirelessSerialでDetector_Connectedくる
+            });
         }
 
         #region IDisposable Support

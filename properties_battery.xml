@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<root name="Battery" pull="shell dumpsys battery">
+<root name="03.Battery" pull="shell dumpsys battery">
   <property name="ACPowered" type="Bool" pattern="^AC powered: (\w+)"
   	push="shell dumpsys battery set ac {0}"
   	reset="shell dumpsys battery reset ac"/>
