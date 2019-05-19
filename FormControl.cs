@@ -19,7 +19,7 @@ namespace Suconbu.Sumacon
 {
     public partial class FormControl : FormBase
     {
-        enum ProcAction { RotateCw, RotateCcw }
+        enum ProcAction { PressPower, PressVolumeUp, PressVolumeDown, RotateScreenCw, RotateScreenCcw }
 
         Sumacon sumacon;
         StatusStrip uxScreenStatusStrip = new StatusStrip();
@@ -156,26 +156,30 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void ExecuteProc(Device device, string proc)
+        void ExecuteProc(Device device, string procName)
         {
-            if (proc == ProcAction.RotateCw.ToString() ||
-                proc == ProcAction.RotateCcw.ToString())
+            if (!Enum.TryParse<ProcAction>(procName, out var proc)) return;
+
+            if (proc == ProcAction.PressPower) device.PressHardSwitch(Device.HardSwitch.Power);
+            else if (proc == ProcAction.PressVolumeUp) device.PressHardSwitch(Device.HardSwitch.VolumeUp);
+            else if (proc == ProcAction.PressVolumeDown) device.PressHardSwitch(Device.HardSwitch.VolumeDown);
+            else if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 1);
+            else if (proc == ProcAction.RotateScreenCcw) this.ExecuteProcRotateScreen(device, -1);
+        }
+
+        void ExecuteProcRotateScreen(Device device, int direction)
+        {
+            var current = device.UserRotation;
+            if (device.AutoRotate)
             {
-                var current = device.UserRotation;
-                if (device.AutoRotate)
-                {
-                    current = device.CurrentRotation;
-                    device.AutoRotate = false;
-                }
-                int direction = (proc == ProcAction.RotateCw.ToString()) ? 1 : -1;
-                int code = (int)current + direction;
-                code =
-                    (code < 0) ? 3 :
-                    (code > 3) ? 0 :
-                    code;
-                device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
-                device.Screen.PullAsync().Wait(() => this.UpdateScreenPictureDelayed());
+                current = device.CurrentRotation;
+                device.AutoRotate = false;
             }
+            int code = (int)current + direction;
+            while (code < 0) code += 4;
+            while (code >= 4) code -= 4;
+            device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
+            device.Screen.PullAsync().Wait(() => this.UpdateScreenPictureDelayed());
         }
 
         ControlAction GetSelectedAction()

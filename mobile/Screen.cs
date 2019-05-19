@@ -92,6 +92,11 @@ namespace Suconbu.Mobile
             return this.device.RunCommandOutputTextAsync($"shell screencap -p {saveTo}", (output, error) => onCaptured(saveTo));
         }
 
+        public void TouchOn(int x, int y)
+        {
+
+        }
+
         string GetDensityClass(int density)
         {
             var classes = new Dictionary<int,string>()

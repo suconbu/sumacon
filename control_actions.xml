@@ -5,8 +5,11 @@
   <action name="□ AppSwitch" command="shell input keyevent KEYCODE_APP_SWITCH"/>
   <action name="🔍 Search" command="shell input keyevent KEYCODE_SEARCH"/>
   <action name="Menu" command="shell input keyevent KEYCODE_MENU"/>
-  <action name="Brightness -" command="shell input keyevent KEYCODE_BRIGHTNESS_DOWN"/>
+  <action name="Power" proc="PressPower"/>
+  <action name="Volume +" proc="PressVolumeUp"/>
+  <action name="Volume -" proc="PressVolumeDown"/>
   <action name="Brightness +" command="shell input keyevent KEYCODE_BRIGHTNESS_UP"/>
-  <action name="Rotate CW" proc="RotateCw"/>
-  <action name="Rotate CCW" proc="RotateCcw"/>
+  <action name="Brightness -" command="shell input keyevent KEYCODE_BRIGHTNESS_DOWN"/>
+  <action name="Rotate CW" proc="RotateScreenCw"/>
+  <action name="Rotate CCW" proc="RotateScreenCcw"/>
 </root>
