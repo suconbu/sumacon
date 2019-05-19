@@ -184,7 +184,7 @@ namespace Suconbu.Sumacon
                 this.showTouchesButton.Checked = device.ShowTouches;
                 this.showTouchesButton.Visible = true;
                 var wireless = device.HasWirelessConnection;
-                this.wirelessAdbButton.Text = wireless ? $"WirelessADB ON ({device.WirelessPort})" : "WirelessADB OFF";
+                this.wirelessAdbButton.Text = wireless ? $"WirelessConnect ON ({device.WirelessPort})" : "WirelessConnect OFF";
                 this.wirelessAdbButton.Checked = wireless;
                 this.wirelessAdbButton.Visible = true;
             }

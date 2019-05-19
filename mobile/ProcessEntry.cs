@@ -139,11 +139,11 @@ namespace Suconbu.Mobile
     {
         public TValue this[TKey key] { get { return this.entries.TryGetValue(key, out var entry) ? entry : default(TValue); } }
 
-        Dictionary<TKey, TValue> entries;
+        readonly Dictionary<TKey, TValue> entries;
 
-        internal EntryCollection(Dictionary<TKey, TValue> entries)
+        internal EntryCollection(Dictionary<TKey, TValue> entries = null)
         {
-            this.entries = entries;
+            this.entries = entries ?? new Dictionary<TKey, TValue>();
         }
 
         public IEnumerator<TValue> GetEnumerator()

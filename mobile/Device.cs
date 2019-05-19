@@ -150,7 +150,7 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public Screen Screen { get; private set; }
         [Browsable(false)]
-        public EntryCollection<int, ProcessEntry> Processes { get; private set; }
+        public EntryCollection<int, ProcessEntry> Processes { get; private set; } = new EntryCollection<int, ProcessEntry>();
         [Browsable(false)]
         public bool HasWirelessConnection { get => (this.WirelessPort > 0); }
         [Browsable(false)]

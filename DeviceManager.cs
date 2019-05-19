@@ -29,8 +29,8 @@ namespace Suconbu.Sumacon
         readonly ConcurrentDictionary<string/*serial*/, Device> connectedDevices = new ConcurrentDictionary<string, Device>();
         readonly ConcurrentDictionary<string/*serial*/, int/*port*/> wirelessWaitingDevices = new ConcurrentDictionary<string, int>();
         readonly DeviceDetector detector = new DeviceDetector();
-        readonly Dictionary<string, int> susupendRequestedCount = new Dictionary<string, int>();
-        readonly Dictionary<Device, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<Device, Dictionary<Device.UpdatableProperties, string>>();
+        readonly Dictionary<string/*serial*/, int> susupendRequestedCount = new Dictionary<string, int>();
+        readonly Dictionary<string/*serial*/, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<string, Dictionary<Device.UpdatableProperties, string>>();
         readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
 
         readonly int kWirelessPortMin = 5500;
@@ -118,29 +118,32 @@ namespace Suconbu.Sumacon
 
         void ChangeActiveDevice(Device nextActiveDevice)
         {
-            if (this.activeDevice == nextActiveDevice) return;
+            lock (this)
+            {
+                if (this.activeDevice == nextActiveDevice) return;
 
-            var previousDevice = this.activeDevice;
-            foreach (var component in (previousDevice?.Components).OrEmptyIfNull())
-            {
-                component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
-            }
-            if(previousDevice != null)
-            {
-                this.StopPropertyUpdate(previousDevice);
-            }
+                var previousDevice = this.activeDevice;
+                foreach (var component in (previousDevice?.Components).OrEmptyIfNull())
+                {
+                    component.PropertyChanged -= this.DeviceComponent_PropertyChanged;
+                }
+                if (previousDevice != null)
+                {
+                    this.StopPropertyUpdate(previousDevice);
+                }
 
-            this.activeDevice = nextActiveDevice;
-            foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
-            {
-                component.PropertyChanged += this.DeviceComponent_PropertyChanged;
-            }
-            if (this.activeDevice != null)
-            {
-                this.StartPropertyUpdate(this.activeDevice);
-            }
+                this.activeDevice = nextActiveDevice;
+                foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
+                {
+                    component.PropertyChanged += this.DeviceComponent_PropertyChanged;
+                }
+                if (this.activeDevice != null)
+                {
+                    this.StartPropertyUpdate(this.activeDevice);
+                }
 
-            this.ActiveDeviceChanged(this, previousDevice);
+                this.ActiveDeviceChanged(this, previousDevice);
+            }
         }
 
         void Detector_Connected(object sender, string serial)
@@ -173,11 +176,11 @@ namespace Suconbu.Sumacon
         {
             this.susupendRequestedCount[device.Serial] = 0;
 
-            this.intervalIds[device] = new Dictionary<Device.UpdatableProperties, string>();
+            this.intervalIds[device.Serial] = new Dictionary<Device.UpdatableProperties, string>();
             foreach(var updatableProperty in this.intervalMilliseconds.Keys)
             {
                 device.UpdatePropertiesAsync(updatableProperty);
-                this.intervalIds[device][updatableProperty] = Delay.SetInterval(() =>
+                this.intervalIds[device.Serial][updatableProperty] = Delay.SetInterval(() =>
                 {
                     if (this.susupendRequestedCount[device.Serial] == 0)
                     {
@@ -191,9 +194,12 @@ namespace Suconbu.Sumacon
         {
             foreach (var updatableProperty in this.intervalMilliseconds.Keys)
             {
-                Delay.ClearInterval(this.intervalIds[device][updatableProperty]);
+                if (this.intervalIds[device.Serial].TryGetValue(updatableProperty, out var id))
+                {
+                    Delay.ClearInterval(id);
+                }
             }
-            this.intervalIds.Remove(device);
+            this.intervalIds.Remove(device.Serial);
         }
 
         void AddConnectedDevice(string serial)
