@@ -19,6 +19,8 @@ namespace Suconbu.Sumacon
 {
     public partial class FormControl : FormBase
     {
+        enum ProcAction { RotateCw, RotateCcw }
+
         Sumacon sumacon;
         StatusStrip uxScreenStatusStrip = new StatusStrip();
         SplitContainer uxBaseSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
@@ -27,6 +29,10 @@ namespace Suconbu.Sumacon
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         GridPanel uxLogGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
+        string updateScreenTimeoutId;
+        bool beepEnabled = true;
+
+        readonly int kUpdateScreenDelayedMilliseconds = 2000;
 
         public FormControl(Sumacon sumacon)
         {
@@ -57,6 +63,7 @@ namespace Suconbu.Sumacon
             this.uxScreenStatusStrip.Items.Add("Position");
             this.uxScreenStatusStrip.Items.Add("Auto update");
             this.uxScreenStatusStrip.Items.Add("Update");
+            this.uxScreenStatusStrip.Items.Add("Beep");
             this.uxScreenStatusStrip.SizingGrip = false;
 
             this.uxScreenPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
@@ -124,16 +131,24 @@ namespace Suconbu.Sumacon
             }
         }
 
-        enum ProcAction { RotateCw, RotateCcw }
+        void UpdateScreenPictureDelayed()
+        {
+            this.updateScreenTimeoutId = Delay.SetTimeout(
+                () => this.SafeInvoke(this.UpdateScreenPicture),
+                this.kUpdateScreenDelayedMilliseconds,
+                this.updateScreenTimeoutId);
+        }
 
         void ExecuteAction(ControlAction action)
         {
+            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (action == null || device == null) return;
 
             if (!string.IsNullOrEmpty(action.Command))
             {
-                device.RunCommandAsync(action.Command);
+                device.RunCommandAsync(action.Command).Wait(() => this.UpdateScreenPictureDelayed());
             }
             if(!string.IsNullOrEmpty(action.Proc))
             {
@@ -159,6 +174,7 @@ namespace Suconbu.Sumacon
                     (code > 3) ? 0 :
                     code;
                 device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
+                device.Screen.PullAsync().Wait(() => this.UpdateScreenPictureDelayed());
             }
         }
 

@@ -331,6 +331,15 @@ namespace Suconbu.Toolbox
             this.task = null;
         }
 
+        public void Wait(Action onFinished)
+        {
+            CommandContext.StartNew(() =>
+            {
+                this.Wait();
+                onFinished?.Invoke();
+            });
+        }
+
         CommandContext()
         {
             if (CommandContext.first)
