@@ -55,7 +55,7 @@ namespace Suconbu.Sumacon
             this.dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
             this.toolStripContainer1.ContentPanel.Controls.Add(this.dockPanel);
 
-            this.deviceDropDown = new ToolStripDropDownButton(this.imageList1.Images["phone.png"]);
+            this.deviceDropDown = new ToolStripDropDownButton();
             this.statusStrip1.Items.Add(this.deviceDropDown);
             this.statusStrip1.Items.Add(this.deviceInfoLabel);
             this.statusStrip1.Items.Add(this.airplaneModeButton);
@@ -154,7 +154,7 @@ namespace Suconbu.Sumacon
             {
                 var label = device.ToString(Properties.Resources.DeviceLabelFormat);
                 var item = this.deviceDropDown.DropDownItems.Add(label);
-                item.Image = this.imageList1.Images["phone.png"];
+                item.Image = this.imageList1.Images[device.HasWirelessConnection ? "phone_denpa.png" : "phone.png"];
                 item.Click += (s, e) => this.sumacon.DeviceManager.ActiveDevice = device;
             }
         }
@@ -166,7 +166,7 @@ namespace Suconbu.Sumacon
             if (device != null)
             {
                 this.deviceDropDown.Text = device.ToString(Properties.Resources.FormMain_StatusDeviceFormat);
-                this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
+                this.deviceDropDown.Image = this.imageList1.Images[device.HasWirelessConnection ? "phone_denpa.png" : "phone.png"];
                 var color = Util.ColorFromHsv(Math.Abs(device.Model.GetHashCode()) % 360, 1.0f, 1.0f);
                 this.deviceDropDown.BackColor = color;
                 this.deviceDropDown.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
@@ -192,6 +192,7 @@ namespace Suconbu.Sumacon
             {
                 this.deviceDropDown.BackColor = SystemColors.Control;
                 this.deviceDropDown.ForeColor = SystemColors.ControlText;
+                this.deviceDropDown.Image = this.imageList1.Images["phone.png"];
                 this.deviceDropDown.Text = "-";
                 this.deviceInfoLabel.Visible = false;
                 this.airplaneModeButton.Visible = false;
