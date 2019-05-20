@@ -18,10 +18,11 @@ namespace Suconbu.Mobile
         [XmlAttribute("pull")]
         public string PullCommand;
         [XmlElement("property")]
-        public List<Property> Properties;
+        public List<Property> Properties = new List<Property>();
 
         public static PropertyGroup FromXml(string path)
         {
+            if (path == null) return new PropertyGroup();
             var serializer = new XmlSerializer(typeof(PropertyGroup));
             using (var reader = new StreamReader(path))
             {

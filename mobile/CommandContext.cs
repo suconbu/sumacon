@@ -14,12 +14,13 @@ namespace Suconbu.Toolbox
         public enum NewLineMode { CrLf, CrCrLf }
         public string Command { get; private set; }
         public string Arguments { get; private set; }
+        public bool Finished { get; private set; }
 
         static bool first = true;
         Task task;
         Process process;
         //StringBuilder outputBuffer;
-        bool finished;
+        BinaryWriter binaryWriter;
 
         /// <summary>
         /// 標準出力、標準エラーを逐次出力します。
@@ -74,6 +75,24 @@ namespace Suconbu.Toolbox
             }
         }
 
+        /// <summary>
+        /// 文字列を標準入力に書き込みます。
+        /// </summary>
+        public void PushInputBinary(byte[] inputs)
+        {
+            if(inputs == null)
+            {
+                this.binaryWriter.Close();
+                this.binaryWriter = null;
+                return;
+            }
+            //this.process.StandardInput.Write(new char[] { '0', '\0', '2' }, 0, 3);
+            this.binaryWriter = this.binaryWriter ?? new BinaryWriter(this.process.StandardInput.BaseStream);
+            this.binaryWriter.Write(inputs);
+            this.binaryWriter.Flush();
+            Console.WriteLine(string.Join(":", inputs.Select(i => i.ToString())));
+        }
+
         bool StartCommandTextOutput(string command, string arguments, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<string, string> onFinished)
         {
             this.process = new Process();
@@ -115,7 +134,7 @@ namespace Suconbu.Toolbox
                 {
                     this.process?.CancelOutputRead();
                     this.process?.CancelErrorRead();
-                    this.finished = true;
+                    this.Finished = true;
                     Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments} Finished {sw.ElapsedMilliseconds}ms");
                     onFinished?.Invoke(outputBuffer.ToString(), errorBuffer.ToString());
                     sw = null;
@@ -142,7 +161,7 @@ namespace Suconbu.Toolbox
 
             this.task = Task.Run(() =>
             {
-                this.finished = true;
+                this.Finished = true;
                 if (this.process == null) return;
                 using (var stream = new MemoryStream())
                 {
@@ -299,7 +318,7 @@ namespace Suconbu.Toolbox
 
         public void Cancel()
         {
-            if (!finished)
+            if (!Finished)
             {
                 this.process?.Kill();
             }

@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Suconbu.Mobile
 {
@@ -28,7 +26,7 @@ namespace Suconbu.Mobile
         public enum UpdatableProperties
         {
             ProcessInfo = 0x1,
-            SystemComponent = 0x2, SettingComponent = 0x4, BatteryComponent = 0x08, ScreenComponent = 0x10
+            SystemComponent = 0x2, SettingComponent = 0x4, BatteryComponent = 0x08, ScreenComponent = 0x10, InputComponent = 0x20
             //Components = SystemComponent | SettingComponent | BatteryComponent | ScreenComponent,
             //All = Components | ProcessInfo
         }
@@ -151,6 +149,8 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public Screen Screen { get; private set; }
         [Browsable(false)]
+        public Input Input { get; private set; }
+        [Browsable(false)]
         public EntryCollection<int, ProcessEntry> Processes { get; private set; } = new EntryCollection<int, ProcessEntry>();
         [Browsable(false)]
         public bool HasWirelessConnection { get => (this.WirelessPort > 0); }
@@ -164,7 +164,6 @@ namespace Suconbu.Mobile
         readonly Dictionary<UpdatableProperties, DeviceComponent> components = new Dictionary<UpdatableProperties, DeviceComponent>();
         readonly Dictionary<UpdatableProperties, List<Action>> propertyReadyChanged = new Dictionary<UpdatableProperties, List<Action>>();
         readonly Dictionary<UpdatableProperties, bool> propertyIsReady = new Dictionary<UpdatableProperties, bool>();
-        readonly Input input;
 
         public Device(string serial)
         {
@@ -184,6 +183,8 @@ namespace Suconbu.Mobile
             this.components.Add(UpdatableProperties.BatteryComponent, this.Battery);
             this.Screen = new Screen(this, "properties_screen.xml");
             this.components.Add(UpdatableProperties.ScreenComponent, this.Screen);
+            this.Input = new Input(this, null);
+            this.components.Add(UpdatableProperties.InputComponent, this.Input);
 
             this.RunCommandOutputBinaryAsync("shell echo \\\\r", stream =>
             {
@@ -195,8 +196,6 @@ namespace Suconbu.Mobile
                 this.propertyIsReady[p] = false;
                 this.propertyReadyChanged[p] = new List<Action>();
             }
-
-            this.input = new Input(this);
         }
 
         public DeviceComponent GetComponent(string category)
@@ -277,13 +276,6 @@ namespace Suconbu.Mobile
         public CommandContext RunCommandOutputBinaryAsync(string command, Action<Stream> onFinished)
         {
             return CommandContext.StartNewBinary("adb", $"-s {this.Serial} {command}", this.newLineMode, stream => onFinished?.Invoke(stream));
-        }
-
-        public enum HardSwitch { Power = 0x74, VolumeUp = 0x73, VolumeDown = 0x72 }
-        public void PressHardSwitch(HardSwitch sw, int durationMilliseconds = 100)
-        {
-            this.input.Send(InputDevice.HardSwitch, new InputEvent(1, (int)sw, 1));
-            Delay.SetTimeout(() => this.input.Send(InputDevice.HardSwitch, new InputEvent(1, (int)sw, 0)), durationMilliseconds);
         }
 
         public string ToString(string format)

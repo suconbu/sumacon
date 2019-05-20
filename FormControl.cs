@@ -67,6 +67,9 @@ namespace Suconbu.Sumacon
             this.uxScreenStatusStrip.SizingGrip = false;
 
             this.uxScreenPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            this.uxScreenPictureBox.MouseDown += this.UxScreenPictureBox_MouseDown;
+            this.uxScreenPictureBox.MouseMove += this.UxScreenPictureBox_MouseMove;
+            this.uxScreenPictureBox.MouseUp += this.UxScreenPictureBox_MouseUp;
 
             this.uxUpperSplitContaier.Orientation = Orientation.Vertical;
             this.uxUpperSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
@@ -98,6 +101,30 @@ namespace Suconbu.Sumacon
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
             this.UpdateScreenPicture();
+        }
+
+        void UxScreenPictureBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) return;
+            if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
+            device.Input.OnTouch(0, point.X, point.Y);
+        }
+
+        void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!e.Button.HasFlag(MouseButtons.Left)) return;
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) return;
+            if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
+            device.Input.MoveTouch(0, point.X, point.Y);
+        }
+
+        void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) return;
+            device.Input.OffTouch(0);
         }
 
         void UxActionsGridPanel_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -160,9 +187,9 @@ namespace Suconbu.Sumacon
         {
             if (!Enum.TryParse<ProcAction>(procName, out var proc)) return;
 
-            if (proc == ProcAction.PressPower) device.PressHardSwitch(Device.HardSwitch.Power);
-            else if (proc == ProcAction.PressVolumeUp) device.PressHardSwitch(Device.HardSwitch.VolumeUp);
-            else if (proc == ProcAction.PressVolumeDown) device.PressHardSwitch(Device.HardSwitch.VolumeDown);
+            if (proc == ProcAction.PressPower) device.Input.PressSwitch(Input.HardSwitch.Power);
+            else if (proc == ProcAction.PressVolumeUp) device.Input.PressSwitch(Input.HardSwitch.VolumeUp);
+            else if (proc == ProcAction.PressVolumeDown) device.Input.PressSwitch(Input.HardSwitch.VolumeDown);
             else if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 1);
             else if (proc == ProcAction.RotateScreenCcw) this.ExecuteProcRotateScreen(device, -1);
         }
@@ -186,6 +213,33 @@ namespace Suconbu.Sumacon
         {
             return (this.uxActionsGridPanel.SelectedRows.Count > 0) ?
                 this.actionGroup.Actions[this.uxActionsGridPanel.SelectedRows[0].Index] : null;
+        }
+
+        bool GetNormalizedTouchPoint(Point point, out PointF normalizedPoint)
+        {
+            // PictureBox相対座標からディスプレイ正規化座標へ
+            normalizedPoint = new PointF();
+            var image = this.uxScreenPictureBox.Image;
+            if (image == null) return false;
+            var imageRatio = (float)image.Width / image.Height;
+            var boxRect = this.uxScreenPictureBox.ClientRectangle;
+            var boxRatio = (float)boxRect.Width / boxRect.Height;
+            var screenRect = boxRect;
+            if (imageRatio > boxRatio) // 絵の方が横長
+            {
+                screenRect.Height = (int)(boxRect.Width / imageRatio);
+                screenRect.Y = (boxRect.Height - screenRect.Height) / 2;
+            }
+            else
+            {
+                screenRect.Width = (int)(boxRect.Height * imageRatio);
+                screenRect.X = (boxRect.Width - screenRect.Width) / 2;
+            }
+            if (!screenRect.Contains(point)) return false;
+            normalizedPoint = new PointF(
+                (float)(point.X - screenRect.X) / screenRect.Width,
+                (float)(point.Y - screenRect.Y) / screenRect.Height);
+            return true;
         }
     }
 
