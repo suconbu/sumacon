@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +17,6 @@ namespace Suconbu.Toolbox
         static bool first = true;
         Task task;
         Process process;
-        //StringBuilder outputBuffer;
         BinaryWriter binaryWriter;
 
         /// <summary>
@@ -37,10 +34,6 @@ namespace Suconbu.Toolbox
         /// </summary>
         public static CommandContext StartNewText(string command, string arguments, Action<string, string> onFinished)
         {
-            //return StartNewInternal(command, arguments, false, null, null, context =>
-            //{
-            //    onFinished?.Invoke(context.outputBuffer.ToString());
-            //});
             var instance = new CommandContext();
             return instance.StartCommandTextOutput(command, arguments, null, null, onFinished) ? instance : null;
         }
@@ -59,9 +52,7 @@ namespace Suconbu.Toolbox
         /// </summary>
         public static CommandContext StartNew(Action onFinished)
         {
-            var instance = new CommandContext();
-            instance.task = Task.Run(() => onFinished());
-            return instance;
+            return new CommandContext() { task = Task.Run(() => onFinished()) };
         }
 
         /// <summary>
@@ -86,11 +77,10 @@ namespace Suconbu.Toolbox
                 this.binaryWriter = null;
                 return;
             }
-            //this.process.StandardInput.Write(new char[] { '0', '\0', '2' }, 0, 3);
             this.binaryWriter = this.binaryWriter ?? new BinaryWriter(this.process.StandardInput.BaseStream);
             this.binaryWriter.Write(inputs);
             this.binaryWriter.Flush();
-            Console.WriteLine(string.Join(":", inputs.Select(i => i.ToString())));
+            //Console.WriteLine(string.Join(":", inputs.Select(i => i.ToString())));
         }
 
         bool StartCommandTextOutput(string command, string arguments, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<string, string> onFinished)
@@ -115,20 +105,14 @@ namespace Suconbu.Toolbox
 
             this.process.ErrorDataReceived += (s, e) =>
             {
-                if(e.Data != null && errorBuffer !=null)
-                {
-                    errorBuffer.AppendLine(e.Data);
-                }
+                if(e.Data != null && errorBuffer !=null) errorBuffer.AppendLine(e.Data);
                 onErrorReceived?.Invoke(e.Data);
             };
             this.process.BeginErrorReadLine();
 
             this.process.OutputDataReceived += (s, e) =>
             {
-                if (e.Data != null && outputBuffer != null)
-                {
-                    outputBuffer.AppendLine(e.Data);
-                }
+                if (e.Data != null && outputBuffer != null) outputBuffer.AppendLine(e.Data);
                 onOutputReceived?.Invoke(e.Data);
                 if (e.Data == null)
                 {
@@ -208,120 +192,9 @@ namespace Suconbu.Toolbox
             return true;
         }
 
-        //static CommandContext StartNewInternal(string command, string arguments, bool binary, Action<string> onOutputReceived, Action<string> onErrorReceived, Action<CommandContext> onFinished)
-        //{
-        //    var instance = new CommandContext();
-        //    instance.process = new Process();
-        //    var info = instance.process.StartInfo;
-        //    info.FileName = command;
-        //    info.Arguments = arguments;
-        //    info.CreateNoWindow = true;
-        //    info.RedirectStandardInput = true;
-        //    info.RedirectStandardOutput = true;
-        //    info.RedirectStandardError = !binary;
-        //    info.UseShellExecute = false;
-        //    //if (binary)
-        //    //{
-        //    //    info.StandardOutputEncoding = Encoding.Unicode;
-        //    //}
-
-        //    if(onFinished != null)
-        //    {
-        //        instance.outputBuffer = new StringBuilder();
-        //    }
-
-        //    Trace.TraceInformation($"{Util.GetCurrentMethodName()} - {command} {arguments}");
-
-        //    if (!instance.process.Start()) return null;
-
-        //    if (!binary)
-        //    {
-        //        instance.process.OutputDataReceived += (s, e) =>
-        //        {
-        //            if (e.Data != null && instance.outputBuffer != null)
-        //            {
-        //                instance.outputBuffer.AppendLine(e.Data);
-        //            }
-        //            onOutputReceived?.Invoke(e.Data);
-        //            if (e.Data == null)
-        //            {
-        //                instance.process?.CancelOutputRead();
-        //                instance.process?.CancelErrorRead();
-        //                instance.finished = true;
-        //                onFinished?.Invoke(instance);
-        //            }
-        //        };
-        //        instance.process.BeginOutputReadLine();
-
-        //        if(onErrorReceived != null)
-        //        {
-        //            instance.process.ErrorDataReceived += (s, e) => onErrorReceived(e.Data);
-        //        }
-        //        instance.process.BeginErrorReadLine();
-        //    }
-        //    else
-        //    {
-        //        instance.task = Task.Run(() =>
-        //        {
-        //            instance.finished = true;
-        //            onFinished(instance);
-        //        });
-        //    }
-
-        //    return instance;
-        //}
-
-        //Stream GetBinaryOutputStream()
-        //{
-        //    if (this.process == null) return null;
-        //    using (var stream = new MemoryStream())
-        //    {
-        //        this.process.StandardOutput.BaseStream.CopyTo(stream);
-        //        return stream;
-        //        //var data = dataStream.ToArray();
-        //        //var outputStream = new MemoryStream(data.Length);
-        //        //if (data.Length > 0)
-        //        //{
-        //        //    bool replace0D0D0A = false;
-        //        //    for (int i = 0; i < Math.Min(16, data.Length - 2); i++)
-        //        //    {
-        //        //        if (data[i] == 0x0D && data[i + 1] == 0x0D && data[i + 2] == 0x0A)
-        //        //        {
-        //        //            replace0D0D0A = true;
-        //        //            break;
-        //        //        }
-        //        //    }
-        //        //    for (int i = 0; i < data.Length - 2; i++)
-        //        //    {
-        //        //        if (replace0D0D0A && data[i] == 0x0D && data[i + 1] == 0x0D && data[i + 2] == 0x0A)
-        //        //        {
-        //        //            outputStream.WriteByte(0x0A);
-        //        //            i += 2;
-        //        //        }
-        //        //        else if (!replace0D0D0A && data[i] == 0x0D && data[i + 1] == 0x0A)
-        //        //        {
-        //        //            outputStream.WriteByte(0x0A);
-        //        //            i += 1;
-        //        //        }
-        //        //        else
-        //        //        {
-        //        //            outputStream.WriteByte(data[i]);
-        //        //        }
-        //        //    }
-        //        //    outputStream.WriteByte(data[data.Length - 2]);
-        //        //    outputStream.WriteByte(data[data.Length - 1]);
-        //        //}
-        //        //outputStream.Position = 0;
-        //        //return outputStream;
-        //    }
-        //}
-
         public void Cancel()
         {
-            if (!Finished)
-            {
-                this.process?.Kill();
-            }
+            if (!this.Finished) this.process?.Kill();
             this.process = null;
             this.task = null;
         }
