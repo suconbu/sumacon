@@ -32,7 +32,8 @@ namespace Suconbu.Sumacon
         string updateScreenTimeoutId;
         bool beepEnabled = true;
 
-        readonly int kUpdateScreenDelayedMilliseconds = 2000;
+        readonly int kActionsGridPanelWidth = 150;
+        readonly int kUpdateScreenDelayedMilliseconds = 1000;
 
         public FormControl(Sumacon sumacon)
         {
@@ -55,7 +56,8 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.ColumnHeadersVisible = false;
             this.uxActionsGridPanel.DataSource = this.actionGroup.Actions;
             this.uxActionsGridPanel.SetDefaultCellStyle();
-            this.uxActionsGridPanel.MouseDoubleClick += this.UxActionsGridPanel_MouseDoubleClick;
+            this.uxActionsGridPanel.MouseDown += this.UxActionsGridPanel_MouseDown;
+            this.uxActionsGridPanel.MouseMove += this.UxActionsGridPanel_MouseMove;
             this.uxActionsGridPanel.KeyDown += this.UxActionsGridPanel_KeyDown;
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
@@ -74,6 +76,7 @@ namespace Suconbu.Sumacon
             this.uxUpperSplitContaier.Orientation = Orientation.Vertical;
             this.uxUpperSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
             this.uxUpperSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
+            this.uxUpperSplitContaier.FixedPanel = FixedPanel.Panel2;
 
             this.uxBaseSplitContaier.Orientation = Orientation.Horizontal;
             this.uxBaseSplitContaier.Panel1.Controls.Add(this.uxUpperSplitContaier);
@@ -81,7 +84,7 @@ namespace Suconbu.Sumacon
             this.uxBaseSplitContaier.Panel2.Controls.Add(this.uxLogGridPanel);
             this.Controls.Add(this.uxBaseSplitContaier);
 
-            this.uxUpperSplitContaier.SplitterDistance = this.uxUpperSplitContaier.Width * 70 / 100;
+            this.uxUpperSplitContaier.SplitterDistance = this.uxUpperSplitContaier.Width - this.kActionsGridPanelWidth;
             this.uxBaseSplitContaier.SplitterDistance = this.uxBaseSplitContaier.Height * 70 / 100;
 
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
@@ -127,11 +130,6 @@ namespace Suconbu.Sumacon
             device.Input.OffTouch(0);
         }
 
-        void UxActionsGridPanel_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-            this.ExecuteAction(this.GetSelectedAction());
-        }
-
         private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -146,6 +144,21 @@ namespace Suconbu.Sumacon
             if (e.RowIndex >= 0)
             {
                 e.ToolTipText = this.actionGroup.Actions[e.RowIndex].Command;
+            }
+        }
+
+        void UxActionsGridPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            this.ExecuteAction(this.GetSelectedAction());
+        }
+
+        void UxActionsGridPanel_MouseMove(object sender, MouseEventArgs e)
+        {
+            var p = this.uxActionsGridPanel.PointToClient(Control.MousePosition);
+            var hit = this.uxActionsGridPanel.HitTest(p.X, p.Y);
+            if (hit.Type == DataGridViewHitTestType.Cell)
+            {
+                this.uxActionsGridPanel.Rows[hit.RowIndex].Cells[hit.ColumnIndex].Selected = true;
             }
         }
 
