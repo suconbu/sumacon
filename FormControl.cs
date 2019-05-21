@@ -29,11 +29,10 @@ namespace Suconbu.Sumacon
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         GridPanel uxLogGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
-        string updateScreenTimeoutId;
         bool beepEnabled = true;
 
         readonly int kActionsGridPanelWidth = 150;
-        readonly int kUpdateScreenDelayedMilliseconds = 1000;
+        readonly int kUpdateScreenIntervalMilliseconds = 500;
 
         public FormControl(Sumacon sumacon)
         {
@@ -90,8 +89,6 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Proc)].Visible = false;
-
-            this.UpdateScreenPicture();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -101,9 +98,14 @@ namespace Suconbu.Sumacon
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            if(this.Visible) this.StartScreenPictureUpdate();
+        }
+
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
-            this.UpdateScreenPicture();
+            this.StartScreenPictureUpdate();
         }
 
         void UxScreenPictureBox_MouseDown(object sender, MouseEventArgs e)
@@ -112,6 +114,7 @@ namespace Suconbu.Sumacon
             if (device == null) return;
             if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
             device.Input.OnTouch(0, point.X, point.Y);
+            if (this.beepEnabled) Beep.Play(Beep.Note.Po);
         }
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
@@ -128,6 +131,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
             device.Input.OffTouch(0);
+            if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
         }
 
         private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
@@ -162,21 +166,17 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void UpdateScreenPicture()
+        void StartScreenPictureUpdate()
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null)
+            if (device != null && this.Visible)
             {
-                device.Screen.CaptureAsync(bitmap => this.uxScreenPictureBox.Image = bitmap);
+                device.Screen.CaptureAsync(bitmap => this.uxScreenPictureBox.Image = bitmap).Wait(() =>
+                {
+                    //Beep.Play(Beep.Note.Pe);
+                    Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
+                });
             }
-        }
-
-        void UpdateScreenPictureDelayed()
-        {
-            this.updateScreenTimeoutId = Delay.SetTimeout(
-                () => this.SafeInvoke(this.UpdateScreenPicture),
-                this.kUpdateScreenDelayedMilliseconds,
-                this.updateScreenTimeoutId);
         }
 
         void ExecuteAction(ControlAction action)
@@ -188,7 +188,7 @@ namespace Suconbu.Sumacon
 
             if (!string.IsNullOrEmpty(action.Command))
             {
-                device.RunCommandAsync(action.Command).Wait(() => this.UpdateScreenPictureDelayed());
+                device.RunCommandAsync(action.Command);
             }
             if(!string.IsNullOrEmpty(action.Proc))
             {
@@ -219,7 +219,6 @@ namespace Suconbu.Sumacon
             while (code < 0) code += 4;
             while (code >= 4) code -= 4;
             device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
-            device.Screen.PullAsync().Wait(() => this.UpdateScreenPictureDelayed());
         }
 
         ControlAction GetSelectedAction()
