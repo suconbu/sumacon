@@ -184,6 +184,10 @@ namespace Suconbu.Sumacon
             {
                 this.uxActionsGridPanel.Rows[hit.RowIndex].Cells[hit.ColumnIndex].Selected = true;
             }
+            else
+            {
+                this.uxActionsGridPanel.ClearSelection();
+            }
         }
 
         void StartScreenPictureUpdate()
@@ -201,10 +205,10 @@ namespace Suconbu.Sumacon
 
         void ExecuteAction(ControlAction action)
         {
-            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
-
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (action == null || device == null) return;
+
+            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
 
             if (!string.IsNullOrEmpty(action.Command))
             {
