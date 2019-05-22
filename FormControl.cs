@@ -23,6 +23,7 @@ namespace Suconbu.Sumacon
 
         Sumacon sumacon;
         StatusStrip uxScreenStatusStrip = new StatusStrip();
+        ToolStripButton uxBeepButton = new ToolStripButton();
         ToolStripDropDownButton uxTouchProtocolDropDown = new ToolStripDropDownButton();
         ToolStripItem selectedTouchProtocolItem;
         SplitContainer uxBaseSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
@@ -64,15 +65,19 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
+            this.uxBeepButton.CheckOnClick = true;
+            this.uxBeepButton.Checked = true;
+            this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
+
             this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol A").Tag = TouchProtocolType.A;
             this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol B").Tag = TouchProtocolType.B;
-            this.uxTouchProtocolDropDown.DropDownItemClicked += this.UxTouchProtocolDropDown_DropDownItemClicked;
-            this.selectedTouchProtocolItem = this.uxTouchProtocolDropDown.DropDownItems[0];
+            this.uxTouchProtocolDropDown.DropDownItems[0].Select();
+            this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
 
             this.uxScreenStatusStrip.Items.Add("Position");
             this.uxScreenStatusStrip.Items.Add("Auto update");
             this.uxScreenStatusStrip.Items.Add("Update");
-            this.uxScreenStatusStrip.Items.Add("Beep");
+            this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.SizingGrip = false;
 
@@ -99,12 +104,6 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Proc)].Visible = false;
 
-            this.UpdateControlState();
-        }
-
-        private void UxTouchProtocolDropDown_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
-        {
-            this.selectedTouchProtocolItem = e.ClickedItem;
             this.UpdateControlState();
         }
 
@@ -274,6 +273,13 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
+            this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
+            this.beepEnabled = this.uxBeepButton.Checked;
+
+            foreach (ToolStripItem item in this.uxTouchProtocolDropDown.DropDownItems)
+            {
+                if (item.Selected) this.selectedTouchProtocolItem = item;
+            }
             this.uxTouchProtocolDropDown.Text = this.selectedTouchProtocolItem.Text;
         }
     }
