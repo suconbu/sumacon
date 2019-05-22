@@ -26,11 +26,9 @@ namespace Suconbu.Sumacon
         ToolStripButton uxBeepButton = new ToolStripButton();
         ToolStripDropDownButton uxTouchProtocolDropDown = new ToolStripDropDownButton();
         ToolStripItem selectedTouchProtocolItem;
-        SplitContainer uxBaseSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
-        SplitContainer uxUpperSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
+        SplitContainer uxSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
-        GridPanel uxLogGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
         bool beepEnabled = true;
         int activeTouchNo = -1;
@@ -86,19 +84,15 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseMove += this.UxScreenPictureBox_MouseMove;
             this.uxScreenPictureBox.MouseUp += this.UxScreenPictureBox_MouseUp;
 
-            this.uxUpperSplitContaier.Orientation = Orientation.Vertical;
-            this.uxUpperSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
-            this.uxUpperSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
-            this.uxUpperSplitContaier.FixedPanel = FixedPanel.Panel2;
+            this.uxSplitContaier.Orientation = Orientation.Vertical;
+            this.uxSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
+            this.uxSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
+            this.uxSplitContaier.FixedPanel = FixedPanel.Panel2;
+            this.Controls.Add(this.uxSplitContaier);
 
-            this.uxBaseSplitContaier.Orientation = Orientation.Horizontal;
-            this.uxBaseSplitContaier.Panel1.Controls.Add(this.uxUpperSplitContaier);
-            this.uxBaseSplitContaier.Panel1.Controls.Add(this.uxScreenStatusStrip);
-            this.uxBaseSplitContaier.Panel2.Controls.Add(this.uxLogGridPanel);
-            this.Controls.Add(this.uxBaseSplitContaier);
+            this.uxSplitContaier.Panel1.Controls.Add(this.uxScreenStatusStrip);
 
-            this.uxUpperSplitContaier.SplitterDistance = this.uxUpperSplitContaier.Width - this.kActionsGridPanelWidth;
-            this.uxBaseSplitContaier.SplitterDistance = this.uxBaseSplitContaier.Height * 70 / 100;
+            this.uxSplitContaier.SplitterDistance = this.uxSplitContaier.Width - this.kActionsGridPanelWidth;
 
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
