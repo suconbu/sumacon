@@ -96,12 +96,13 @@ namespace Suconbu.Mobile
         {
             var w = this.TouchMax.X - this.TouchMin.X;
             var h = this.TouchMax.Y - this.TouchMin.Y;
-            return
-                (rotation == Screen.RotationCode.Protrait) ? new Point((int)(nx * w), (int)(ny * h)) :
-                (rotation == Screen.RotationCode.ProtraitReversed) ? new Point((int)((1.0f - nx) * w), (int)((1.0f - ny) * h)) :
-                (rotation == Screen.RotationCode.Landscape) ? new Point((int)((1.0f - ny) * w), (int)(nx * h)) :
-                (rotation == Screen.RotationCode.LandscapeReversed) ? new Point((int)(ny * w), (int)((1.0f - nx) * h)) :
+            var point =
+                (rotation == Screen.RotationCode.Protrait) ? new PointF(nx * w, ny * h) :
+                (rotation == Screen.RotationCode.ProtraitReversed) ? new PointF((1.0f - nx) * w, (1.0f - ny) * h) :
+                (rotation == Screen.RotationCode.Landscape) ? new PointF((1.0f - ny) * w, nx * h) :
+                (rotation == Screen.RotationCode.LandscapeReversed) ? new PointF(ny * w, (1.0f - nx) * h) :
                 throw new NotSupportedException();
+            return Point.Truncate(point);
         }
     }
 

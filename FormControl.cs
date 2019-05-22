@@ -23,6 +23,8 @@ namespace Suconbu.Sumacon
 
         Sumacon sumacon;
         StatusStrip uxScreenStatusStrip = new StatusStrip();
+        ToolStripStatusLabel uxTouchPositionLabel = new ToolStripStatusLabel();
+        ToolStripStatusLabel uxColorLabel = new ToolStripStatusLabel();
         ToolStripButton uxBeepButton = new ToolStripButton();
         ToolStripDropDownButton uxTouchProtocolDropDown = new ToolStripDropDownButton();
         ToolStripItem selectedTouchProtocolItem;
@@ -32,6 +34,7 @@ namespace Suconbu.Sumacon
         ControlActionGroup actionGroup;
         bool beepEnabled = true;
         int activeTouchNo = -1;
+        Point touchPosition = new Point(-1, -1);
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
@@ -72,11 +75,14 @@ namespace Suconbu.Sumacon
             this.uxTouchProtocolDropDown.DropDownItems[0].Select();
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
 
-            this.uxScreenStatusStrip.Items.Add("Position");
-            this.uxScreenStatusStrip.Items.Add("Auto update");
-            this.uxScreenStatusStrip.Items.Add("Update");
+            this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
+            this.uxTouchPositionLabel.Alignment = ToolStripItemAlignment.Right;
+
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
+            this.uxScreenStatusStrip.Items.Add(new ToolStripStatusLabel() { Spring = true });
+            this.uxScreenStatusStrip.Items.Add(this.uxColorLabel);
+            this.uxScreenStatusStrip.Items.Add(this.uxTouchPositionLabel);
             this.uxScreenStatusStrip.SizingGrip = false;
 
             this.uxScreenPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
@@ -130,12 +136,20 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!e.Button.HasFlag(MouseButtons.Left)) return;
-            if (this.activeTouchNo == -1) return;
+            this.touchPosition = new Point(-1, -1);
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
             if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
-            device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
+
+            this.touchPosition = new Point(
+                (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
+                (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
+            this.UpdateControlState();
+
+            if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
+            {
+                device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
+            }
         }
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
@@ -271,6 +285,24 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
+            if (this.touchPosition.X >= 0 && this.touchPosition.Y >= 0)
+            {
+                this.uxTouchPositionLabel.Text = $"👆 {this.touchPosition.X}, {this.touchPosition.Y}";
+                var bitmap = this.uxScreenPictureBox.Image as Bitmap;
+                var color = bitmap?.GetPixel(this.touchPosition.X, this.touchPosition.Y) ?? Color.Transparent;
+                var h = color.GetHue();
+                var s = color.GetSaturation() * 100;
+                var v = color.GetLuminance() * 100;
+                this.uxColorLabel.Text = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0}) hsl({h,3:0}, {s,3:0}%, {v,3:0}%)";
+                this.uxColorLabel.BackColor = color;
+                this.uxColorLabel.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
+            }
+            else
+            {
+                this.uxTouchPositionLabel.Text = "👆 -, -";
+                this.uxColorLabel.Text = "-";
+            }
+
             this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
             this.beepEnabled = this.uxBeepButton.Checked;
 
