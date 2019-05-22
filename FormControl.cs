@@ -23,6 +23,8 @@ namespace Suconbu.Sumacon
 
         Sumacon sumacon;
         StatusStrip uxScreenStatusStrip = new StatusStrip();
+        ToolStripDropDownButton uxTouchProtocolDropDown = new ToolStripDropDownButton();
+        ToolStripItem selectedTouchProtocolItem;
         SplitContainer uxBaseSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         SplitContainer uxUpperSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
@@ -30,6 +32,7 @@ namespace Suconbu.Sumacon
         GridPanel uxLogGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
         bool beepEnabled = true;
+        int activeTouchNo = -1;
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
@@ -61,10 +64,16 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
+            this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol A").Tag = TouchProtocolType.A;
+            this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol B").Tag = TouchProtocolType.B;
+            this.uxTouchProtocolDropDown.DropDownItemClicked += this.UxTouchProtocolDropDown_DropDownItemClicked;
+            this.selectedTouchProtocolItem = this.uxTouchProtocolDropDown.DropDownItems[0];
+
             this.uxScreenStatusStrip.Items.Add("Position");
             this.uxScreenStatusStrip.Items.Add("Auto update");
             this.uxScreenStatusStrip.Items.Add("Update");
             this.uxScreenStatusStrip.Items.Add("Beep");
+            this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.SizingGrip = false;
 
             this.uxScreenPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
@@ -89,6 +98,14 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Proc)].Visible = false;
+
+            this.UpdateControlState();
+        }
+
+        private void UxTouchProtocolDropDown_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            this.selectedTouchProtocolItem = e.ClickedItem;
+            this.UpdateControlState();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -112,25 +129,29 @@ namespace Suconbu.Sumacon
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
+            device.Input.TouchProtocol = (TouchProtocolType)this.selectedTouchProtocolItem.Tag;
             if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
-            device.Input.OnTouch(0, point.X, point.Y);
+            this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
             if (this.beepEnabled) Beep.Play(Beep.Note.Po);
         }
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
         {
             if (!e.Button.HasFlag(MouseButtons.Left)) return;
+            if (this.activeTouchNo == -1) return;
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
             if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
-            device.Input.MoveTouch(0, point.X, point.Y);
+            device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
         }
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
         {
+            if (this.activeTouchNo == -1) return;
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
-            device.Input.OffTouch(0);
+            device.Input.OffTouch();
+            this.activeTouchNo = -1;
             if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
         }
 
@@ -200,10 +221,7 @@ namespace Suconbu.Sumacon
         {
             if (!Enum.TryParse<ProcAction>(procName, out var proc)) return;
 
-            if (proc == ProcAction.PressPower) device.Input.PressSwitch(Input.HardSwitch.Power);
-            else if (proc == ProcAction.PressVolumeUp) device.Input.PressSwitch(Input.HardSwitch.VolumeUp);
-            else if (proc == ProcAction.PressVolumeDown) device.Input.PressSwitch(Input.HardSwitch.VolumeDown);
-            else if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 1);
+            if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 1);
             else if (proc == ProcAction.RotateScreenCcw) this.ExecuteProcRotateScreen(device, -1);
         }
 
@@ -252,6 +270,11 @@ namespace Suconbu.Sumacon
                 (float)(point.X - screenRect.X) / screenRect.Width,
                 (float)(point.Y - screenRect.Y) / screenRect.Height);
             return true;
+        }
+
+        void UpdateControlState()
+        {
+            this.uxTouchProtocolDropDown.Text = this.selectedTouchProtocolItem.Text;
         }
     }
 

@@ -7,6 +7,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Diagnostics;
 
 namespace Suconbu.Mobile
 {
@@ -74,7 +75,7 @@ namespace Suconbu.Mobile
     //   <property name="AC powered" type="bool" pattern="AC powered: (\w+)" push="set ac \1"/>
     public class Property
     {
-        public enum DataType { String, Integer, Float, Bool, Size }
+        public enum DataType { String, Integer, Float, Bool, Size, Point }
 
         [XmlAttribute("name")]
         public string Name { get; set; }
@@ -121,6 +122,7 @@ namespace Suconbu.Mobile
         {
             this.internalValue =
                 (this.Type == DataType.Size) ? Size.Empty :
+                (this.Type == DataType.Point) ? Point.Empty :
                 (this.Type == DataType.Bool) ? false :
                 (this.Type == DataType.Integer) ? 0 :
                 (this.Type == DataType.Float) ? 0.0f :
@@ -152,6 +154,11 @@ namespace Suconbu.Mobile
             {
                 var sizeValue = (Size)this.internalValue;
                 command = string.Format(this.PushCommand, sizeValue.Width, sizeValue.Height);
+            }
+            else if (this.Type == DataType.Point)
+            {
+                var pointValue = (Point)this.internalValue;
+                command = string.Format(this.PushCommand, pointValue.X, pointValue.Y);
             }
             else if (this.Type == DataType.Bool)
             {
@@ -193,16 +200,26 @@ namespace Suconbu.Mobile
         {
             var match = Regex.Match(input, this.PullPattern);
             if (!match.Success) return false;
-
-            this.internalValue =
-                (this.Type == DataType.Size) ? new Size(
-                    (int)Math.Round(double.Parse(match.Groups[1].Value)),
-                    (int)Math.Round(double.Parse(match.Groups[2].Value))) :
-                (this.Type == DataType.Bool) ? this.ParseAsBool(match.Groups[1].Value) :
-                (this.Type == DataType.Integer) ? (int)Math.Round(double.Parse(match.Groups[1].Value)) :
-                (this.Type == DataType.Float) ? float.Parse(match.Groups[1].Value) :
-                (this.Type == DataType.String) ? match.Groups[1].Value :
-                this.internalValue;
+            try
+            {
+                this.internalValue =
+                    (this.Type == DataType.Size) ? new Size(
+                        (int)Math.Round(double.Parse(match.Groups[1].Value)),
+                        (int)Math.Round(double.Parse(match.Groups[2].Value))) :
+                    (this.Type == DataType.Point) ? new Point(
+                        (int)Math.Round(double.Parse(match.Groups[1].Value)),
+                        (int)Math.Round(double.Parse(match.Groups[2].Value))) :
+                    (this.Type == DataType.Bool) ? this.ParseAsBool(match.Groups[1].Value) :
+                    (this.Type == DataType.Integer) ? (int)Math.Round(double.Parse(match.Groups[1].Value)) :
+                    (this.Type == DataType.Float) ? float.Parse(match.Groups[1].Value) :
+                    (this.Type == DataType.String) ? match.Groups[1].Value :
+                    this.internalValue;
+            }
+            catch(Exception ex)
+            {
+                Trace.TraceError(ex.ToString());
+                return false;
+            }
             this.OriginalValue = this.OriginalValue ?? this.internalValue;
             return true;
         }

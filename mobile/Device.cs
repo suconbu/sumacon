@@ -18,6 +18,7 @@ namespace Suconbu.Mobile
             public const string Setting = "02.Setting";
             public const string Battery = "03.Battery";
             public const string Screen = "04.Screen";
+            public const string Input = "05.Input";
         }
 
         public enum StatusCode { Unknown = 1, Charging = 2, Discharging = 3, NotCharging = 4, Full = 5 }
@@ -30,7 +31,7 @@ namespace Suconbu.Mobile
             //Components = SystemComponent | SettingComponent | BatteryComponent | ScreenComponent,
             //All = Components | ProcessInfo
         }
-        public const UpdatableProperties AllUpdatableProperties = UpdatableProperties.ProcessInfo | UpdatableProperties.SystemComponent | UpdatableProperties.SettingComponent | UpdatableProperties.BatteryComponent | UpdatableProperties.ScreenComponent;
+        public const UpdatableProperties AllUpdatableProperties = UpdatableProperties.ProcessInfo | UpdatableProperties.SystemComponent | UpdatableProperties.SettingComponent | UpdatableProperties.BatteryComponent | UpdatableProperties.ScreenComponent | UpdatableProperties.InputComponent;
 
         public event EventHandler ProcessesChanged = delegate { };
 
@@ -142,6 +143,13 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Screen), Description("[s]")]
         public int OffTimeout { get { return this.Screen.OffTimeout / 1000; } set { this.Screen.OffTimeout = value * 1000; } }
 
+        [Category(ComponentCategory.Input)]
+        public string TouchDevice { get => this.Input.TouchDevice; }
+        [Category(ComponentCategory.Input)]
+        public Point TouchMin { get => this.Input.TouchMin; }
+        [Category(ComponentCategory.Input)]
+        public Point TouchMax { get => this.Input.TouchMax; }
+
         [Browsable(false)]
         public IEnumerable<DeviceComponent> Components { get { return this.components.Values; } }
         [Browsable(false)]
@@ -183,7 +191,7 @@ namespace Suconbu.Mobile
             this.components.Add(UpdatableProperties.BatteryComponent, this.Battery);
             this.Screen = new Screen(this, "properties_screen.xml");
             this.components.Add(UpdatableProperties.ScreenComponent, this.Screen);
-            this.Input = new Input(this, null);
+            this.Input = new Input(this, "properties_input.xml");
             this.components.Add(UpdatableProperties.InputComponent, this.Input);
 
             this.RunCommandOutputBinaryAsync("shell echo \\\\r", stream =>

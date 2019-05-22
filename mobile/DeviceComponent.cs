@@ -22,10 +22,17 @@ namespace Suconbu.Mobile
         public DeviceComponent(Device device, string xmlPath)
         {
             this.device = device;
-            this.propertyGroup = PropertyGroup.FromXml(xmlPath);
-            foreach (var property in this.propertyGroup.Properties)
+            try
             {
-                property.Component = this;
+                this.propertyGroup = PropertyGroup.FromXml(xmlPath);
+                foreach (var property in this.propertyGroup.Properties)
+                {
+                    property.Component = this;
+                }
+            }
+            catch(Exception ex)
+            {
+                Trace.TraceError(ex.ToString());
             }
         }
 
