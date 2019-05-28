@@ -48,7 +48,11 @@ namespace Suconbu.Sumacon
             this.uxOutputText.ForeColor = Color.White;
 
             this.uxOutputText.AppendText($"{Util.GetApplicationName()} version {Util.GetVersionString(3)}" + Environment.NewLine);
-            CommandContext.StartNewText("adb", "version", (output, error) => this.SafeInvoke(() => this.sumacon.CommandReceiver.WriteOutput(output)));
+            CommandContext.StartNewText("adb", "version", (output, error) => this.SafeInvoke(() =>
+            {
+                this.sumacon.CommandReceiver.WriteOutput(output);
+                this.sumacon.CommandReceiver.WriteOutput("Waiting to connect the device...\r\n");
+            }));
         }
 
         protected override void OnClosing(CancelEventArgs e)

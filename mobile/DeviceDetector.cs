@@ -18,14 +18,11 @@ namespace Suconbu.Mobile
 
         DeviceMonitor monitor;
         readonly List<string> serials = new List<string>();
+        readonly string designatedAdbPath;
 
         public DeviceDetector(string adbPath = null)
         {
-            if(string.IsNullOrWhiteSpace(adbPath))
-            {
-                CommandContext.StartNewText("where", "adb.exe", (output, error) => adbPath = output.Trim()).Wait();
-            }
-            AdbServer.Instance.StartServer(adbPath, false);
+            this.designatedAdbPath = adbPath;
         }
 
         /// <summary>
@@ -34,6 +31,46 @@ namespace Suconbu.Mobile
         public void Start()
         {
             if (this.monitor != null) return;
+            if (AdbServer.Instance.GetStatus().IsRunning)
+            {
+                this.StartMonitor();
+            }
+            else
+            {
+                this.StartAdbServerAsync(this.StartMonitor);
+            }
+        }
+
+        /// <summary>
+        /// 監視を停止します。
+        /// </summary>
+        public void Stop()
+        {
+            if (this.monitor == null) return;
+            this.monitor.Dispose();
+            this.monitor = null;
+        }
+
+        void StartAdbServerAsync(Action onFinished)
+        {
+            CommandContext.StartNew(() =>
+            {
+                var adbPath = this.designatedAdbPath;
+                if (string.IsNullOrWhiteSpace(adbPath))
+                {
+                    CommandContext.StartNewText("where", "adb.exe", (output, error) =>
+                    {
+                        var lines = output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        adbPath = (lines.Length > 0) ? lines[0].Trim() : null;
+                    }).Wait();
+                }
+                AdbServer.Instance.StartServer(adbPath, false);
+                onFinished?.Invoke();
+            });
+        }
+
+        void  StartMonitor()
+        {
             this.monitor = new DeviceMonitor(new AdbSocket(new IPEndPoint(IPAddress.Loopback, AdbClient.AdbServerPort)));
             this.monitor.DeviceConnected += (s, e) =>
             {
@@ -44,9 +81,17 @@ namespace Suconbu.Mobile
                 Task.Run(() =>
                 {
                     // Online状態になるまでちょっと時間かかる
-                    while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == serial)?.State != DeviceState.Online)
+                    try
                     {
-                        Thread.Sleep(10);
+                        while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == serial)?.State != DeviceState.Online)
+                        {
+                            Thread.Sleep(10);
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        Trace.TraceError(ex.ToString());
+                        Thread.Sleep(100);
                     }
                     this.Connected(this, serial);
                 });
@@ -59,16 +104,6 @@ namespace Suconbu.Mobile
                 Task.Run(() => this.Disconnected(this, serial));
             };
             this.monitor.Start();
-        }
-
-        /// <summary>
-        /// 監視を停止します。
-        /// </summary>
-        public void Stop()
-        {
-            if (this.monitor == null) return;
-            this.monitor.Dispose();
-            this.monitor = null;
         }
     }
 }

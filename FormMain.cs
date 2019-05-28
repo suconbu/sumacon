@@ -96,10 +96,11 @@ namespace Suconbu.Sumacon
             this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
             this.showTouchesButton.Click += this.ShowTouchesButton_Click;
             this.wirelessAdbButton.Click += this.WirelessAdbButton_Click;
+        }
 
-            //this.memoryTimer.Tick += this.MemoryTimer_Tick;
-            //this.memoryTimer.Start();
-
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
             this.sumacon.DeviceManager.StartDeviceDetection();
         }
 
