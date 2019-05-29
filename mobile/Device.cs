@@ -56,12 +56,18 @@ namespace Suconbu.Mobile
         // e.g. tegra132
         [Category(ComponentCategory.System)]
         public string Platform { get { return (string)this.system[nameof(this.Platform)].Value; } }
-        // e.g. 8
-        [Category(ComponentCategory.System)]
-        public int CpuCount { get { return (int)this.system[nameof(this.CpuCount)].Value; } }
         // e.g. arm64-v8a
         [Category(ComponentCategory.System)]
         public string CpuAbi { get { return (string)this.system[nameof(this.CpuAbi)].Value; } }
+        // e.g. 8
+        [Category(ComponentCategory.System)]
+        public int CpuCount { get { return (int)this.system[nameof(this.CpuCount)].Value; } }
+        // e.g. 1508
+        [Category(ComponentCategory.System), Description("(MHz)")]
+        public int CpuClockMax { get { return (int)this.system[nameof(this.CpuClockMax)].Value / 1000; } }
+        // e.g. 338
+        [Category(ComponentCategory.System), Description("(MHz)")]
+        public int CpuClockMin { get { return (int)this.system[nameof(this.CpuClockMin)].Value / 1000; } }
         // e.g. 1836
         [Category(ComponentCategory.System), Description("(MB)")]
         public int RAM { get { return (int)this.system[nameof(this.RAM)].Value / 1024; } }

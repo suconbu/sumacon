@@ -7,8 +7,10 @@
   <property name="Model" type="String" pattern="ro.product.model\]: \[(.+)\]"/>
   <property name="Name" type="String" pattern="ro.product.name\]: \[(.+)\]"/>
   <property name="Platform" type="String" pattern="ro.board.platform\]: \[(.+)\]"/>
-  <property name="CpuCount" type="Integer" pull="shell grep processor /proc/cpuinfo | wc -l" pattern="(\d+)"/>
   <property name="CpuAbi" type="String" pattern="ro.product.cpu.abi\]: \[(.+)\]"/>
+  <property name="CpuCount" type="Integer" pull="shell grep processor /proc/cpuinfo | wc -l" pattern="(\d+)"/>
+  <property name="CpuClockMax" type="Integer" pull="shell cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq" pattern="(\d+)"/>
+  <property name="CpuClockMin" type="Integer" pull="shell cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_min_freq" pattern="(\d+)"/>
   <property name="RAM" type="Integer" pull="shell grep MemTotal: /proc/meminfo" pattern="(\d+)"/>
   <property name="AndroidVersion" type="String" pattern="ro.build.version.release\]: \[(.+)\]"/>
   <property name="ApiLevel" type="Integer" pattern="ro.build.version.sdk\]: \[(\d+)\]"/>
