@@ -149,18 +149,18 @@ namespace Suconbu.Sumacon
         {
             this.touchPosition = new Point(-1, -1);
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device == null) return;
-            if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
-
-            this.touchPosition = new Point(
-                (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
-                (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
-            this.UpdateControlState();
-
-            if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
+            if (device != null && this.GetNormalizedTouchPoint(e.Location, out var point))
             {
-                device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
+                this.touchPosition = new Point(
+                    (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
+                    (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
+
+                if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
+                {
+                    device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
+                }
             }
+            this.UpdateControlState();
         }
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
