@@ -111,7 +111,6 @@ namespace Suconbu.Sumacon
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
-
             this.LoadSettings();
             this.ApplyFilterSetting();
         }
@@ -122,7 +121,6 @@ namespace Suconbu.Sumacon
             base.OnClosing(e);
             this.CloseLogContext();
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
-
             this.SaveSettings();
         }
 
@@ -339,7 +337,7 @@ namespace Suconbu.Sumacon
             this.logUpdateTimeoutId = Delay.SetTimeout(() =>
             {
                 this.uxLogGridPanel.RowCount = this.GetLogCount();
-                if (this.AutoScrollEnabled && this.uxLogGridPanel.RowCount > 0)
+                if (this.AutoScrollEnabled && this.uxLogGridPanel.RowCount > 0 && this.uxLogGridPanel.Visible)
                 {
                     this.uxLogGridPanel.FirstDisplayedScrollingRowIndex = this.uxLogGridPanel.RowCount - 1;
                 }

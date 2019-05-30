@@ -3,7 +3,7 @@
   <Profiles />
   <Settings>
     <Setting Name="FormMainSize" Type="System.Drawing.Size" Scope="User">
-      <Value Profile="(Default)">0, 0</Value>
+      <Value Profile="(Default)">960, 540</Value>
     </Setting>
     <Setting Name="CaptureSaveDirectoryPath" Type="System.String" Scope="User">
       <Value Profile="(Default)">.\screencapture</Value>
@@ -50,10 +50,10 @@
     <Setting Name="RecordSplitterDistance" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">450</Value>
     </Setting>
-    <Setting Name="RecordLimitTimeMax" Type="System.Int32" Scope="Application">
+    <Setting Name="RecordLimitTimeMax" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">180</Value>
     </Setting>
-    <Setting Name="DeviceTemporaryDirectoryPath" Type="System.String" Scope="Application">
+    <Setting Name="DeviceTemporaryDirectoryPath" Type="System.String" Scope="User">
       <Value Profile="(Default)">/sdcard</Value>
     </Setting>
     <Setting Name="LogFilterPriorityF" Type="System.Boolean" Scope="User">
@@ -73,6 +73,12 @@
     </Setting>
     <Setting Name="LogFilterPriorityV" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="ControlBeep" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ControlTouchProtocol" Type="Suconbu.Mobile.TouchProtocolType" Scope="User">
+      <Value Profile="(Default)">A</Value>
     </Setting>
   </Settings>
 </SettingsFile>

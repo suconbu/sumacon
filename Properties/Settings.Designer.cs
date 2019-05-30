@@ -25,7 +25,7 @@ namespace Suconbu.Sumacon.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("960, 540")]
         public global::System.Drawing.Size FormMainSize {
             get {
                 return ((global::System.Drawing.Size)(this["FormMainSize"]));
@@ -215,21 +215,27 @@ namespace Suconbu.Sumacon.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("180")]
         public int RecordLimitTimeMax {
             get {
                 return ((int)(this["RecordLimitTimeMax"]));
             }
+            set {
+                this["RecordLimitTimeMax"] = value;
+            }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("/sdcard")]
         public string DeviceTemporaryDirectoryPath {
             get {
                 return ((string)(this["DeviceTemporaryDirectoryPath"]));
+            }
+            set {
+                this["DeviceTemporaryDirectoryPath"] = value;
             }
         }
         
@@ -302,6 +308,30 @@ namespace Suconbu.Sumacon.Properties {
             }
             set {
                 this["LogFilterPriorityV"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ControlBeep {
+            get {
+                return ((bool)(this["ControlBeep"]));
+            }
+            set {
+                this["ControlBeep"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("A")]
+        public global::Suconbu.Mobile.TouchProtocolType ControlTouchProtocol {
+            get {
+                return ((global::Suconbu.Mobile.TouchProtocolType)(this["ControlTouchProtocol"]));
+            }
+            set {
+                this["ControlTouchProtocol"] = value;
             }
         }
     }

@@ -26,13 +26,13 @@ namespace Suconbu.Sumacon
         ToolStripStatusLabel uxTouchPositionLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxColorLabel = new ToolStripStatusLabel();
         ToolStripButton uxBeepButton = new ToolStripButton();
-        ToolStripDropDownButton uxTouchProtocolDropDown = new ToolStripDropDownButton();
-        ToolStripItem selectedTouchProtocolItem;
+        BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
         SplitContainer uxSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
-        bool beepEnabled = true;
+        bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
+        TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
         Point touchPosition = new Point(-1, -1);
 
@@ -70,13 +70,21 @@ namespace Suconbu.Sumacon
             this.uxBeepButton.Checked = true;
             this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
-            this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol A").Tag = TouchProtocolType.A;
-            this.uxTouchProtocolDropDown.DropDownItems.Add("Touch protocol B").Tag = TouchProtocolType.B;
-            this.uxTouchProtocolDropDown.DropDownItems[0].Select();
+            this.uxTouchProtocolDropDown.DataSource = new Dictionary<TouchProtocolType, ToolStripDropDownItem>()
+            {
+                { TouchProtocolType.A, new ToolStripMenuItem("Touch protocol A") },
+                { TouchProtocolType.B, new ToolStripMenuItem("Touch protocol B") },
+            };
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
+            this.uxColorLabel.AutoSize = false;
+            this.uxColorLabel.Width = 200;
+            this.uxColorLabel.TextAlign = ContentAlignment.MiddleLeft;
             this.uxTouchPositionLabel.Alignment = ToolStripItemAlignment.Right;
+            this.uxTouchPositionLabel.AutoSize = false;
+            this.uxTouchPositionLabel.Width = 70;
+            this.uxTouchPositionLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
@@ -104,6 +112,8 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Proc)].Visible = false;
 
+            this.LoadSettings();
+
             this.UpdateControlState();
         }
 
@@ -112,6 +122,7 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+            this.SaveSettings();
         }
 
         protected override void OnVisibleChanged(EventArgs e)
@@ -128,7 +139,7 @@ namespace Suconbu.Sumacon
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
-            device.Input.TouchProtocol = (TouchProtocolType)this.selectedTouchProtocolItem.Tag;
+            device.Input.TouchProtocol = this.touchProtocolType;
             if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
             this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
             if (this.beepEnabled) Beep.Play(Beep.Note.Po);
@@ -304,13 +315,18 @@ namespace Suconbu.Sumacon
             }
 
             this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
-            this.beepEnabled = this.uxBeepButton.Checked;
+        }
 
-            foreach (ToolStripItem item in this.uxTouchProtocolDropDown.DropDownItems)
-            {
-                if (item.Selected) this.selectedTouchProtocolItem = item;
-            }
-            this.uxTouchProtocolDropDown.Text = this.selectedTouchProtocolItem.Text;
+        void LoadSettings()
+        {
+            this.beepEnabled = Properties.Settings.Default.ControlBeep;
+            this.touchProtocolType = Properties.Settings.Default.ControlTouchProtocol;
+        }
+
+        void SaveSettings()
+        {
+            Properties.Settings.Default.ControlBeep = this.beepEnabled;
+            Properties.Settings.Default.ControlTouchProtocol = this.touchProtocolType;
         }
     }
 

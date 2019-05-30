@@ -114,8 +114,8 @@ namespace Suconbu.Sumacon
             property = null;
             var device = this.sumacon.DeviceManager.ActiveDevice;
             category = this.uxPropertyGrid.SelectedGridItem.PropertyDescriptor?.Category;
-            if (device == null || category == null) return false;
-            component = device.GetComponent(category);
+            component = device?.GetComponent(category);
+            if (component == null) return false;
             label = this.uxPropertyGrid.SelectedGridItem.Label;
             // 先頭のコンポーネント名は外して探す(例：ScreenSize->Size)
             var findLabel = label.StartsWith(component.Name) ? label.Substring(component.Name.Length) : label;
