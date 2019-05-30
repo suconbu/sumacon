@@ -2,7 +2,7 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Suconbu.Sumacon.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="FormMainSize" Type="System.Drawing.Size" Scope="User">
+    <Setting Name="MainSize" Type="System.Drawing.Size" Scope="User">
       <Value Profile="(Default)">960, 540</Value>
     </Setting>
     <Setting Name="CaptureSaveDirectoryPath" Type="System.String" Scope="User">
@@ -79,6 +79,9 @@
     </Setting>
     <Setting Name="ControlTouchProtocol" Type="Suconbu.Mobile.TouchProtocolType" Scope="User">
       <Value Profile="(Default)">A</Value>
+    </Setting>
+    <Setting Name="MainMaximized" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

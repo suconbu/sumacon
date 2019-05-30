@@ -26,12 +26,12 @@ namespace Suconbu.Sumacon.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("960, 540")]
-        public global::System.Drawing.Size FormMainSize {
+        public global::System.Drawing.Size MainSize {
             get {
-                return ((global::System.Drawing.Size)(this["FormMainSize"]));
+                return ((global::System.Drawing.Size)(this["MainSize"]));
             }
             set {
-                this["FormMainSize"] = value;
+                this["MainSize"] = value;
             }
         }
         
@@ -332,6 +332,18 @@ namespace Suconbu.Sumacon.Properties {
             }
             set {
                 this["ControlTouchProtocol"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MainMaximized {
+            get {
+                return ((bool)(this["MainMaximized"]));
+            }
+            set {
+                this["MainMaximized"] = value;
             }
         }
     }

@@ -240,6 +240,18 @@ namespace Suconbu.Sumacon
             }
         }
 
+    	void LoadSettings()
+        {
+            this.WindowState = Properties.Settings.Default.MainMaximized ? FormWindowState.Maximized : FormWindowState.Normal;
+            this.Size = Properties.Settings.Default.MainSize;
+        }
+
+        void SaveSettings()
+        {
+            Properties.Settings.Default.MainMaximized = (this.WindowState == FormWindowState.Maximized);
+            Properties.Settings.Default.MainSize = this.Size;
+        }
+
         //void MemoryTimer_Tick(object sender, EventArgs e)
         //{
         //    this.memoryInfoLabel.Text = $"{GC.GetTotalMemory(false):#,##0} byte";
