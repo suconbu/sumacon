@@ -35,6 +35,7 @@ namespace Suconbu.Sumacon
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
         Point touchPosition = new Point(-1, -1);
+        Panel uxTouchMarker = new Panel();
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
@@ -98,6 +99,10 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseMove += this.UxScreenPictureBox_MouseMove;
             this.uxScreenPictureBox.MouseUp += this.UxScreenPictureBox_MouseUp;
 
+            this.uxTouchMarker.BackColor = Color.OrangeRed;
+            this.uxTouchMarker.Size = new Size(10, 10);
+            this.uxScreenPictureBox.Controls.Add(this.uxTouchMarker);
+
             this.uxSplitContaier.Orientation = Orientation.Vertical;
             this.uxSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
             this.uxSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
@@ -140,9 +145,17 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
             device.Input.TouchProtocol = this.touchProtocolType;
-            if (!this.GetNormalizedTouchPoint(e.Location, out var point)) return;
-            this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
-            if (this.beepEnabled) Beep.Play(Beep.Note.Po);
+            if (this.GetNormalizedTouchPoint(e.Location, out var point))
+            {
+                if(e.Button.HasFlag(MouseButtons.Left))
+                {
+                    this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
+                    if (this.beepEnabled) Beep.Play(Beep.Note.Po);
+                    this.uxTouchMarker.Visible = true;
+                    this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                }
+            }
+            this.UpdateControlState();
         }
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
@@ -158,6 +171,7 @@ namespace Suconbu.Sumacon
                 if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
                 {
                     device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
+                    this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                 }
             }
             this.UpdateControlState();
@@ -165,12 +179,15 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            if (this.activeTouchNo == -1) return;
+            this.uxTouchMarker.Visible = false;
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device == null) return;
-            device.Input.OffTouch();
-            this.activeTouchNo = -1;
-            if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
+            if (device != null && this.activeTouchNo != -1)
+            {
+                device.Input.OffTouch();
+                this.activeTouchNo = -1;
+                if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
+            }
+            this.UpdateControlState();
         }
 
         private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
