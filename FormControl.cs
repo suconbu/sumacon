@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -27,18 +28,26 @@ namespace Suconbu.Sumacon
         ToolStripStatusLabel uxColorLabel = new ToolStripStatusLabel();
         ToolStripButton uxBeepButton = new ToolStripButton();
         BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
-        SplitContainer uxSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
+        ToolStripButton uxZoomButton = new ToolStripButton();
+        SplitContainer uxMainSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
+        bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
-        Point touchPosition = new Point(-1, -1);
+        Point screenPointedPosition = new Point(-1, -1);
         Panel uxTouchMarker = new Panel();
+        ZoomBox uxZoomBox = new ZoomBox();
+        int zoomRatioIndex;
+        Point lastMousePosition;
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
+        readonly float kZoomPanelHeightRatio = 0.4f;
+        readonly int kZoomPanelRelocateMarginPixels = 10;
+        readonly int[] kZoomRatios = { 2, 5, 10, 15, 20, 30, 50, 100 };
 
         public FormControl(Sumacon sumacon)
         {
@@ -54,6 +63,8 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
+            this.KeyPreview = true;
+
             this.actionGroup = ControlActionGroup.FromXml("control_actions.xml");
             this.uxActionsGridPanel.ApplyColorSet(ColorSet.Light);
             this.uxActionsGridPanel.AutoGenerateColumns = true;
@@ -63,12 +74,11 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.SetDefaultCellStyle();
             this.uxActionsGridPanel.MouseDown += this.UxActionsGridPanel_MouseDown;
             this.uxActionsGridPanel.MouseMove += this.UxActionsGridPanel_MouseMove;
-            this.uxActionsGridPanel.KeyDown += this.UxActionsGridPanel_KeyDown;
+            //this.uxActionsGridPanel.KeyDown += this.UxActionsGridPanel_KeyDown;
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
             this.uxBeepButton.CheckOnClick = true;
-            this.uxBeepButton.Checked = true;
             this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
             this.uxTouchProtocolDropDown.DataSource = new Dictionary<TouchProtocolType, ToolStripDropDownItem>()
@@ -77,6 +87,10 @@ namespace Suconbu.Sumacon
                 { TouchProtocolType.B, new ToolStripMenuItem("Touch protocol B") },
             };
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
+
+            this.uxZoomButton.Text = "Zoom (Control key)";
+            //this.uxZoomButton.CheckOnClick = true;
+            //this.uxZoomButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxColorLabel.AutoSize = false;
@@ -89,29 +103,36 @@ namespace Suconbu.Sumacon
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
+            this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
             this.uxScreenStatusStrip.Items.Add(new ToolStripStatusLabel() { Spring = true });
             this.uxScreenStatusStrip.Items.Add(this.uxColorLabel);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchPositionLabel);
             this.uxScreenStatusStrip.SizingGrip = false;
 
+            this.uxZoomBox.Visible = false;
+            this.uxZoomBox.MouseMove += this.UxScreenPictureBox_MouseMove; // Redirect
+
             this.uxScreenPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             this.uxScreenPictureBox.MouseDown += this.UxScreenPictureBox_MouseDown;
             this.uxScreenPictureBox.MouseMove += this.UxScreenPictureBox_MouseMove;
             this.uxScreenPictureBox.MouseUp += this.UxScreenPictureBox_MouseUp;
+            this.uxScreenPictureBox.MouseLeave += (s, ee) => this.UpdateControlState();
+            this.uxScreenPictureBox.Controls.Add(this.uxZoomBox);
 
+            this.uxTouchMarker.Visible = false;
             this.uxTouchMarker.BackColor = Color.OrangeRed;
             this.uxTouchMarker.Size = new Size(10, 10);
             this.uxScreenPictureBox.Controls.Add(this.uxTouchMarker);
 
-            this.uxSplitContaier.Orientation = Orientation.Vertical;
-            this.uxSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
-            this.uxSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
-            this.uxSplitContaier.FixedPanel = FixedPanel.Panel2;
-            this.Controls.Add(this.uxSplitContaier);
+            this.uxMainSplitContaier.Orientation = Orientation.Vertical;
+            this.uxMainSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
+            this.uxMainSplitContaier.Panel2.Controls.Add(this.uxActionsGridPanel);
+            this.uxMainSplitContaier.FixedPanel = FixedPanel.Panel2;
+            this.Controls.Add(this.uxMainSplitContaier);
 
-            this.uxSplitContaier.Panel1.Controls.Add(this.uxScreenStatusStrip);
+            this.uxMainSplitContaier.Panel1.Controls.Add(this.uxScreenStatusStrip);
 
-            this.uxSplitContaier.SplitterDistance = this.uxSplitContaier.Width - this.kActionsGridPanelWidth;
+            this.uxMainSplitContaier.SplitterDistance = this.uxMainSplitContaier.Width - this.kActionsGridPanelWidth;
 
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Name)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.uxActionsGridPanel.Columns[nameof(ControlAction.Command)].Visible = false;
@@ -145,7 +166,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) return;
             device.Input.TouchProtocol = this.touchProtocolType;
-            if (this.GetNormalizedTouchPoint(e.Location, out var point))
+            if (this.GetScreenNormalizedPoint(e.Location, out var point))
             {
                 if(e.Button.HasFlag(MouseButtons.Left))
                 {
@@ -160,19 +181,26 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            this.touchPosition = new Point(-1, -1);
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null && this.GetNormalizedTouchPoint(e.Location, out var point))
+            if (device != null && this.GetScreenNormalizedPoint(e.Location, out var point))
             {
-                this.touchPosition = new Point(
+                if (this.lastMousePosition != e.Location)
+                {
+                    this.lastMousePosition = e.Location;
+                    this.screenPointedPosition = new Point(
                     (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
                     (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
+                }
 
                 if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
                 {
                     device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
                     this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                 }
+            }
+            else
+            {
+                this.screenPointedPosition = new Point(-1, -1);
             }
             this.UpdateControlState();
         }
@@ -190,14 +218,60 @@ namespace Suconbu.Sumacon
             this.UpdateControlState();
         }
 
-        private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
+        //private void UxZoomViewPanel_Paint(object sender, PaintEventArgs e)
+        //{
+        //    if(this.uxZoomView.Visible)
+        //    {
+        //        var g = this.uxZoomView.CreateGraphics();
+        //        g.DrawImage(this.zoomViewImage, 0, 0);
+        //    }
+        //    //this.UpdateZoomPanel();
+        //}
+
+        protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            base.OnKeyDown(e);
+            var image = this.uxScreenPictureBox.Image;
+            if (image != null)
             {
-                this.ExecuteAction(this.GetSelectedAction());
-                e.SuppressKeyPress = true;
+                if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
+                else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
+                else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
+                else if (e.KeyCode == Keys.Down) this.screenPointedPosition.Y = Math.Min(this.screenPointedPosition.Y + 1, image.Height - 1);
+                else if (e.Control) this.zoomEnabled = true;
+                else return;
+                this.UpdateControlState();
+                e.Handled = true;
             }
         }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+            if (!e.Control) this.zoomEnabled = false;
+            else return;
+            this.UpdateControlState();
+            e.Handled = true;
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            var index = this.zoomRatioIndex;
+            if (e.Delta > 0) index++;
+            if (e.Delta < 0) index--;
+            this.zoomRatioIndex = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
+            this.UpdateControlState();
+        }
+
+        //private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
+        //{
+        //    if (e.KeyCode == Keys.Enter)
+        //    {
+        //        this.ExecuteAction(this.GetSelectedAction());
+        //        e.SuppressKeyPress = true;
+        //    }
+        //}
 
         void UxActionsGridPanel_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
         {
@@ -284,7 +358,7 @@ namespace Suconbu.Sumacon
                 this.actionGroup.Actions[this.uxActionsGridPanel.SelectedRows[0].Index] : null;
         }
 
-        bool GetNormalizedTouchPoint(Point point, out PointF normalizedPoint)
+        bool GetScreenNormalizedPoint(Point point, out PointF normalizedPoint)
         {
             // PictureBox相対座標からディスプレイ正規化座標へ
             normalizedPoint = new PointF();
@@ -311,13 +385,35 @@ namespace Suconbu.Sumacon
             return true;
         }
 
+        void UpdateZoomBox()
+        {
+            this.uxZoomBox.Visible = false;
+
+            if (!this.zoomEnabled) return;
+
+            var mousePosition = this.uxScreenPictureBox.PointToClient(MousePosition);
+            if (!this.GetScreenNormalizedPoint(mousePosition, out var dummy)) return;
+
+            var upperLimit = this.uxZoomBox.Height + this.kZoomPanelRelocateMarginPixels;
+            var lowerLimit = this.uxScreenPictureBox.Height - this.uxZoomBox.Height - this.kZoomPanelRelocateMarginPixels;
+            this.uxZoomBox.Location =
+                (mousePosition.Y <= upperLimit) ? new Point(0, this.uxScreenPictureBox.Height - this.uxZoomBox.Height) :
+                (lowerLimit <= mousePosition.Y) ? new Point(0, 0) :
+                this.uxZoomBox.Location;
+            this.uxZoomBox.Width = this.uxScreenPictureBox.Width;
+            this.uxZoomBox.Height = (int)(this.uxScreenPictureBox.Height * this.kZoomPanelHeightRatio);
+            var zoomRatio = this.kZoomRatios[this.zoomRatioIndex];
+            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.screenPointedPosition, zoomRatio);
+            this.uxZoomBox.Visible = true;
+        }
+
         void UpdateControlState()
         {
-            if (this.touchPosition.X >= 0 && this.touchPosition.Y >= 0)
+            var bitmap = this.uxScreenPictureBox.Image as Bitmap;
+            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPointedPosition))
             {
-                this.uxTouchPositionLabel.Text = $"👆 {this.touchPosition.X}, {this.touchPosition.Y}";
-                var bitmap = this.uxScreenPictureBox.Image as Bitmap;
-                var color = bitmap?.GetPixel(this.touchPosition.X, this.touchPosition.Y) ?? Color.Transparent;
+                this.uxTouchPositionLabel.Text = $"👆 {this.screenPointedPosition.X}, {this.screenPointedPosition.Y}";
+                var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
                 var h = color.GetHue();
                 var s = color.GetSaturation() * 100;
                 var v = color.GetLuminance() * 100;
@@ -332,18 +428,72 @@ namespace Suconbu.Sumacon
             }
 
             this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
+            //this.uxZoomButton.Text = this.uxZoomButton.Checked ? "Zoom ON" : "Zoom OFF";
+
+            this.UpdateZoomBox();
         }
 
         void LoadSettings()
         {
             this.beepEnabled = Properties.Settings.Default.ControlBeep;
+            //this.zoomEnabled = Properties.Settings.Default.ControlZoom;
+            this.zoomRatioIndex = Properties.Settings.Default.ControlZoomRatioIndex;
             this.touchProtocolType = Properties.Settings.Default.ControlTouchProtocol;
         }
 
         void SaveSettings()
         {
             Properties.Settings.Default.ControlBeep = this.beepEnabled;
+            //Properties.Settings.Default.ControlZoom = this.zoomEnabled;
+            Properties.Settings.Default.ControlZoomRatioIndex = this.zoomRatioIndex;
             Properties.Settings.Default.ControlTouchProtocol = this.touchProtocolType;
+        }
+    }
+
+    class ZoomBox : PictureBox
+    {
+        Bitmap buffer = new Bitmap(1, 1);
+        readonly Brush backBrush = new SolidBrush(SystemColors.Control);
+        readonly Brush textBrush = new SolidBrush(SystemColors.ControlText);
+        readonly Pen pen = new Pen(Color.OrangeRed, 1.0f);
+        readonly Font font = new Font(SystemFonts.MessageBoxFont.FontFamily, 20.0f);
+
+        public void UpdateContent(Image image, Point lookPoint, float ratio)
+        {
+            if (this.buffer.Size != this.Size)
+            {
+                this.buffer = new Bitmap(this.buffer, this.Size);
+            }
+
+            var g = Graphics.FromImage(this.buffer);
+            var dstRectange = new Rectangle(new Point(0, 0), this.buffer.Size);
+            // 背景ぬり
+            g.FillRectangle(this.backBrush, dstRectange);
+
+            if (image == null) return;
+
+            var zh = (float)Math.Floor(this.buffer.Height / ratio);
+            // 中心を出すためかならず奇数に
+            zh = (float)Math.Floor(zh / 2) * 2 + 1;
+            var zw = this.buffer.Width / (this.buffer.Height / zh);
+            var srcRectangle = new RectangleF(lookPoint.X - zw / 2.0f, lookPoint.Y - zh / 2.0f, zw, zh);
+
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.DrawImage(image, dstRectange, srcRectangle, GraphicsUnit.Pixel);
+
+            // 補助線
+            var cw = this.buffer.Width / zw / 2;
+            var ch = this.buffer.Height / zh / 2;
+            var x1 = (dstRectange.Width / 2) - cw;
+            var x2 = (dstRectange.Width / 2) + cw;
+            var y1 = (dstRectange.Height / 2) - ch;
+            var y2 = (dstRectange.Height / 2) + ch;
+            g.DrawLine(this.pen, x1, 0, x1, dstRectange.Height);
+            g.DrawLine(this.pen, x2, 0, x2, dstRectange.Height);
+            g.DrawLine(this.pen, 0, y1, dstRectange.Width, y1);
+            g.DrawLine(this.pen, 0, y2, dstRectange.Width, y2);
+
+            this.Image = this.buffer;
         }
     }
 
