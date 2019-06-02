@@ -33,9 +33,7 @@
             this.uxPropertyGrid = new System.Windows.Forms.PropertyGrid();
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
-            this.uxToolStrip = new System.Windows.Forms.ToolStrip();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
-            this.toolStripContainer1.TopToolStripPanel.SuspendLayout();
             this.toolStripContainer1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -47,7 +45,7 @@
             this.uxPropertyGrid.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.uxPropertyGrid.Name = "uxPropertyGrid";
             this.uxPropertyGrid.PropertySort = System.Windows.Forms.PropertySort.Categorized;
-            this.uxPropertyGrid.Size = new System.Drawing.Size(933, 537);
+            this.uxPropertyGrid.Size = new System.Drawing.Size(933, 562);
             this.uxPropertyGrid.TabIndex = 0;
             this.uxPropertyGrid.ToolbarVisible = false;
             // 
@@ -63,25 +61,13 @@
             // toolStripContainer1.ContentPanel
             // 
             this.toolStripContainer1.ContentPanel.Controls.Add(this.uxPropertyGrid);
-            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(933, 537);
+            this.toolStripContainer1.ContentPanel.Size = new System.Drawing.Size(933, 562);
             this.toolStripContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.toolStripContainer1.Location = new System.Drawing.Point(0, 0);
             this.toolStripContainer1.Name = "toolStripContainer1";
             this.toolStripContainer1.Size = new System.Drawing.Size(933, 562);
             this.toolStripContainer1.TabIndex = 1;
             this.toolStripContainer1.Text = "toolStripContainer1";
-            // 
-            // toolStripContainer1.TopToolStripPanel
-            // 
-            this.toolStripContainer1.TopToolStripPanel.Controls.Add(this.uxToolStrip);
-            // 
-            // uxToolStrip
-            // 
-            this.uxToolStrip.Dock = System.Windows.Forms.DockStyle.None;
-            this.uxToolStrip.Location = new System.Drawing.Point(3, 0);
-            this.uxToolStrip.Name = "uxToolStrip";
-            this.uxToolStrip.Size = new System.Drawing.Size(111, 25);
-            this.uxToolStrip.TabIndex = 0;
             // 
             // FormProperty
             // 
@@ -94,8 +80,6 @@
             this.Name = "FormProperty";
             this.Text = "FormProperty";
             this.toolStripContainer1.ContentPanel.ResumeLayout(false);
-            this.toolStripContainer1.TopToolStripPanel.ResumeLayout(false);
-            this.toolStripContainer1.TopToolStripPanel.PerformLayout();
             this.toolStripContainer1.ResumeLayout(false);
             this.toolStripContainer1.PerformLayout();
             this.ResumeLayout(false);
@@ -107,6 +91,5 @@
         private System.Windows.Forms.PropertyGrid uxPropertyGrid;
         private System.Windows.Forms.ImageList imageList1;
         private System.Windows.Forms.ToolStripContainer toolStripContainer1;
-        private System.Windows.Forms.ToolStrip uxToolStrip;
     }
 }

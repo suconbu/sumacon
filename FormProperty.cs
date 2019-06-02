@@ -18,17 +18,11 @@ namespace Suconbu.Sumacon
     {
         Sumacon sumacon;
         ContextMenuStrip menu = new ContextMenuStrip();
-        ToolStripLabel uxTimestampLabel = new ToolStripLabel();
 
         public FormProperty(Sumacon sumacon)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
             InitializeComponent();
-
-            this.uxToolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            this.uxToolStrip.Items.Add("Refresh", this.imageList1.Images["arrow_refresh.png"], (s, e) => RefreshProperties());
-            this.uxToolStrip.Items.Add(new ToolStripSeparator());
-            this.uxToolStrip.Items.Add(this.uxTimestampLabel);
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
@@ -45,6 +39,8 @@ namespace Suconbu.Sumacon
         void SetupContextMenu()
         {
             this.menu.Items.Clear();
+            this.menu.Items.Add("Refresh", this.imageList1.Images["arrow_refresh.png"], (s, e) => RefreshProperties());
+            this.menu.Items.Add(new ToolStripSeparator());
             var resetPropertyMenuItem = this.menu.Items.Add(string.Empty, null, (s, e) =>
             {
                 var device = this.sumacon.DeviceManager.ActiveDevice;
@@ -103,7 +99,6 @@ namespace Suconbu.Sumacon
             this.SafeInvoke(() =>
             {
                 this.uxPropertyGrid.SelectedObject = this.sumacon.DeviceManager.ActiveDevice;
-                this.UpdateTimestamp();
             });
         }
 
@@ -132,22 +127,11 @@ namespace Suconbu.Sumacon
                 contexts.Add(component.PullAsync());
             }
             this.Enabled = false;
-            this.uxTimestampLabel.Text = "-";
             CommandContext.StartNew(() =>
             {
                 contexts.ForEach(c => c?.Wait());
-                this.SafeInvoke(() =>
-                {
-                    this.Enabled = true;
-                    this.UpdateTimestamp();
-                });
+                this.SafeInvoke(() => this.Enabled = true);
             });
-            //Delay.SetTimeout(() => this.uxPropertyGrid.Enabled = true, 1000, this);
-        }
-
-        void UpdateTimestamp()
-        {
-            this.uxTimestampLabel.Text = $"Updated at {DateTime.Now.ToLongTimeString()}";
         }
     }
 }
