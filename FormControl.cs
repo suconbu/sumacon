@@ -173,12 +173,9 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device == null) return;
-            device.Input.TouchProtocol = this.touchProtocolType;
             if (this.GetScreenNormalizedPoint(e.Location, out var point))
             {
-                if(e.Button.HasFlag(MouseButtons.Left))
+                if (e.Button.HasFlag(MouseButtons.Left))
                 {
                     if (this.zoomEnabled)
                     {
@@ -186,10 +183,15 @@ namespace Suconbu.Sumacon
                     }
                     else
                     {
-                        this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
-                        if (this.beepEnabled) Beep.Play(Beep.Note.Po);
-                        this.uxTouchMarker.Visible = true;
-                        this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                        var device = this.sumacon.DeviceManager.ActiveDevice;
+                        if (device != null)
+                        {
+                            device.Input.TouchProtocol = this.touchProtocolType;
+                            this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
+                            if (this.beepEnabled) Beep.Play(Beep.Note.Po);
+                            this.uxTouchMarker.Visible = true;
+                            this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                        }
                     }
                 }
             }
@@ -201,22 +203,18 @@ namespace Suconbu.Sumacon
             if (this.lastMousePosition == e.Location) return;
             this.lastMousePosition = e.Location;
 
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null && this.GetScreenNormalizedPoint(e.Location, out var point))
+            if (this.GetScreenNormalizedPoint(e.Location, out var point))
             {
                 this.screenPointedPosition = new Point(
                     (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
                     (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
 
-                if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
+                var device = this.sumacon.DeviceManager.ActiveDevice;
+                if (device != null && this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
                 {
                     device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
                     this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                 }
-            }
-            else
-            {
-                this.screenPointedPosition = new Point(-1, -1);
             }
 
             // ここいっぱい呼ばれるからちょびっと遅延させて負荷抑制
@@ -314,7 +312,7 @@ namespace Suconbu.Sumacon
                 {
                     device.Screen.CaptureAsync(bitmap => this.SafeInvoke(() =>
                     {
-                        if (!this.holdEnabled)
+                        if (!this.holdEnabled && bitmap != null)
                         {
                             this.uxScreenPictureBox.Image = bitmap;
                         }
@@ -420,6 +418,7 @@ namespace Suconbu.Sumacon
 
             if (!this.zoomEnabled) return;
 
+            if (!new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size).Contains(this.screenPointedPosition)) return;
             var mousePosition = this.uxScreenPictureBox.PointToClient(MousePosition);
             if (!this.GetScreenNormalizedPoint(mousePosition, out var dummy)) return;
 
