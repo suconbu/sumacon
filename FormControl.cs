@@ -178,12 +178,19 @@ namespace Suconbu.Sumacon
             device.Input.TouchProtocol = this.touchProtocolType;
             if (this.GetScreenNormalizedPoint(e.Location, out var point))
             {
-                if(e.Button.HasFlag(MouseButtons.Left) && !this.zoomEnabled)
+                if(e.Button.HasFlag(MouseButtons.Left))
                 {
-                    this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
-                    if (this.beepEnabled) Beep.Play(Beep.Note.Po);
-                    this.uxTouchMarker.Visible = true;
-                    this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                    if (this.zoomEnabled)
+                    {
+                        this.PickColor();
+                    }
+                    else
+                    {
+                        this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
+                        if (this.beepEnabled) Beep.Play(Beep.Note.Po);
+                        this.uxTouchMarker.Visible = true;
+                        this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                    }
                 }
             }
             this.UpdateControlState();
@@ -366,6 +373,20 @@ namespace Suconbu.Sumacon
                 this.actionGroup.Actions[this.uxActionsGridPanel.SelectedRows[0].Index] : null;
         }
 
+        void PickColor()
+        {
+            var bitmap = this.uxScreenPictureBox.Image as Bitmap;
+            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPointedPosition))
+            {
+                var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
+                var sb = new StringBuilder();
+                sb.Append($"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
+                sb.Append($" at ({this.screenPointedPosition.X,4}px, {this.screenPointedPosition.Y,4}px)");
+                this.sumacon.CommandReceiver.WriteOutput(sb.ToString());
+            }
+            if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
+        }
+
         bool GetScreenNormalizedPoint(Point point, out PointF normalizedPoint)
         {
             // PictureBox相対座標からディスプレイ正規化座標へ
@@ -422,7 +443,7 @@ namespace Suconbu.Sumacon
             {
                 this.uxTouchPositionLabel.Text = $"👆 {this.screenPointedPosition.X}, {this.screenPointedPosition.Y}";
                 var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
-                this.uxColorLabel.Text = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0})";
+                this.uxColorLabel.Text = color.ToRgbString(true);
                 this.uxColorLabel.BackColor = color;
                 this.uxColorLabel.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
             }
@@ -516,7 +537,7 @@ namespace Suconbu.Sumacon
                 var h = color.GetHue();
                 var s = color.GetSaturation() * 100;
                 var v = color.GetLuminance() * 100;
-                var colorText = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0}) hsl({h,3:0}, {s,3:0}%, {v,3:0}%)";
+                var colorText = $"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}";
                 var colorPoint = new PointF(x2 + this.kNoteMargin, y1 - this.kNoteMargin);
                 this.DrawString(colorText, g, this.noteFont, this.textBrush, this.textBackBrush, colorPoint, ContentAlignment.BottomLeft);
             }
