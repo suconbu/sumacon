@@ -165,7 +165,7 @@ namespace Suconbu.Sumacon
             device.Input.TouchProtocol = this.touchProtocolType;
             if (this.GetScreenNormalizedPoint(e.Location, out var point))
             {
-                if(e.Button.HasFlag(MouseButtons.Left))
+                if(e.Button.HasFlag(MouseButtons.Left) && !this.zoomEnabled)
                 {
                     this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
                     if (this.beepEnabled) Beep.Play(Beep.Note.Po);
