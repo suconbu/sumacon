@@ -42,6 +42,7 @@ namespace Suconbu.Sumacon
         ZoomBox uxZoomBox = new ZoomBox();
         int zoomRatioIndex;
         Point lastMousePosition;
+        string delayedUpdateTimeoutId;
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
@@ -178,16 +179,15 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseMove(object sender, MouseEventArgs e)
         {
+            if (this.lastMousePosition == e.Location) return;
+            this.lastMousePosition = e.Location;
+
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null && this.GetScreenNormalizedPoint(e.Location, out var point))
             {
-                if (this.lastMousePosition != e.Location)
-                {
-                    this.lastMousePosition = e.Location;
-                    this.screenPointedPosition = new Point(
-                        (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
-                        (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
-                }
+                this.screenPointedPosition = new Point(
+                    (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
+                    (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
 
                 if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
                 {
@@ -199,7 +199,9 @@ namespace Suconbu.Sumacon
             {
                 this.screenPointedPosition = new Point(-1, -1);
             }
-            this.UpdateControlState();
+
+            // ここいっぱい呼ばれるからちょびっと遅延させて負荷抑制
+            this.delayedUpdateTimeoutId = Delay.SetTimeout(() => this.UpdateControlState(), 1, this, this.delayedUpdateTimeoutId, true);
         }
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
@@ -225,7 +227,7 @@ namespace Suconbu.Sumacon
                 else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
                 else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
                 else if (e.KeyCode == Keys.Down) this.screenPointedPosition.Y = Math.Min(this.screenPointedPosition.Y + 1, image.Height - 1);
-                else if (e.Control) this.zoomEnabled = true;
+                else if (e.Control && !this.zoomEnabled) this.zoomEnabled = true;
                 else return;
                 this.UpdateControlState();
                 e.Handled = true;
@@ -285,7 +287,6 @@ namespace Suconbu.Sumacon
             {
                 device.Screen.CaptureAsync(bitmap => this.SafeInvoke(() => this.uxScreenPictureBox.Image = bitmap)).Wait(() =>
                 {
-                    //Beep.Play(Beep.Note.Pe);
                     Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
                 });
             }
