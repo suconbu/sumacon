@@ -587,7 +587,7 @@ namespace Suconbu.Sumacon
                 (anchor == ContentAlignment.TopRight || anchor == ContentAlignment.MiddleRight || anchor == ContentAlignment.BottomRight) ? size.Width :
                 0;
 
-            var rectangle = new RectangleF(leftTop, size);
+            var rectangle = new RectangleF(leftTop.X, leftTop.Y, (float)Math.Ceiling(size.Width), (float)Math.Ceiling(size.Height));
             if (backBrush != null)
             {
                 g.FillRectangle(backBrush, rectangle);
