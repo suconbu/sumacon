@@ -225,7 +225,7 @@ namespace Suconbu.Sumacon
             {
                 if (e.KeyCode == Keys.P)
                 {
-                    this.sumacon.TakeScreenCapture();
+                    this.sumacon.SaveCapturedImage(image as Bitmap);
                     this.uxScreenPictureBox.Visible = false;
                     Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
                 }

@@ -1,6 +1,7 @@
 ﻿using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -12,11 +13,11 @@ namespace Suconbu.Sumacon
     {
         public DeviceManager DeviceManager = new DeviceManager();
         public CommandReceiver CommandReceiver = new CommandReceiver();
-        public event EventHandler ScreenCaptureRequested = delegate { };
+        public event EventHandler<Bitmap> SaveCapturedImageRequested = delegate { };
 
-        public void TakeScreenCapture()
+        public void SaveCapturedImage(Bitmap bitmap)
         {
-            this.ScreenCaptureRequested(this, EventArgs.Empty);
+            this.SaveCapturedImageRequested(this, bitmap);
         }
 
         #region IDisposable Support

@@ -89,10 +89,11 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
-        public void TakeCapture()
+        public void SaveCapturedImage(Bitmap bitmap)
         {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            CaptureContext.StartSingleCapture(device, this.OnCaptured, null);
+            var filePath = this.SaveCaptureToFile(bitmap);
+            this.SafeInvoke(() => this.AddCapturedFile(filePath));
+            // このbitmapは他の人のものだから勝手にDisposeしちゃだめよ
         }
 
         protected override void OnShown(EventArgs e)
@@ -436,10 +437,7 @@ namespace Suconbu.Sumacon
         void OnCaptured(Bitmap bitmap)
         {
             var filePath = this.SaveCaptureToFile(bitmap);
-            if (filePath != null)
-            {
-                this.SafeInvoke(() => this.AddCapturedFile(filePath));
-            }
+            this.SafeInvoke(() => this.AddCapturedFile(filePath));
             bitmap.Dispose();
         }
 
@@ -476,22 +474,10 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void ApplySettings()
-        {
-            this.uxSplitContainer.SplitterDistance = Properties.Settings.Default.CaptureSplitterDistance;
-            this.uxSaveDirectoryText.Text = Properties.Settings.Default.CaptureSaveDirectoryPath;
-            this.uxPatternText.Text = Properties.Settings.Default.CaptureFileNamePattern;
-            this.uxContinuousCheck.Checked = Properties.Settings.Default.CaptureContinuousEnabled;
-            this.uxIntervalNumeric.Value = Properties.Settings.Default.CaptureIntervalSeconds;
-            this.uxCountCheck.Checked = Properties.Settings.Default.CaptureCountEnabled;
-            this.uxCountNumeric.Value = Properties.Settings.Default.CaptureCount;
-            this.uxSkipDuplicatedImageCheck.Checked = Properties.Settings.Default.CaptureSkipDuplicateEnabled;
-
-            this.UpdateControlState();
-        }
-
         void AddCapturedFile(string path)
         {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
             this.capturedFileInfos.Add(new FileInfo(path));
             var rowCount = this.uxFileGridPanel.Rows.Count;
             var lastBeforeRow = (rowCount >= 2) ? this.uxFileGridPanel.Rows[rowCount - 2] : null;
@@ -504,6 +490,20 @@ namespace Suconbu.Sumacon
                 this.uxFileGridPanel.Rows[rowCount - 1].Selected = true;
                 this.uxFileGridPanel.FirstDisplayedScrollingRowIndex = rowCount - 1;
             }
+            this.UpdateControlState();
+        }
+
+        void ApplySettings()
+        {
+            this.uxSplitContainer.SplitterDistance = Properties.Settings.Default.CaptureSplitterDistance;
+            this.uxSaveDirectoryText.Text = Properties.Settings.Default.CaptureSaveDirectoryPath;
+            this.uxPatternText.Text = Properties.Settings.Default.CaptureFileNamePattern;
+            this.uxContinuousCheck.Checked = Properties.Settings.Default.CaptureContinuousEnabled;
+            this.uxIntervalNumeric.Value = Properties.Settings.Default.CaptureIntervalSeconds;
+            this.uxCountCheck.Checked = Properties.Settings.Default.CaptureCountEnabled;
+            this.uxCountNumeric.Value = Properties.Settings.Default.CaptureCount;
+            this.uxSkipDuplicatedImageCheck.Checked = Properties.Settings.Default.CaptureSkipDuplicateEnabled;
+
             this.UpdateControlState();
         }
 
