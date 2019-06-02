@@ -33,6 +33,7 @@ namespace Suconbu.Sumacon
         SplitContainer uxMainSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
+        ContextMenuStrip uxScreenContextMenu = new ContextMenuStrip();
         ControlActionGroup actionGroup;
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
         bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
@@ -129,6 +130,12 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseLeave += (s, ee) => this.UpdateControlState();
             this.uxScreenPictureBox.Controls.Add(this.uxZoomBox);
 
+            this.uxScreenContextMenu.Items.Add("Pick color (Control + S / Control + Click)", null, (s, ee) => this.PickColor());
+            this.uxScreenContextMenu.Items.Add(new ToolStripSeparator());
+            this.uxScreenContextMenu.Items.Add("Save screen capture (P)", null, (s, ee) => this.SaveCapturedImage());
+            this.uxScreenContextMenu.Items.Add("Copy screen capture (Control + C)", null, (s, ee) => this.SaveCapturedImage());
+            this.uxScreenPictureBox.ContextMenuStrip = this.uxScreenContextMenu;
+
             this.uxTouchMarker.Visible = false;
             this.uxTouchMarker.BackColor = Color.OrangeRed;
             this.uxTouchMarker.Size = new Size(10, 10);
@@ -216,6 +223,10 @@ namespace Suconbu.Sumacon
                     this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                 }
             }
+            else
+            {
+                screenPointedPosition = new Point(-1, -1);
+            }
 
             // ここいっぱい呼ばれるからちょびっと遅延させて負荷抑制
             this.delayedUpdateTimeoutId = Delay.SetTimeout(() => this.UpdateControlState(), 1, this, this.delayedUpdateTimeoutId, true);
@@ -240,12 +251,9 @@ namespace Suconbu.Sumacon
             var image = this.uxScreenPictureBox.Image;
             if (image != null)
             {
-                if (e.KeyCode == Keys.P)
-                {
-                    this.sumacon.SaveCapturedImage(image as Bitmap);
-                    this.uxScreenPictureBox.Visible = false;
-                    Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
-                }
+                if (e.KeyCode == Keys.P) this.SaveCapturedImage();
+                else if (e.KeyCode == Keys.C && ModifierKeys.HasFlag(Keys.Control)) this.CopyCapturedImage();
+                else if (e.KeyCode == Keys.S && ModifierKeys.HasFlag(Keys.Control)) this.PickColor();
                 else if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
                 else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
                 else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
@@ -381,8 +389,24 @@ namespace Suconbu.Sumacon
                 sb.Append($"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
                 sb.Append($" at ({this.screenPointedPosition.X,4}px, {this.screenPointedPosition.Y,4}px)");
                 this.sumacon.CommandReceiver.WriteOutput(sb.ToString());
+                if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
             }
-            if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
+        }
+
+        void SaveCapturedImage()
+        {
+            this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
+            this.uxScreenPictureBox.Visible = false;
+            Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
+            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+        }
+
+        void CopyCapturedImage()
+        {
+            Clipboard.SetImage(this.uxScreenPictureBox.Image);
+            this.uxScreenPictureBox.Visible = false;
+            Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
+            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
         }
 
         bool GetScreenNormalizedPoint(Point point, out PointF normalizedPoint)
