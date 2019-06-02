@@ -47,7 +47,7 @@ namespace Suconbu.Sumacon
         readonly int kUpdateScreenIntervalMilliseconds = 500;
         readonly float kZoomPanelHeightRatio = 0.4f;
         readonly int kZoomPanelRelocateMarginPixels = 10;
-        readonly int[] kZoomRatios = { 2, 5, 10, 15, 20, 30, 50, 100 };
+        readonly int[] kZoomRatios = { 2, 5, 10, 20, 50, 100 };
 
         public FormControl(Sumacon sumacon)
         {
@@ -74,7 +74,6 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.SetDefaultCellStyle();
             this.uxActionsGridPanel.MouseDown += this.UxActionsGridPanel_MouseDown;
             this.uxActionsGridPanel.MouseMove += this.UxActionsGridPanel_MouseMove;
-            //this.uxActionsGridPanel.KeyDown += this.UxActionsGridPanel_KeyDown;
             this.uxActionsGridPanel.ShowCellToolTips = true;
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
@@ -89,8 +88,6 @@ namespace Suconbu.Sumacon
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
 
             this.uxZoomButton.Text = "Zoom (Control key)";
-            //this.uxZoomButton.CheckOnClick = true;
-            //this.uxZoomButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxColorLabel.AutoSize = false;
@@ -188,8 +185,8 @@ namespace Suconbu.Sumacon
                 {
                     this.lastMousePosition = e.Location;
                     this.screenPointedPosition = new Point(
-                    (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
-                    (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
+                        (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
+                        (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
                 }
 
                 if (this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
@@ -217,16 +214,6 @@ namespace Suconbu.Sumacon
             }
             this.UpdateControlState();
         }
-
-        //private void UxZoomViewPanel_Paint(object sender, PaintEventArgs e)
-        //{
-        //    if(this.uxZoomView.Visible)
-        //    {
-        //        var g = this.uxZoomView.CreateGraphics();
-        //        g.DrawImage(this.zoomViewImage, 0, 0);
-        //    }
-        //    //this.UpdateZoomPanel();
-        //}
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
@@ -263,15 +250,6 @@ namespace Suconbu.Sumacon
             this.zoomRatioIndex = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
             this.UpdateControlState();
         }
-
-        //private void UxActionsGridPanel_KeyDown(object sender, KeyEventArgs e)
-        //{
-        //    if (e.KeyCode == Keys.Enter)
-        //    {
-        //        this.ExecuteAction(this.GetSelectedAction());
-        //        e.SuppressKeyPress = true;
-        //    }
-        //}
 
         void UxActionsGridPanel_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
         {
@@ -428,7 +406,6 @@ namespace Suconbu.Sumacon
             }
 
             this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
-            //this.uxZoomButton.Text = this.uxZoomButton.Checked ? "Zoom ON" : "Zoom OFF";
 
             this.UpdateZoomBox();
         }
@@ -436,7 +413,6 @@ namespace Suconbu.Sumacon
         void LoadSettings()
         {
             this.beepEnabled = Properties.Settings.Default.ControlBeep;
-            //this.zoomEnabled = Properties.Settings.Default.ControlZoom;
             this.zoomRatioIndex = Properties.Settings.Default.ControlZoomRatioIndex;
             this.touchProtocolType = Properties.Settings.Default.ControlTouchProtocol;
         }
@@ -444,7 +420,6 @@ namespace Suconbu.Sumacon
         void SaveSettings()
         {
             Properties.Settings.Default.ControlBeep = this.beepEnabled;
-            //Properties.Settings.Default.ControlZoom = this.zoomEnabled;
             Properties.Settings.Default.ControlZoomRatioIndex = this.zoomRatioIndex;
             Properties.Settings.Default.ControlTouchProtocol = this.touchProtocolType;
         }
@@ -454,9 +429,12 @@ namespace Suconbu.Sumacon
     {
         Bitmap buffer = new Bitmap(1, 1);
         readonly Brush backBrush = new SolidBrush(SystemColors.Control);
-        readonly Brush textBrush = new SolidBrush(SystemColors.ControlText);
-        readonly Pen pen = new Pen(Color.OrangeRed, 1.0f);
-        readonly Font font = new Font(SystemFonts.MessageBoxFont.FontFamily, 20.0f);
+        readonly Brush textBrush = new SolidBrush(Color.Black);
+        readonly Brush textBackBrush = new SolidBrush(Color.FromArgb(128, Color.White));
+        readonly Pen linePen = new Pen(Color.OrangeRed, 1.0f);
+        readonly Font zoomFont = new Font(SystemFonts.MessageBoxFont.FontFamily, 16.0f);
+        readonly Font noteFont = new Font(SystemFonts.MessageBoxFont.FontFamily, 12.0f);
+        readonly int kNoteMargin = 5;
 
         public void UpdateContent(Image image, Point lookPoint, float ratio)
         {
@@ -488,12 +466,55 @@ namespace Suconbu.Sumacon
             var x2 = (dstRectange.Width / 2) + cw;
             var y1 = (dstRectange.Height / 2) - ch;
             var y2 = (dstRectange.Height / 2) + ch;
-            g.DrawLine(this.pen, x1, 0, x1, dstRectange.Height);
-            g.DrawLine(this.pen, x2, 0, x2, dstRectange.Height);
-            g.DrawLine(this.pen, 0, y1, dstRectange.Width, y1);
-            g.DrawLine(this.pen, 0, y2, dstRectange.Width, y2);
+            g.DrawLine(this.linePen, x1, 0, x1, dstRectange.Height);
+            g.DrawLine(this.linePen, x2, 0, x2, dstRectange.Height);
+            g.DrawLine(this.linePen, 0, y1, dstRectange.Width, y1);
+            g.DrawLine(this.linePen, 0, y2, dstRectange.Width, y2);
+
+            // 倍率
+            this.DrawString($"x{ratio}", g, this.zoomFont, this.textBrush, this.textBackBrush, new PointF(this.buffer.Size.Width, this.buffer.Height), ContentAlignment.BottomRight);
+
+            // カーソル位置
+            var cursorPoint = new PointF(x2 + this.kNoteMargin, y2 + this.kNoteMargin);
+            this.DrawString($"X:{lookPoint.X} Y:{lookPoint.Y}", g, this.noteFont, this.textBrush, this.textBackBrush, cursorPoint, ContentAlignment.TopLeft);
+
+            // 色情報
+            var imageBitmap = image as Bitmap;
+            if (imageBitmap != null && new Rectangle(new Point(0, 0), imageBitmap.Size).Contains(lookPoint))
+            {
+                var color = imageBitmap.GetPixel(lookPoint.X, lookPoint.Y);
+                var h = color.GetHue();
+                var s = color.GetSaturation() * 100;
+                var v = color.GetLuminance() * 100;
+                var colorText = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0}) hsl({h,3:0}, {s,3:0}%, {v,3:0}%)";
+                var colorPoint = new PointF(x2 + this.kNoteMargin, y1 - this.kNoteMargin);
+                this.DrawString(colorText, g, this.noteFont, this.textBrush, this.textBackBrush, colorPoint, ContentAlignment.BottomLeft);
+            }
 
             this.Image = this.buffer;
+        }
+
+        void DrawString(string s, Graphics g, Font font, Brush foreBrush, Brush backBrush, PointF point, ContentAlignment anchor)
+        {
+            var size = g.MeasureString(s, font);
+            var leftTop = point;
+
+            leftTop.Y -=
+                (anchor == ContentAlignment.MiddleLeft || anchor == ContentAlignment.MiddleCenter || anchor == ContentAlignment.MiddleRight) ? size.Height / 2.0f :
+                (anchor == ContentAlignment.BottomLeft || anchor == ContentAlignment.BottomCenter || anchor == ContentAlignment.BottomRight) ? size.Height :
+                0;
+
+            leftTop.X -=
+                (anchor == ContentAlignment.TopCenter || anchor == ContentAlignment.MiddleCenter || anchor == ContentAlignment.BottomCenter) ? size.Width / 2.0f :
+                (anchor == ContentAlignment.TopRight || anchor == ContentAlignment.MiddleRight || anchor == ContentAlignment.BottomRight) ? size.Width :
+                0;
+
+            var rectangle = new RectangleF(leftTop, size);
+            if (backBrush != null)
+            {
+                g.FillRectangle(backBrush, rectangle);
+            }
+            g.DrawString(s, font, foreBrush, rectangle);
         }
     }
 
