@@ -93,6 +93,7 @@ namespace Suconbu.Sumacon
         {
             var filePath = this.SaveCaptureToFile(bitmap);
             this.SafeInvoke(() => this.AddCapturedFile(filePath));
+            this.sumacon.WriteConsole($"Save screen capture to {filePath}.");
             // このbitmapは他の人のものだから勝手にDisposeしちゃだめよ
         }
 

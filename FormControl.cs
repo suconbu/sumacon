@@ -404,10 +404,12 @@ namespace Suconbu.Sumacon
 
         void CopyCapturedImage()
         {
+            if (this.uxScreenPictureBox.Image == null) return;
             Clipboard.SetImage(this.uxScreenPictureBox.Image);
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
             if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+            this.sumacon.WriteConsole("Copy screen capture to clipboard.");
         }
 
         bool GetScreenNormalizedPoint(Point point, out PointF normalizedPoint)
