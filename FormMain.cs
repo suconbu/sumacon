@@ -102,13 +102,9 @@ namespace Suconbu.Sumacon
             this.wirelessAdbButton.Click += this.WirelessAdbButton_Click;
 
             this.LoadSettings();
-        }
 
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            this.sumacon.DeviceManager.StartDeviceDetection();
             this.sumacon.SaveCapturedImageRequested += (s, image) => this.captureForm.SaveCapturedImage(image);
+            this.sumacon.DeviceManager.StartDeviceDetection();
         }
 
         protected override void OnClosing(CancelEventArgs e)
