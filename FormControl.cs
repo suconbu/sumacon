@@ -411,7 +411,7 @@ namespace Suconbu.Sumacon
             this.uxZoomBox.Width = this.uxScreenPictureBox.Width;
             this.uxZoomBox.Height = (int)(this.uxScreenPictureBox.Height * this.kZoomPanelHeightRatio);
             var zoomRatio = this.kZoomRatios[this.zoomRatioIndex];
-            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.screenPointedPosition, zoomRatio);
+            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPointedPosition, zoomRatio);
             this.uxZoomBox.Visible = true;
         }
 
@@ -459,7 +459,6 @@ namespace Suconbu.Sumacon
     class ZoomBox : PictureBox
     {
         Bitmap buffer = new Bitmap(1, 1);
-        readonly Brush backBrush = new SolidBrush(SystemColors.Control);
         readonly Brush textBrush = new SolidBrush(Color.Black);
         readonly Brush textBackBrush = new SolidBrush(Color.FromArgb(128, Color.White));
         readonly Pen linePen = new Pen(Color.OrangeRed, 1.0f);
@@ -467,7 +466,7 @@ namespace Suconbu.Sumacon
         readonly Font noteFont = new Font(SystemFonts.MessageBoxFont.FontFamily, 12.0f);
         readonly int kNoteMargin = 5;
 
-        public void UpdateContent(Image image, Point lookPoint, float ratio)
+        public void UpdateContent(Image image, Color imageBackColor, Point lookPoint, float ratio)
         {
             if (this.buffer.Size != this.Size)
             {
@@ -477,7 +476,7 @@ namespace Suconbu.Sumacon
             var g = Graphics.FromImage(this.buffer);
             var dstRectange = new Rectangle(new Point(0, 0), this.buffer.Size);
             // 背景ぬり
-            g.FillRectangle(this.backBrush, dstRectange);
+            g.FillRectangle(new SolidBrush(imageBackColor), dstRectange);
 
             if (image == null) return;
 
