@@ -247,6 +247,7 @@ namespace Suconbu.Sumacon
                     Trace.TraceError(ex.ToString());
                 }
             }
+            this.UpdateControlState();
         }
 
         void UpdateApproxSize()
@@ -430,6 +431,8 @@ namespace Suconbu.Sumacon
                 this.uxStartButton.Enabled = false;
                 this.uxSettingPanel.Enabled = false;
             }
+
+            this.TabText = (this.fileInfos.Count > 0) ? $"{this.Text} ({this.fileInfos.Count})" : this.Text;
         }
 
         class RecordFileInfo

@@ -211,6 +211,7 @@ namespace Suconbu.Sumacon
                     Trace.TraceError(ex.ToString());
                 }
             }
+            this.UpdateControlState();
         }
 
         void SetupPicturePreview()
@@ -542,6 +543,8 @@ namespace Suconbu.Sumacon
 
             this.uxContinuousPanel.Enabled = this.uxContinuousCheck.Checked;
             this.uxCountNumeric.Enabled = this.uxCountCheck.Checked;
+
+            this.TabText = (this.capturedFileInfos.Count > 0) ? $"{this.Text} ({this.capturedFileInfos.Count})" : this.Text;
         }
 
         string GetFileName(Bitmap bitmap)
