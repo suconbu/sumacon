@@ -27,14 +27,16 @@ namespace Suconbu.Sumacon
         ToolStripStatusLabel uxTouchPositionLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxColorLabel = new ToolStripStatusLabel();
         ToolStripButton uxBeepButton = new ToolStripButton();
-        BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
         ToolStripButton uxZoomButton = new ToolStripButton();
+        ToolStripButton uxHoldButton = new ToolStripButton();
+        BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
         SplitContainer uxMainSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
         GridPanel uxActionsGridPanel = new GridPanel() { Dock = DockStyle.Fill };
         ControlActionGroup actionGroup;
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
         bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
+        bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
         Point screenPointedPosition = new Point(-1, -1);
@@ -81,14 +83,17 @@ namespace Suconbu.Sumacon
             this.uxBeepButton.CheckOnClick = true;
             this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
+            this.uxZoomButton.Text = "Zoom (Control key)";
+
+            this.uxHoldButton.CheckOnClick = true;
+            this.uxHoldButton.CheckedChanged += (s, ee) => this.UpdateControlState();
+
             this.uxTouchProtocolDropDown.DataSource = new Dictionary<TouchProtocolType, ToolStripDropDownItem>()
             {
                 { TouchProtocolType.A, new ToolStripMenuItem("Touch protocol A") },
                 { TouchProtocolType.B, new ToolStripMenuItem("Touch protocol B") },
             };
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
-
-            this.uxZoomButton.Text = "Zoom (Control key)";
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxColorLabel.AutoSize = false;
@@ -102,6 +107,7 @@ namespace Suconbu.Sumacon
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
+            this.uxScreenStatusStrip.Items.Add(this.uxHoldButton);
             this.uxScreenStatusStrip.Items.Add(new ToolStripStatusLabel() { Spring = true });
             this.uxScreenStatusStrip.Items.Add(this.uxColorLabel);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchPositionLabel);
@@ -291,10 +297,21 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null && this.Visible)
             {
-                device.Screen.CaptureAsync(bitmap => this.SafeInvoke(() => this.uxScreenPictureBox.Image = bitmap)).Wait(() =>
+                if (!this.holdEnabled)
+                {
+                    device.Screen.CaptureAsync(bitmap => this.SafeInvoke(() =>
+                    {
+                        if (!this.holdEnabled)
+                        {
+                            this.uxScreenPictureBox.Image = bitmap;
+                        }
+                        Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
+                    }));
+                }
+                else
                 {
                     Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
-                });
+                }
             }
         }
 
@@ -412,7 +429,10 @@ namespace Suconbu.Sumacon
                 this.uxColorLabel.Text = "-";
             }
 
-            this.uxBeepButton.Text = this.uxBeepButton.Checked ? "Beep ON" : "Beep OFF";
+            this.uxBeepButton.Text = this.beepEnabled ? "Beep ON" : "Beep OFF";
+            this.uxHoldButton.Text = this.holdEnabled ? "Hold ON" : "Hold OFF";
+
+            this.uxScreenPictureBox.BackColor = this.holdEnabled ? Color.OrangeRed : SystemColors.Control;
 
             this.UpdateZoomBox();
         }
