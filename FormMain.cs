@@ -17,7 +17,6 @@ namespace Suconbu.Sumacon
         DockPanel dockPanel;
         FormProperty propertyForm;
         FormConsole consoleForm;
-        FormShortcut shortcutForm;
         FormCapture captureForm;
         FormRecord recordForm;
         FormLog logForm;
@@ -70,9 +69,6 @@ namespace Suconbu.Sumacon
             this.consoleForm = new FormConsole(this.sumacon);
             this.consoleForm.Text = "Console";
             this.consoleForm.Show(this.dockPanel, DockState.DockBottom);
-            this.shortcutForm = new FormShortcut(this.sumacon);
-            this.shortcutForm.Text = "Command";
-            this.shortcutForm.Show(this.dockPanel, DockState.DockRight);
             this.propertyForm = new FormProperty(this.sumacon);
             this.propertyForm.Text = "Property";
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
@@ -136,12 +132,6 @@ namespace Suconbu.Sumacon
             base.OnClosed(e);
 
             Properties.Settings.Default.Save();
-        }
-
-        protected override void OnKeyDown(KeyEventArgs e)
-        {
-            base.OnKeyDown(e);
-            this.shortcutForm.NotifyKeyDown(e);
         }
 
         void AirplaneModeButton_Click(object sender, EventArgs e)

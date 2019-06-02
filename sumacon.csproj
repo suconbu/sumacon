@@ -118,12 +118,6 @@
     <Compile Include="mobile\DeviceComponent.cs" />
     <Compile Include="mobile\Device.cs" />
     <Compile Include="mobile\DeviceDetector.cs" />
-    <Compile Include="FormShortcut.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FormShortcut.Designer.cs">
-      <DependentUpon>FormShortcut.cs</DependentUpon>
-    </Compile>
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -159,9 +153,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormControl.resx">
       <DependentUpon>FormControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="FormShortcut.resx">
-      <DependentUpon>FormShortcut.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormConsole.resx">
       <DependentUpon>FormConsole.cs</DependentUpon>
