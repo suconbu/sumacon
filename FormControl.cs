@@ -283,7 +283,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null && this.Visible)
             {
-                device.Screen.CaptureAsync(bitmap => this.uxScreenPictureBox.Image = bitmap).Wait(() =>
+                device.Screen.CaptureAsync(bitmap => this.SafeInvoke(() => this.uxScreenPictureBox.Image = bitmap)).Wait(() =>
                 {
                     //Beep.Play(Beep.Note.Pe);
                     Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
