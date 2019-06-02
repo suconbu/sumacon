@@ -25,8 +25,7 @@ namespace Suconbu.Sumacon
             InitializeComponent();
 
             this.sumacon = sumacon;
-            this.sumacon.CommandReceiver.InputReceived += this.CommandReceiver_InputReceived;
-            this.sumacon.CommandReceiver.OutputReceived += this.CommandReceiver_OutputReceived;
+            this.sumacon.WriteConsoleRequested += this.Sumacon_WriteConsoleRequested;
             this.sumacon.DeviceManager.DeviceConnected += this.DeviceManager_DeviceConnected;
             this.sumacon.DeviceManager.DeviceDisconnecting += this.DeviceManager_DeviceDisconnecting;
 
@@ -50,8 +49,8 @@ namespace Suconbu.Sumacon
             this.uxOutputText.AppendText($"{Util.GetApplicationName()} version {Util.GetVersionString(3)}" + Environment.NewLine);
             CommandContext.StartNewText("adb", "version", (output, error) => this.SafeInvoke(() =>
             {
-                this.sumacon.CommandReceiver.WriteOutput(output);
-                this.sumacon.CommandReceiver.WriteOutput("Waiting to connect the device...\r\n");
+                this.sumacon.WriteConsole(output);
+                this.sumacon.WriteConsole("Waiting to connect the device...\r\n");
             }));
         }
 
@@ -64,31 +63,25 @@ namespace Suconbu.Sumacon
                 context.Cancel();
             }
 
-            this.sumacon.CommandReceiver.InputReceived -= this.CommandReceiver_InputReceived;
-            this.sumacon.CommandReceiver.OutputReceived -= this.CommandReceiver_OutputReceived;
+            this.sumacon.WriteConsoleRequested -= this.Sumacon_WriteConsoleRequested;
             this.sumacon.DeviceManager.DeviceConnected -= this.DeviceManager_DeviceConnected;
             this.sumacon.DeviceManager.DeviceDisconnecting -= this.DeviceManager_DeviceDisconnecting;
         }
 
-        void CommandReceiver_InputReceived(object sender, string input)
+        private void Sumacon_WriteConsoleRequested(object sender, string s)
         {
-            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + input));
-        }
-
-        void CommandReceiver_OutputReceived(object sender, string output)
-        {
-            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + output));
+            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + s));
         }
 
         void DeviceManager_DeviceConnected(object sender, Device device)
         {
-            this.sumacon.CommandReceiver.WriteOutput($"Connected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
+            this.sumacon.WriteConsole($"Connected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
         }
 
         void DeviceManager_DeviceDisconnecting(object sender, Device device)
         {
             this.CancelCommandRun(device.Serial);
-            this.sumacon.CommandReceiver.WriteOutput($"Disconnected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
+            this.sumacon.WriteConsole($"Disconnected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
         }
 
         private void UxInputCombo_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -139,7 +132,7 @@ namespace Suconbu.Sumacon
                 {
                     if (output != null)
                     {
-                        this.sumacon.CommandReceiver.WriteOutput(output);
+                        this.sumacon.WriteConsole(output);
                     }
                     else
                     {

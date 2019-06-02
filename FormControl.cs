@@ -389,7 +389,7 @@ namespace Suconbu.Sumacon
                 var sb = new StringBuilder();
                 sb.Append($"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
                 sb.Append($" at ({this.screenPointedPosition.X,4}px, {this.screenPointedPosition.Y,4}px)");
-                this.sumacon.CommandReceiver.WriteOutput(sb.ToString());
+                this.sumacon.WriteConsole(sb.ToString());
                 if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
             }
         }

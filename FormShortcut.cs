@@ -68,7 +68,7 @@ namespace Suconbu.Sumacon
                 var keyName = e.KeyCode.ToString();
                 if (this.commandSets.TryGetValue(keyName, out var command))
                 {
-                    command.RunAsync(this.sumacon.DeviceManager.ActiveDevice, this.sumacon.CommandReceiver);
+                    command.RunAsync(this.sumacon.DeviceManager.ActiveDevice, output => this.sumacon.WriteConsole(output));
                 }
             }
         }
@@ -119,7 +119,7 @@ namespace Suconbu.Sumacon
                 if (this.uxShortcutList.SelectedItems.Count > 0)
                 {
                     var item = this.uxShortcutList.SelectedItems[0];
-                    this.commandSets[item.Text].RunAsync(this.sumacon.DeviceManager.ActiveDevice, this.sumacon.CommandReceiver);
+                    this.commandSets[item.Text].RunAsync(this.sumacon.DeviceManager.ActiveDevice, output => this.sumacon.WriteConsole(output));
                 }
             };
         }
@@ -153,7 +153,7 @@ namespace Suconbu.Sumacon
                 this.Commands = lines;
             }
 
-            public CommandContext RunAsync(Device device, CommandReceiver commandReceiver)
+            public CommandContext RunAsync(Device device, Action<string> onOutput)
             {
                 var stopwatch = Stopwatch.StartNew();
                 var label = $"{this.Name} - {this.Description}";
@@ -161,17 +161,17 @@ namespace Suconbu.Sumacon
                 {
                     if (output != null)
                     {
-                        commandReceiver?.WriteOutput(output);
+                        onOutput?.Invoke(output);
                     }
                     else
                     {
-                        commandReceiver?.WriteOutput($"# Finish '{label}' ({stopwatch.ElapsedMilliseconds} ms)");
+                        onOutput?.Invoke($"# Finish '{label}' ({stopwatch.ElapsedMilliseconds} ms)");
                         stopwatch = null;
                     }
                 });
                 if (context != null)
                 {
-                    commandReceiver?.WriteOutput($"# Run '{label}'");
+                    onOutput?.Invoke($"# Run '{label}'");
                     foreach (var command in this.Commands)
                     {
                         context.PushInput($"echo '> {command}'");

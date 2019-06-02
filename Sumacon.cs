@@ -12,8 +12,13 @@ namespace Suconbu.Sumacon
     public class Sumacon : IDisposable
     {
         public DeviceManager DeviceManager = new DeviceManager();
-        public CommandReceiver CommandReceiver = new CommandReceiver();
+        public event EventHandler<string> WriteConsoleRequested = delegate { };
         public event EventHandler<Bitmap> SaveCapturedImageRequested = delegate { };
+
+        public void WriteConsole(string s)
+        {
+            this.WriteConsoleRequested(this, s);
+        }
 
         public void SaveCapturedImage(Bitmap bitmap)
         {
