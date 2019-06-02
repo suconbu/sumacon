@@ -106,6 +106,7 @@ namespace Suconbu.Sumacon
         {
             base.OnShown(e);
             this.sumacon.DeviceManager.StartDeviceDetection();
+            this.sumacon.ScreenCaptureRequested += (s, ee) => this.captureForm.TakeCapture();
         }
 
         protected override void OnClosing(CancelEventArgs e)

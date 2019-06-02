@@ -89,6 +89,12 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
+        public void TakeCapture()
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            CaptureContext.StartSingleCapture(device, this.OnCaptured, null);
+        }
+
         protected override void OnShown(EventArgs e)
         {
             Trace.TraceInformation(Util.GetCurrentMethodName());
@@ -429,26 +435,11 @@ namespace Suconbu.Sumacon
         void OnCaptured(Bitmap bitmap)
         {
             var filePath = this.SaveCaptureToFile(bitmap);
-            if (filePath == null) return;
-            this.SafeInvoke(() =>
+            if (filePath != null)
             {
-                this.capturedFileInfos.Add(new FileInfo(filePath));
-                bitmap.Dispose();
-                bitmap = null;
-
-                var rowCount = this.uxFileGridPanel.Rows.Count;
-                var lastBeforeRow = (rowCount >= 2) ? this.uxFileGridPanel.Rows[rowCount - 2] : null;
-                if (lastBeforeRow != null && lastBeforeRow.Selected)
-                {
-                    if(this.uxFileGridPanel.SelectedRows.Count == 1)
-                    {
-                        lastBeforeRow.Selected = false;
-                    }
-                    this.uxFileGridPanel.Rows[rowCount - 1].Selected = true;
-                    this.uxFileGridPanel.FirstDisplayedScrollingRowIndex = rowCount - 1;
-                }
-                this.UpdateControlState();
-            });
+                this.SafeInvoke(() => this.AddCapturedFile(filePath));
+            }
+            bitmap.Dispose();
         }
 
         void OnFinished()
@@ -495,6 +486,23 @@ namespace Suconbu.Sumacon
             this.uxCountNumeric.Value = Properties.Settings.Default.CaptureCount;
             this.uxSkipDuplicatedImageCheck.Checked = Properties.Settings.Default.CaptureSkipDuplicateEnabled;
 
+            this.UpdateControlState();
+        }
+
+        void AddCapturedFile(string path)
+        {
+            this.capturedFileInfos.Add(new FileInfo(path));
+            var rowCount = this.uxFileGridPanel.Rows.Count;
+            var lastBeforeRow = (rowCount >= 2) ? this.uxFileGridPanel.Rows[rowCount - 2] : null;
+            if (lastBeforeRow != null && lastBeforeRow.Selected)
+            {
+                if (this.uxFileGridPanel.SelectedRows.Count == 1)
+                {
+                    lastBeforeRow.Selected = false;
+                }
+                this.uxFileGridPanel.Rows[rowCount - 1].Selected = true;
+                this.uxFileGridPanel.FirstDisplayedScrollingRowIndex = rowCount - 1;
+            }
             this.UpdateControlState();
         }
 

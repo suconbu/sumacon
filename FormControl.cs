@@ -223,7 +223,13 @@ namespace Suconbu.Sumacon
             var image = this.uxScreenPictureBox.Image;
             if (image != null)
             {
-                if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
+                if (e.KeyCode == Keys.P)
+                {
+                    this.sumacon.TakeScreenCapture();
+                    this.uxScreenPictureBox.Visible = false;
+                    Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
+                }
+                else if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
                 else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
                 else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
                 else if (e.KeyCode == Keys.Down) this.screenPointedPosition.Y = Math.Min(this.screenPointedPosition.Y + 1, image.Height - 1);

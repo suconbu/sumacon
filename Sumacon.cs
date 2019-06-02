@@ -12,6 +12,12 @@ namespace Suconbu.Sumacon
     {
         public DeviceManager DeviceManager = new DeviceManager();
         public CommandReceiver CommandReceiver = new CommandReceiver();
+        public event EventHandler ScreenCaptureRequested = delegate { };
+
+        public void TakeScreenCapture()
+        {
+            this.ScreenCaptureRequested(this, EventArgs.Empty);
+        }
 
         #region IDisposable Support
         bool disposed = false;
