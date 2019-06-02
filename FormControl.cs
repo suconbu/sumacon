@@ -323,6 +323,7 @@ namespace Suconbu.Sumacon
                     {
                         if (!this.holdEnabled && bitmap != null)
                         {
+                            this.uxScreenPictureBox.Image?.Dispose();
                             this.uxScreenPictureBox.Image = bitmap;
                         }
                         Delay.SetTimeout(() => this.StartScreenPictureUpdate(), this.kUpdateScreenIntervalMilliseconds);
