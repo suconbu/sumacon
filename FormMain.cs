@@ -100,6 +100,8 @@ namespace Suconbu.Sumacon
             this.airplaneModeButton.Click += this.AirplaneModeButton_Click;
             this.showTouchesButton.Click += this.ShowTouchesButton_Click;
             this.wirelessAdbButton.Click += this.WirelessAdbButton_Click;
+
+            this.LoadSettings();
         }
 
         protected override void OnShown(EventArgs e)
@@ -126,14 +128,58 @@ namespace Suconbu.Sumacon
             {
                 form.DockHandler.Close();
             }
-            Properties.Settings.Default.Save();
+
+            this.SaveSettings();
+
             this.sumacon.Dispose();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnClosed(e);
+
+            Properties.Settings.Default.Save();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
             this.shortcutForm.NotifyKeyDown(e);
+        }
+
+        void AirplaneModeButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                device.AirplaneMode = !device.AirplaneMode;
+            }
+        }
+
+        void ShowTouchesButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                device.ShowTouches = !device.ShowTouches;
+            }
+        }
+
+        void WirelessAdbButton_Click(object sender, EventArgs e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                if (!this.wirelessAdbButton.Checked)
+                {
+                    this.sumacon.DeviceManager.StartWireless(device);
+                }
+                else
+                {
+                    device.Dispose();
+                }
+            }
         }
 
         void SetupDeviceManager()
@@ -207,41 +253,7 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void AirplaneModeButton_Click(object sender, EventArgs e)
-        {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null)
-            {
-                device.AirplaneMode = !device.AirplaneMode;
-            }
-        }
-
-        void ShowTouchesButton_Click(object sender, EventArgs e)
-        {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null)
-            {
-                device.ShowTouches = !device.ShowTouches;
-            }
-        }
-
-        private void WirelessAdbButton_Click(object sender, EventArgs e)
-        {
-            var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null)
-            {
-                if (!this.wirelessAdbButton.Checked)
-                {
-                    this.sumacon.DeviceManager.StartWireless(device);
-                }
-                else
-                {
-                    device.Dispose();
-                }
-            }
-        }
-
-    	void LoadSettings()
+        void LoadSettings()
         {
             this.WindowState = Properties.Settings.Default.MainMaximized ? FormWindowState.Maximized : FormWindowState.Normal;
             this.Size = Properties.Settings.Default.MainSize;
