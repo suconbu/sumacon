@@ -81,13 +81,18 @@ namespace Suconbu.Sumacon
             this.uxActionsGridPanel.CellToolTipTextNeeded += this.UxActionsGridPanel_CellToolTipTextNeeded;
 
             this.uxBeepButton.CheckOnClick = true;
+            this.uxBeepButton.AutoToolTip = false;
             this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
-            this.uxZoomButton.Text = "Zoom (Control key)";
+            this.uxZoomButton.Text = "🔍 Zoom";
+            this.uxZoomButton.ToolTipText = "Press Control key to show the zoom view.";
+            this.uxScreenStatusStrip.ShowItemToolTips = true;
 
             this.uxHoldButton.CheckOnClick = true;
+            this.uxHoldButton.AutoToolTip = false;
             this.uxHoldButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
+            this.uxTouchProtocolDropDown.AutoToolTip = false;
             this.uxTouchProtocolDropDown.DataSource = new Dictionary<TouchProtocolType, ToolStripDropDownItem>()
             {
                 { TouchProtocolType.A, new ToolStripMenuItem("Touch protocol A") },
@@ -97,16 +102,17 @@ namespace Suconbu.Sumacon
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxColorLabel.AutoSize = false;
-            this.uxColorLabel.Width = 200;
+            this.uxColorLabel.Width = 100;
             this.uxColorLabel.TextAlign = ContentAlignment.MiddleLeft;
+
             this.uxTouchPositionLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxTouchPositionLabel.AutoSize = false;
             this.uxTouchPositionLabel.Width = 70;
             this.uxTouchPositionLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
-            this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
+            this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxHoldButton);
             this.uxScreenStatusStrip.Items.Add(new ToolStripStatusLabel() { Spring = true });
             this.uxScreenStatusStrip.Items.Add(this.uxColorLabel);
@@ -416,21 +422,19 @@ namespace Suconbu.Sumacon
             {
                 this.uxTouchPositionLabel.Text = $"👆 {this.screenPointedPosition.X}, {this.screenPointedPosition.Y}";
                 var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
-                var h = color.GetHue();
-                var s = color.GetSaturation() * 100;
-                var v = color.GetLuminance() * 100;
-                this.uxColorLabel.Text = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0}) hsl({h,3:0}, {s,3:0}%, {v,3:0}%)";
+                this.uxColorLabel.Text = $"rgb({color.R,3:0}, {color.G,3:0}, {color.B,3:0})";
                 this.uxColorLabel.BackColor = color;
                 this.uxColorLabel.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
             }
             else
             {
                 this.uxTouchPositionLabel.Text = "👆 -, -";
+                this.uxColorLabel.BackColor = SystemColors.Control;
                 this.uxColorLabel.Text = "-";
             }
 
             this.uxBeepButton.Text = this.beepEnabled ? "Beep ON" : "Beep OFF";
-            this.uxHoldButton.Text = this.holdEnabled ? "Hold ON" : "Hold OFF";
+            this.uxHoldButton.Text = this.holdEnabled ? "Screen hold ON" : "Screen hold OFF";
 
             this.uxScreenPictureBox.BackColor = this.holdEnabled ? Color.OrangeRed : SystemColors.Control;
 
