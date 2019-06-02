@@ -134,6 +134,7 @@ namespace Suconbu.Sumacon
             this.uxScreenContextMenu.Items.Add(new ToolStripSeparator());
             this.uxScreenContextMenu.Items.Add("Save screen capture (P)", null, (s, ee) => this.SaveCapturedImage());
             this.uxScreenContextMenu.Items.Add("Copy screen capture (Control + C)", null, (s, ee) => this.SaveCapturedImage());
+            this.uxScreenContextMenu.Opening += (s, ee) => ee.Cancel = this.uxScreenPictureBox.Image == null;
             this.uxScreenPictureBox.ContextMenuStrip = this.uxScreenContextMenu;
 
             this.uxTouchMarker.Visible = false;
