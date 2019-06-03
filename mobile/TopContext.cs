@@ -33,7 +33,7 @@ namespace Suconbu.Mobile
                 bool result = false;
                 // 変なコマンド入れた時の反応をみて判別
                 // 新形式「See top --help」旧形式「Invalid argument "0".」
-                device.RunCommandOutputTextAsync("shell top 0", (output, error) => result = !error.StartsWith("See")).Wait();
+                device.RunCommandOutputTextAsync("shell top 0", (output, error) => result = error.StartsWith("Invalid")).Wait();
                 return result;
             });
 
