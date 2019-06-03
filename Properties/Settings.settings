@@ -86,5 +86,8 @@
     <Setting Name="ControlZoomRatioIndex" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
     </Setting>
+    <Setting Name="RecordPullDelayMillisecondsAtManualStop" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1500</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

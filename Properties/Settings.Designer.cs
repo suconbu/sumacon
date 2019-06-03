@@ -358,5 +358,17 @@ namespace Suconbu.Sumacon.Properties {
                 this["ControlZoomRatioIndex"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1500")]
+        public int RecordPullDelayMillisecondsAtManualStop {
+            get {
+                return ((int)(this["RecordPullDelayMillisecondsAtManualStop"]));
+            }
+            set {
+                this["RecordPullDelayMillisecondsAtManualStop"] = value;
+            }
+        }
     }
 }

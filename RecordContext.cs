@@ -147,15 +147,21 @@ namespace Suconbu.Sumacon
             }
 
             Debug.Assert(this.State == RecordState.Recording || this.state == RecordState.ManualStopping);
-            this.stoppedAt = (this.state == RecordState.ManualStopping) ? DateTime.Now :
-                (this.StartedAt.AddSeconds(this.setting.TimeLimitSeconds));
-            this.State = RecordState.Pulling;
+
+            var manualStopped = this.State == RecordState.ManualStopping;
+            this.stoppedAt = manualStopped ? DateTime.Now : this.StartedAt.AddSeconds(this.setting.TimeLimitSeconds);
+            // 手動で止めた時は書き込み終わるまでちょっと待つ
+            int pullDelayMilliseconds = manualStopped ? Properties.Settings.Default.RecordPullDelayMillisecondsAtManualStop : 1;
 
             var pcFileName = this.GetFileName(this.setting.FileNamePattern, this.recordScreenSize, (int)this.Elapsed.TotalSeconds);
             this.filePathInPc = Path.Combine(this.setting.DirectoryPath, pcFileName);
 
             var command = $"pull {this.filePathInDevice} {this.filePathInPc}";
-            this.pullCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
+            Delay.SetTimeout(() =>
+            {
+                this.State = RecordState.Pulling;
+                this.pullCommandContext = this.Device.RunCommandOutputTextAsync(command, this.OnPullCommandFinished);
+            }, pullDelayMilliseconds);
         }
 
         void OnPullCommandFinished(string output, string error)
