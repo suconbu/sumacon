@@ -52,6 +52,8 @@ namespace Suconbu.Sumacon
         readonly float kZoomPanelHeightRatio = 0.4f;
         readonly int kZoomPanelRelocateMarginPixels = 10;
         readonly int[] kZoomRatios = { 1, 2, 5, 10, 20, 50, 100 };
+        readonly int[] kZoomGridUnits = { 0, 5, 5, 5, 5, 5, 5 };
+        readonly int[] kZoomGridAlphas = { 0, 16, 32, 64, 64, 64, 64 };
 
         public FormControl(Sumacon sumacon)
         {
@@ -451,7 +453,9 @@ namespace Suconbu.Sumacon
             this.uxZoomBox.Width = this.uxScreenPictureBox.Width;
             this.uxZoomBox.Height = (int)(this.uxScreenPictureBox.Height * this.kZoomPanelHeightRatio);
             var zoomRatio = this.kZoomRatios[this.zoomRatioIndex];
-            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPointedPosition, zoomRatio);
+            var gridUnit = this.kZoomGridUnits[this.zoomRatioIndex];
+            var gridAlpha = this.kZoomGridAlphas[this.zoomRatioIndex];
+            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPointedPosition, zoomRatio, gridUnit, gridAlpha);
             this.uxZoomBox.Visible = true;
         }
 
@@ -499,12 +503,13 @@ namespace Suconbu.Sumacon
         Bitmap buffer = new Bitmap(1, 1);
         readonly Brush textBrush = new SolidBrush(Color.Black);
         readonly Brush textBackBrush = new SolidBrush(Color.FromArgb(128, Color.White));
-        readonly Pen linePen = new Pen(Color.OrangeRed, 1.0f);
+        readonly Pen mainLinePen = new Pen(Color.OrangeRed, 1.0f);
+        readonly Pen subLinePen = new Pen(Color.OrangeRed, 1.0f);
         readonly Font zoomFont = new Font(SystemFonts.MessageBoxFont.FontFamily, 16.0f);
         readonly Font noteFont = new Font(SystemFonts.MessageBoxFont.FontFamily, 12.0f);
         readonly int kNoteMargin = 5;
 
-        public void UpdateContent(Image image, Color imageBackColor, Point lookPoint, float ratio)
+        public void UpdateContent(Image image, Color imageBackColor, Point lookPoint, float ratio, int gridUnit, int gridAlpha)
         {
             if (this.buffer.Size != this.Size)
             {
@@ -528,16 +533,25 @@ namespace Suconbu.Sumacon
             g.DrawImage(image, dstRectange, srcRectangle, GraphicsUnit.Pixel);
 
             // 補助線
-            var cw = this.buffer.Width / zw / 2;
-            var ch = this.buffer.Height / zh / 2;
-            var x1 = (dstRectange.Width / 2) - cw;
-            var x2 = (dstRectange.Width / 2) + cw;
-            var y1 = (dstRectange.Height / 2) - ch;
-            var y2 = (dstRectange.Height / 2) + ch;
-            g.DrawLine(this.linePen, x1, 0, x1, dstRectange.Height);
-            g.DrawLine(this.linePen, x2, 0, x2, dstRectange.Height);
-            g.DrawLine(this.linePen, 0, y1, dstRectange.Width, y1);
-            g.DrawLine(this.linePen, 0, y2, dstRectange.Width, y2);
+            var cw = this.buffer.Width / zw;
+            var ch = this.buffer.Height / zh;
+            var x1 = (dstRectange.Width / 2) - (cw / 2);
+            var x2 = (dstRectange.Width / 2) + (cw / 2);
+            var y1 = (dstRectange.Height / 2) - (ch / 2);
+            var y2 = (dstRectange.Height / 2) + (ch / 2);
+            this.subLinePen.Color = Color.FromArgb(gridAlpha, this.subLinePen.Color);
+            for (int ox = 0; ox < ((int)(this.buffer.Width - cw) / 2); ox += (int)(cw * gridUnit))
+            {
+                var pen = (ox == 0) ? this.mainLinePen : this.subLinePen;
+                g.DrawLine(pen, x1 - ox, 0, x1 - ox, dstRectange.Height);
+                g.DrawLine(pen, x2 + ox, 0, x2 + ox, dstRectange.Height);
+            }
+            for (int oy = 0; oy < ((int)(this.buffer.Height - ch) / 2); oy += (int)(ch * gridUnit))
+            {
+                var pen = (oy == 0) ? this.mainLinePen : this.subLinePen;
+                g.DrawLine(pen, 0, y1 - oy, dstRectange.Width, y1 - oy);
+                g.DrawLine(pen, 0, y2 + oy, dstRectange.Width, y2 + oy);
+            }
 
             // 倍率
             this.DrawString($"x{ratio}", g, this.zoomFont, this.textBrush, this.textBackBrush, new PointF(this.buffer.Size.Width, this.buffer.Height), ContentAlignment.BottomRight);
