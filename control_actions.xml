@@ -4,7 +4,6 @@
   <action name="○ Home" command="shell input keyevent KEYCODE_HOME"/>
   <action name="□ AppSwitch" command="shell input keyevent KEYCODE_APP_SWITCH"/>
   <action name="🔍 Search" command="shell input keyevent KEYCODE_SEARCH"/>
-  <action name="Menu" command="shell input keyevent KEYCODE_MENU"/>
   <action name="💡 Power" command="shell input keyevent KEYCODE_POWER"/>
   <action name="🔊 Volume +" command="shell input keyevent KEYCODE_VOLUME_UP"/>
   <action name="🔉 Volume -" command="shell input keyevent KEYCODE_VOLUME_DOWN"/>
@@ -13,4 +12,7 @@
   <action name="☀ Brightness -" command="shell input keyevent KEYCODE_BRIGHTNESS_DOWN"/>
   <action name="♲ Rotate CW" proc="RotateScreenCw"/>
   <action name="♲ Rotate CCW" proc="RotateScreenCcw"/>
+  <action name=""/>
+  <action name="⏰ Date setting" command="shell am start -a android.settings.DATE_SETTINGS"/>
+  <action name="🔧 Dev. setting" command="shell am start -a android.settings.APPLICATION_DEVELOPMENT_SETTINGS"/>
 </root>
