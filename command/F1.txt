@@ -1,5 +1,0 @@
-# Sample command 1
-
-echo Sample command 1
-cd /sdcard
-du -sk *
