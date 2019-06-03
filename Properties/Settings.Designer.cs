@@ -349,18 +349,6 @@ namespace Suconbu.Sumacon.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
-        public int ControlZoomRatioIndex {
-            get {
-                return ((int)(this["ControlZoomRatioIndex"]));
-            }
-            set {
-                this["ControlZoomRatioIndex"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1500")]
         public int RecordPullDelayMillisecondsAtManualStop {
             get {

@@ -51,7 +51,7 @@ namespace Suconbu.Sumacon
         readonly int kUpdateScreenIntervalMilliseconds = 500;
         readonly float kZoomPanelHeightRatio = 0.4f;
         readonly int kZoomPanelRelocateMarginPixels = 10;
-        readonly int[] kZoomRatios = { 2, 5, 10, 20, 50, 100 };
+        readonly int[] kZoomRatios = { 1, 2, 5, 10, 20, 50, 100 };
 
         public FormControl(Sumacon sumacon)
         {
@@ -260,20 +260,10 @@ namespace Suconbu.Sumacon
                 else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
                 else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
                 else if (e.KeyCode == Keys.Down) this.screenPointedPosition.Y = Math.Min(this.screenPointedPosition.Y + 1, image.Height - 1);
-                else if (e.Control && !this.zoomEnabled) this.zoomEnabled = true;
                 else return;
                 this.UpdateControlState();
                 e.Handled = true;
             }
-        }
-
-        protected override void OnKeyUp(KeyEventArgs e)
-        {
-            base.OnKeyUp(e);
-            if (!e.Control) this.zoomEnabled = false;
-            else return;
-            this.UpdateControlState();
-            e.Handled = true;
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
@@ -283,6 +273,7 @@ namespace Suconbu.Sumacon
             if (e.Delta > 0) index++;
             if (e.Delta < 0) index--;
             this.zoomRatioIndex = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
+            this.zoomEnabled = (this.zoomRatioIndex > 0);
             this.UpdateControlState();
         }
 
@@ -493,14 +484,12 @@ namespace Suconbu.Sumacon
         void LoadSettings()
         {
             this.beepEnabled = Properties.Settings.Default.ControlBeep;
-            this.zoomRatioIndex = Properties.Settings.Default.ControlZoomRatioIndex;
             this.touchProtocolType = Properties.Settings.Default.ControlTouchProtocol;
         }
 
         void SaveSettings()
         {
             Properties.Settings.Default.ControlBeep = this.beepEnabled;
-            Properties.Settings.Default.ControlZoomRatioIndex = this.zoomRatioIndex;
             Properties.Settings.Default.ControlTouchProtocol = this.touchProtocolType;
         }
     }
