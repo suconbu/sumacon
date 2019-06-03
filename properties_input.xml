@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root name="05.Input" pull="shell getevent -lp | tr '\n' ' '">
-  <property name="TouchDevice" type="String" pattern="(/dev/input/event\d+)((?!add device).)*INPUT_PROP_DIRECT"/>
+  <property name="TouchDevice" type="String" pattern="(/dev/input/event\d+)((?!add device).)*ABS_MT_POSITION"/>
   <property name="TouchMin" type="Point" pattern="POSITION_X.+min (\d+).+POSITION_Y(?:(?!ABS).)*min (\d+)"/>
   <property name="TouchMax" type="Point" pattern="POSITION_X.+max (\d+).+POSITION_Y(?:(?!ABS).)*max (\d+)"/>
 </root>
