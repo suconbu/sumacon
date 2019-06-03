@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Suconbu.Mobile
 {
-    public enum TouchProtocolType { A, B }
+    public enum TouchProtocolType { A, B, C }
 
     public class Input : DeviceComponent
     {
@@ -121,6 +121,7 @@ namespace Suconbu.Mobile
         {
             if (type == TouchProtocolType.A) return new TouchProtocolA();
             if (type == TouchProtocolType.B) return new TouchProtocolB();
+            if (type == TouchProtocolType.C) return new TouchProtocolC();
             throw new NotSupportedException();
         }
     }
@@ -164,7 +165,6 @@ namespace Suconbu.Mobile
         }
     }
 
-
     class TouchProtocolB : ITouchProtocol
     {
         public TouchProtocolType Type { get => TouchProtocolType.B; }
@@ -194,6 +194,47 @@ namespace Suconbu.Mobile
         {
             var e = new InputEvent();
             e.Add(0x0001, 0x014A, 0);
+            e.Add(0x0000, 0x0000, 0);
+            return e;
+        }
+    }
+
+    class TouchProtocolC : ITouchProtocol
+    {
+        public TouchProtocolType Type { get => TouchProtocolType.C; }
+
+        readonly int kPressure = 50;
+
+        public InputEvent On(int no, int x, int y)
+        {
+            var e = new InputEvent();
+            e.Add(0x0003, 0x0039, no);
+            e.Add(0x0003, 0x0037, 0);
+            e.Add(0x0003, 0x0035, x);
+            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x003A, this.kPressure);
+            e.Add(0x0000, 0x0002, 0);
+            e.Add(0x0000, 0x0000, 0);
+            return e;
+        }
+
+        public InputEvent Move(int no, int x, int y)
+        {
+            var e = new InputEvent();
+            e.Add(0x0003, 0x0039, no);
+            e.Add(0x0003, 0x0037, 0);
+            e.Add(0x0003, 0x0035, x);
+            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x003A, this.kPressure);
+            e.Add(0x0000, 0x0002, 0);
+            e.Add(0x0000, 0x0000, 0);
+            return e;
+        }
+
+        public InputEvent Off(int no)
+        {
+            var e = new InputEvent();
+            e.Add(0x0000, 0x0002, 0);
             e.Add(0x0000, 0x0000, 0);
             return e;
         }

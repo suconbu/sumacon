@@ -94,11 +94,12 @@ namespace Suconbu.Sumacon
             this.uxHoldButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
             this.uxTouchProtocolDropDown.AutoToolTip = false;
-            this.uxTouchProtocolDropDown.DataSource = new Dictionary<TouchProtocolType, ToolStripDropDownItem>()
+            var protocols = new Dictionary<TouchProtocolType, ToolStripDropDownItem>();
+            foreach(TouchProtocolType type in Enum.GetValues(typeof(TouchProtocolType)))
             {
-                { TouchProtocolType.A, new ToolStripMenuItem("Touch protocol A") },
-                { TouchProtocolType.B, new ToolStripMenuItem("Touch protocol B") },
-            };
+                protocols.Add(type, new ToolStripMenuItem($"Touch protocol {type}"));
+            }
+            this.uxTouchProtocolDropDown.DataSource = protocols;
             this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
