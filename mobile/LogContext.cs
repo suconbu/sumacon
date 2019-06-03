@@ -101,12 +101,8 @@ namespace Suconbu.Mobile
                 command.Append(" -s");
             }
 
-            var startAt = setting.StartAt;
-            if (resume && this.receivedLogs.Count > 0)
-            {
-                // 一時停止からの再開なら前回の続きから
-                startAt = this.receivedLogs.Last().Timestamp;
-            }
+            // 一時停止からの再開だったら前回の続きから、そうでなければ現在時間から
+            var startAt = (resume && this.receivedLogs.Count > 0) ? this.receivedLogs.Last().Timestamp : this.Device.Date;
             if (startAt != DateTime.MinValue)
             {
                 command.Append($" -T '{startAt.ToString("yyyy-MM-dd HH:mm:ss.fff")}'");
@@ -212,7 +208,6 @@ namespace Suconbu.Mobile
 
     public class LogSetting
     {
-        public DateTime StartAt { get; set; } = DateTime.MinValue;
         public int Pid { get; set; } = 0;
         public Dictionary<string, Log.PriorityCode> PriorityEachTags { get; private set; } = new Dictionary<string, Log.PriorityCode>();
         public bool DefaultSlilent { get; set; } = false;

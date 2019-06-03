@@ -87,6 +87,9 @@ namespace Suconbu.Mobile
                 return $"{v / 0x10000}.{v % 0x10000}";
             }
         }
+        // e.g. 2019-01-01 12:34:56
+        [Category(ComponentCategory.System)]
+        public DateTime Date { get { return DateTime.TryParse((string)this.system[nameof(this.Date)].Value, out var date) ? date : DateTime.MinValue; } }
         // e.g. Asia/Tokyo
         [Category(ComponentCategory.System)]
         public string TimeZone { get { return (string)this.system[nameof(this.TimeZone)].Value; } }

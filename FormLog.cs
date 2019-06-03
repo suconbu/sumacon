@@ -76,7 +76,7 @@ namespace Suconbu.Sumacon
         List<Log> filteredLogs;
         int logCacheStartIndex;
         LogContext logContext;
-        LogSetting logSetting = new LogSetting() { StartAt = DateTime.Now };
+        LogSetting logSetting = new LogSetting();
         ColorSet colorSet = ColorSet.Light;
         //ProcessInfo selectedProcessInfo = null;
         FilterSetting filterSetting = new FilterSetting();
