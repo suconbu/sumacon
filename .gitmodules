@@ -1,3 +1,6 @@
 [submodule "toolbox"]
 	path = toolbox
 	url = git@gitlab.com:suconbu/toolbox.git
+[submodule "Memezo"]
+	path = Memezo
+	url = git@gitlab.com:suconbu/memezo.git
