@@ -30,6 +30,7 @@ namespace Suconbu.Sumacon
         ToolStripButton wirelessAdbButton = new ToolStripButton();
         //ToolStripLabel memoryInfoLabel = new ToolStripLabel();
         Timer memoryTimer = new Timer() { Interval = 1000 };
+        FormWindowState previousWindowState;
 
         Sumacon sumacon = new Sumacon();
 
@@ -163,6 +164,16 @@ namespace Suconbu.Sumacon
             }
         }
 
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if(e.KeyCode == Keys.F11)
+            {
+                e.Handled = true;
+                this.ToggleFullscreen();
+            }
+        }
+
         void AirplaneModeButton_Click(object sender, EventArgs e)
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
@@ -223,6 +234,42 @@ namespace Suconbu.Sumacon
                 var item = this.deviceDropDown.DropDownItems.Add(label);
                 item.Image = this.imageList1.Images[device.HasWirelessConnection ? "phone_denpa.png" : "phone.png"];
                 item.Click += (s, e) => this.sumacon.DeviceManager.ActiveDevice = device;
+            }
+        }
+
+        void ToggleFullscreen()
+        {
+            if (this.FormBorderStyle == FormBorderStyle.None)
+            {
+                this.FormBorderStyle = FormBorderStyle.Sizable;
+                this.WindowState = this.previousWindowState;
+
+                this.dockPanel.DocumentStyle = DocumentStyle.DockingWindow;
+                var activeContent = this.dockPanel.ActiveContent;
+                foreach (var content in this.dockPanel.Contents)
+                {
+                    content.DockHandler.Show();
+                }
+                activeContent.DockHandler.Show();
+            }
+            else
+            {
+                foreach (var content in this.dockPanel.Contents)
+                {
+                    if (content != this.dockPanel.ActiveContent)
+                    {
+                        content.DockHandler.Hide();
+                    }
+                }
+                this.dockPanel.DocumentStyle = DocumentStyle.DockingSdi;    // タブを消すため
+
+                this.previousWindowState = this.WindowState;
+                if (this.WindowState == FormWindowState.Maximized)
+                {
+                    this.WindowState = FormWindowState.Normal;
+                }
+                this.FormBorderStyle = FormBorderStyle.None;
+                this.WindowState = FormWindowState.Maximized;
             }
         }
 
