@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -41,6 +42,7 @@ namespace Suconbu.Sumacon
             this.Icon = Properties.Resources.sumacon;
 
             this.KeyPreview = true;
+            this.AllowDrop = true;
 
             this.SetupDeviceManager();
         }
@@ -132,6 +134,33 @@ namespace Suconbu.Sumacon
             base.OnClosed(e);
 
             Properties.Settings.Default.Save();
+        }
+
+        protected override void OnDragEnter(DragEventArgs e)
+        {
+            base.OnDragEnter(e);
+            if (this.sumacon.DeviceManager.ActiveDevice != null)
+            {
+                var path = (e.Data.GetData(DataFormats.FileDrop, false) as string[]).FirstOrDefault();
+                if (path != null && Path.GetExtension(path).ToLower() == ".apk")
+                {
+                    e.Effect = DragDropEffects.All;
+                }
+            }
+        }
+
+        protected override void OnDragDrop(DragEventArgs e)
+        {
+            Trace.TraceInformation(Util.GetCurrentMethodName());
+            base.OnDragDrop(e);
+            var path = (e.Data.GetData(DataFormats.FileDrop, false) as string[]).FirstOrDefault();
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                var command = $"install -r {path}";
+                this.sumacon.WriteConsole(command);
+                device?.RunCommandAsync(command, output => this.sumacon.WriteConsole(output), error => this.sumacon.WriteConsole(error));
+            }
         }
 
         void AirplaneModeButton_Click(object sender, EventArgs e)
