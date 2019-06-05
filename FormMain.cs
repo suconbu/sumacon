@@ -23,6 +23,7 @@ namespace Suconbu.Sumacon
         FormLog logForm;
         FormPerformance performanceForm;
         FormControl controlForm;
+        FormScript scriptForm;
         ToolStripDropDownButton deviceDropDown;
         ToolStripLabel deviceInfoLabel = new ToolStripLabel();
         ToolStripButton airplaneModeButton = new ToolStripButton();
@@ -31,6 +32,7 @@ namespace Suconbu.Sumacon
         //ToolStripLabel memoryInfoLabel = new ToolStripLabel();
         Timer memoryTimer = new Timer() { Interval = 1000 };
         FormWindowState previousWindowState;
+        List<IDockContent> previousVisibleContents = new List<IDockContent>();
 
         Sumacon sumacon = new Sumacon();
 
@@ -75,6 +77,9 @@ namespace Suconbu.Sumacon
             this.propertyForm = new FormProperty(this.sumacon);
             this.propertyForm.Text = "Property";
             this.propertyForm.Show(this.dockPanel, DockState.DockRight);
+            this.scriptForm = new FormScript(this.sumacon);
+            this.scriptForm.Text = "Script";
+            this.scriptForm.Show(this.dockPanel, DockState.DockRight);
             this.captureForm = new FormCapture(this.sumacon);
             this.captureForm.Text = "Capture";
             this.captureForm.Show(this.dockPanel, DockState.Document);
@@ -90,6 +95,9 @@ namespace Suconbu.Sumacon
             this.controlForm = new FormControl(this.sumacon);
             this.controlForm.Text = "Control";
             this.controlForm.Show(this.dockPanel, DockState.Document);
+
+            this.propertyForm.Activate();
+            this.controlForm.Activate();
 
             foreach (var form in this.dockPanel.Contents)
             {
@@ -250,10 +258,31 @@ namespace Suconbu.Sumacon
                 {
                     content.DockHandler.Show();
                 }
+                foreach(var content in this.previousVisibleContents)
+                {
+                    content.DockHandler.Activate();
+                }
                 activeContent.DockHandler.Show();
             }
             else
             {
+                foreach (var document in this.dockPanel.Documents)
+                {
+                    if (document.DockHandler.Form.Visible)
+                    {
+                        document.DockHandler.Activate();
+                    }
+                }
+
+                this.previousVisibleContents.Clear();
+                foreach (var content in this.dockPanel.Contents)
+                {
+                    if (content.DockHandler.Form.Visible)
+                    {
+                        this.previousVisibleContents.Add(content);
+                    }
+                }
+
                 foreach (var content in this.dockPanel.Contents)
                 {
                     if (content != this.dockPanel.ActiveContent)
@@ -261,6 +290,7 @@ namespace Suconbu.Sumacon
                         content.DockHandler.Hide();
                     }
                 }
+
                 this.dockPanel.DocumentStyle = DocumentStyle.DockingSdi;    // タブを消すため
 
                 this.previousWindowState = this.WindowState;
