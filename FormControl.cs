@@ -54,6 +54,7 @@ namespace Suconbu.Sumacon
         readonly int[] kZoomRatios = { 1, 2, 5, 10, 20, 50, 100 };
         readonly int[] kZoomGridUnits = { 0, 5, 5, 5, 5, 5, 5 };
         readonly int[] kZoomGridAlphas = { 0, 16, 32, 64, 64, 64, 64 };
+        readonly string[] kZoomNotes = { "E4", "A4", "E5", "A5", "E6", "A6", "E7" };
 
         public FormControl(Sumacon sumacon)
         {
@@ -274,7 +275,9 @@ namespace Suconbu.Sumacon
             var index = this.zoomRatioIndex;
             if (e.Delta > 0) index++;
             if (e.Delta < 0) index--;
-            this.zoomRatioIndex = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
+            index = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
+            if (this.beepEnabled && index != this.zoomRatioIndex) Beep.Play(this.kZoomNotes[index]);
+            this.zoomRatioIndex = index;
             this.zoomEnabled = (this.zoomRatioIndex > 0);
             this.UpdateControlState();
         }
