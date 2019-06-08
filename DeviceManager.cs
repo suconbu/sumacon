@@ -30,7 +30,7 @@ namespace Suconbu.Sumacon
         readonly ConcurrentDictionary<string/*serial*/, int/*port*/> wirelessWaitingDevices = new ConcurrentDictionary<string, int>();
         readonly DeviceDetector detector = new DeviceDetector();
         readonly Dictionary<string/*serial*/, int> susupendRequestedCount = new Dictionary<string, int>();
-        readonly Dictionary<string/*serial*/, Dictionary<Device.UpdatableProperties, string>> intervalIds = new Dictionary<string, Dictionary<Device.UpdatableProperties, string>>();
+        readonly Dictionary<string/*serial*/, Dictionary<Device.UpdatableProperties, string>> intervalKeys = new Dictionary<string, Dictionary<Device.UpdatableProperties, string>>();
         readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
 
         readonly int kWirelessPortMin = 5500;
@@ -176,11 +176,11 @@ namespace Suconbu.Sumacon
         {
             this.susupendRequestedCount[device.Serial] = 0;
 
-            this.intervalIds[device.Serial] = new Dictionary<Device.UpdatableProperties, string>();
+            this.intervalKeys[device.Serial] = new Dictionary<Device.UpdatableProperties, string>();
             foreach(var updatableProperty in this.intervalMilliseconds.Keys)
             {
                 device.UpdatePropertiesAsync(updatableProperty);
-                this.intervalIds[device.Serial][updatableProperty] = Delay.SetInterval(() =>
+                this.intervalKeys[device.Serial][updatableProperty] = Delay.SetInterval(() =>
                 {
                     if (this.susupendRequestedCount[device.Serial] == 0)
                     {
@@ -194,12 +194,12 @@ namespace Suconbu.Sumacon
         {
             foreach (var updatableProperty in this.intervalMilliseconds.Keys)
             {
-                if (this.intervalIds[device.Serial].TryGetValue(updatableProperty, out var id))
+                if (this.intervalKeys[device.Serial].TryGetValue(updatableProperty, out var id))
                 {
                     Delay.ClearInterval(id);
                 }
             }
-            this.intervalIds.Remove(device.Serial);
+            this.intervalKeys.Remove(device.Serial);
         }
 
         void AddConnectedDevice(string serial)
@@ -254,6 +254,13 @@ namespace Suconbu.Sumacon
         {
             if (this.disposed) return;
 
+            foreach (var keys in this.intervalKeys.Values)
+            {
+                foreach (var key in keys.Values)
+                {
+                    Delay.ClearInterval(key);
+                }
+            }
             this.StopDeviceDetection();
             foreach (var device in this.connectedDevices.Values) device.Dispose();
 
