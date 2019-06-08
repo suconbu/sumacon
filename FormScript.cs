@@ -154,7 +154,7 @@ namespace Suconbu.Sumacon
         void SetupInterpreter()
         {
             this.interpreter.Install(new Memezo.StandardLibrary(), new Memezo.RandomLibrary());
-            this.interpreter.ErrorOccurred += (s, errorInfo) => this.sumacon.WriteConsole(errorInfo.ToString());
+            this.interpreter.ErrorOccurred += this.Interpreter_ErrorOccurred;
             this.interpreter.StatementReached += this.Interpreter_StatementReached;
             this.interpreter.Functions["print"] = this.Interpreter_Print;
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
@@ -186,12 +186,14 @@ namespace Suconbu.Sumacon
             this.UpdateScriptSelection(location.CharIndex);
         }
 
+        void Interpreter_ErrorOccurred(object sender, Memezo.ErrorInfo errorInfo)
+        {
+            this.sumacon.WriteConsole($"ERROR: {errorInfo}");
+        }
+
         Memezo.Value Interpreter_Print(List<Memezo.Value> args)
         {
-            foreach (var arg in args)
-            {
-                this.sumacon.WriteConsole(arg.ToString());
-            }
+            this.sumacon.WriteConsole(string.Join(" ", args));
             return Memezo.Value.Zero;
         }
 
