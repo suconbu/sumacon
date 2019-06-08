@@ -83,6 +83,9 @@
     <Compile Include="FormScript.Designer.cs">
       <DependentUpon>FormScript.cs</DependentUpon>
     </Compile>
+    <Compile Include="Memezo\Memezo.cs" />
+    <Compile Include="Memezo\RandomLibrary.cs" />
+    <Compile Include="Memezo\StandardLibrary.cs" />
     <Compile Include="Mobile\Input.cs" />
     <Compile Include="Mobile\LogContext.cs" />
     <Compile Include="Mobile\ProcessMeminfo.cs" />

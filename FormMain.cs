@@ -96,7 +96,7 @@ namespace Suconbu.Sumacon
             this.controlForm.Text = "Control";
             this.controlForm.Show(this.dockPanel, DockState.Document);
 
-            this.propertyForm.Activate();
+            //this.propertyForm.Activate();
             this.controlForm.Activate();
 
             foreach (var form in this.dockPanel.Contents)
