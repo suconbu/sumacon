@@ -173,6 +173,8 @@ namespace Suconbu.Mobile
         public bool HasWirelessConnection { get => (this.WirelessPort > 0); }
         [Browsable(false)]
         public int WirelessPort { get; private set; }
+        [Browsable(false)]
+        public bool ScreenIsUpright { get { return this.CurrentRotation == Screen.RotationCode.Protrait || this.CurrentRotation == Screen.RotationCode.ProtraitReversed; } }
 
         readonly DeviceData deviceData;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;

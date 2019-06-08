@@ -28,6 +28,8 @@ namespace Suconbu.Sumacon
         int currentSourceIndex;
         RunState runState = RunState.Ready;
         string stepTimeoutKey;
+        int defaultStepIntervalMilliseconds;
+        int activeStepIntervalMilliseconds;
 
         public FormScript(Sumacon sumacon)
         {
@@ -51,11 +53,9 @@ namespace Suconbu.Sumacon
             this.Controls.Add(this.uxToolStrip);
             this.uxScriptTextBox.Font = new Font(Properties.Resources.MonospaceFontName, this.uxScriptTextBox.Font.Size);
 
-            this.interpreter.Install(new Memezo.StandardLibrary(), new Memezo.RandomLibrary());
-            this.interpreter.ErrorOccurred += (s, errorInfo) => this.sumacon.WriteConsole(errorInfo.ToString());
-            this.interpreter.StatementReached += (s, location) => this.UpdateScriptSelection(location.CharIndex);
-            this.interpreter.Functions["print"] = (a) => { this.sumacon.WriteConsole(a.Count >= 1 ? a.First().ToString() : null); return Memezo.Value.Zero; };
-            this.interpreter.Functions["tap"] = (a) => { this.sumacon.WriteConsole(a.Count >= 3 ? $"tap x:{a[0]} y:{a[1]} duration:{a[2]}" : null); return Memezo.Value.Zero; };
+            this.SetupInterpreter();
+
+            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
 
             this.LoadSettings();
 
@@ -65,14 +65,24 @@ namespace Suconbu.Sumacon
         protected override void OnClosing(CancelEventArgs e)
         {
             base.OnClosing(e);
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
             this.SaveSettings();
+        }
+
+        void DeviceManager_ActiveDeviceChanged(object sender, Mobile.Device e)
+        {
+            this.SafeInvoke(() =>
+            {
+                if (this.sumacon.DeviceManager.ActiveDevice == null)
+                {
+                    this.OnStop();
+                }
+                this.UpdateControlState();
+            });
         }
 
         void OnStop()
         {
-            this.interpreter.Source = null;
-            this.currentSourceIndex = 0;
-            this.uxScriptTextBox.SelectionStart = 0;
             this.uxScriptTextBox.SelectionLength = 0;
 
             this.runState = RunState.Ready;
@@ -81,7 +91,8 @@ namespace Suconbu.Sumacon
 
         void OnRun()
         {
-            this.interpreter.Source = this.interpreter.Source ?? this.uxScriptTextBox.Text;
+            if (this.runState == RunState.Ready) this.PrepareToRun();
+
             this.RunAuto();
 
             this.runState = RunState.Running;
@@ -98,10 +109,16 @@ namespace Suconbu.Sumacon
 
         void OnStep()
         {
-            this.interpreter.Source = this.interpreter.Source ?? this.uxScriptTextBox.Text;
-            this.RunOneStep();
+            if (this.runState == RunState.Ready) this.PrepareToRun();
 
-            this.runState = RunState.Stepping;
+            if (this.RunOneStep())
+            {
+                this.runState = RunState.Stepping;
+            }
+            else
+            {
+                this.OnStop();
+            }
             this.UpdateControlState();
         }
 
@@ -111,12 +128,16 @@ namespace Suconbu.Sumacon
             {
                 if (this.runState == RunState.Running)
                 {
-                    if (this.RunOneStep())
+                    if (this.RunOneStep() && this.sumacon.DeviceManager.ActiveDevice != null)
                     {
                         this.RunAuto();
                     }
+                    else
+                    {
+                        this.OnStop();
+                    }
                 }
-            }, 100, this, this.stepTimeoutKey, true);
+            }, this.activeStepIntervalMilliseconds, this, this.stepTimeoutKey, true);
         }
 
         bool RunOneStep()
@@ -125,8 +146,81 @@ namespace Suconbu.Sumacon
             if (result && nextIndex >= 0)
             {
                 this.currentSourceIndex = nextIndex;
+                return true;
             }
-            return result;
+            return false;
+        }
+
+        void SetupInterpreter()
+        {
+            this.interpreter.Install(new Memezo.StandardLibrary(), new Memezo.RandomLibrary());
+            this.interpreter.ErrorOccurred += (s, errorInfo) => this.sumacon.WriteConsole(errorInfo.ToString());
+            this.interpreter.StatementReached += this.Interpreter_StatementReached;
+            this.interpreter.Functions["print"] = this.Interpreter_Print;
+            this.interpreter.Functions["tap"] = this.Interpreter_Tap;
+        }
+
+        void Interpreter_StatementReached(object sender, Memezo.SourceLocation location)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+
+            this.activeStepIntervalMilliseconds = (int)(this.interpreter.Vars.GetValue("sumacon_step_interval", new Memezo.Value(this.defaultStepIntervalMilliseconds)).Number);
+
+            var size = new Size(
+                (int)this.interpreter.Vars["sumacon_screen_width"].Number,
+                (int)this.interpreter.Vars["sumacon_screen_height"].Number);
+            size = device.ScreenIsUpright ? size : size.Swapped();
+            if (device?.ScreenSize != size && !size.IsEmpty)
+            {
+                device.ScreenSize = size;
+            }
+
+            var touchProtocolString = this.interpreter.Vars.GetValue("sumacon_touch_protocol", Memezo.Value.Zero).String;
+            var touchProtocol = Enum.TryParse(touchProtocolString, out Mobile.TouchProtocolType p) ? p : device.Input.TouchProtocol;
+            if (device.Input.TouchProtocol != touchProtocol)
+            {
+                device.Input.TouchProtocol = touchProtocol;
+            }
+
+            this.UpdateScriptSelection(location.CharIndex);
+        }
+
+        Memezo.Value Interpreter_Print(List<Memezo.Value> args)
+        {
+            foreach (var arg in args)
+            {
+                this.sumacon.WriteConsole(arg.ToString());
+            }
+            return Memezo.Value.Zero;
+        }
+
+        Memezo.Value Interpreter_Tap(List<Memezo.Value> args)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (args.Count >= 3 && device != null)
+            {
+                var rotatedSize = device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped();
+                var x = (float)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
+                var y = (float)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
+                var duration = (int)Math.Max(1.0, args[2].Number);
+                device.Input.Tap(x / rotatedSize.Width, y / rotatedSize.Height, duration);
+                Task.Delay(duration).Wait();
+                this.sumacon.WriteConsole($"tap x:{x} y:{y} duration:{duration}");
+            }
+            return Memezo.Value.Zero;
+        }
+
+        void PrepareToRun()
+        {
+            this.interpreter.Source = this.uxScriptTextBox.Text;
+            this.currentSourceIndex = 0;
+            this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
+            this.interpreter.Vars["sumacon_step_interval"] = new Memezo.Value(this.activeStepIntervalMilliseconds);
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            var rotatedSize = (device != null) ? (device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped()) : Size.Empty;
+            this.interpreter.Vars["sumacon_screen_width"] = new Memezo.Value(rotatedSize.Width);
+            this.interpreter.Vars["sumacon_screen_height"] = new Memezo.Value(rotatedSize.Height);
+            this.interpreter.Vars["sumacon_touch_protocol"] = new Memezo.Value((device?.Input.TouchProtocol ?? Mobile.TouchProtocolType.A).ToString());
         }
 
         void UpdateScriptSelection(int index)
@@ -144,6 +238,7 @@ namespace Suconbu.Sumacon
         void LoadSettings()
         {
             this.uxScriptTextBox.Text = Properties.Settings.Default.ScriptText;
+            this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
         }
 
         void SaveSettings()
@@ -153,7 +248,16 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
-            if (this.runState == RunState.Ready)
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if(device == null)
+            {
+                this.uxStopButton.Enabled = false;
+                this.uxRunButton.Enabled = false;
+                this.uxPauseButton.Enabled = false;
+                this.uxStepButton.Enabled = false;
+                this.uxScriptTextBox.ReadOnly = false;
+            }
+            else if (this.runState == RunState.Ready)
             {
                 this.uxStopButton.Enabled = false;
                 this.uxRunButton.Enabled = true;

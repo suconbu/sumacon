@@ -370,5 +370,17 @@ namespace Suconbu.Sumacon.Properties {
                 this["ScriptText"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public int ScriptStepIntervalMilliseconds {
+            get {
+                return ((int)(this["ScriptStepIntervalMilliseconds"]));
+            }
+            set {
+                this["ScriptStepIntervalMilliseconds"] = value;
+            }
+        }
     }
 }
