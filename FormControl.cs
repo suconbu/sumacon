@@ -287,6 +287,9 @@ namespace Suconbu.Sumacon
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
+            if (this.uxScreenPictureBox.Image == null) return;
+            var imageRect = new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size);
+            if (!imageRect.Contains(this.screenPointedPosition)) return;
             var index = this.zoomRatioIndex;
             if (e.Delta > 0) index++;
             if (e.Delta < 0) index--;
@@ -472,7 +475,7 @@ namespace Suconbu.Sumacon
             this.uxZoomBox.Visible = false;
 
             if (!this.zoomEnabled) return;
-
+            if (this.uxScreenPictureBox.Image == null) return;
             if (!new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size).Contains(this.screenPointedPosition)) return;
             var mousePosition = this.uxScreenPictureBox.PointToClient(MousePosition);
             if (!this.TryPictureBoxPointToNormalizedPoint(mousePosition, out var dummy)) return;
