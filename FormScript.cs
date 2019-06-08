@@ -158,6 +158,7 @@ namespace Suconbu.Sumacon
             this.interpreter.StatementReached += this.Interpreter_StatementReached;
             this.interpreter.Functions["print"] = this.Interpreter_Print;
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
+            this.interpreter.Functions["beep"] = this.Interpreter_Beep;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
         }
 
@@ -204,6 +205,15 @@ namespace Suconbu.Sumacon
             var duration = (int)Math.Max(1.0, args[0].Number);
             this.sumacon.WriteConsole($"wait({duration})");
             Task.Delay(duration).Wait();
+            return Memezo.Value.Zero;
+        }
+
+        Memezo.Value Interpreter_Beep(List<Memezo.Value> args)
+        {
+            var frequency = (args.Count > 0) ? (int)args[0].Number : 1000;
+            var duration = (args.Count > 1) ? (int)args[1].Number : 100;
+            this.sumacon.WriteConsole($"beep({frequency}, {duration})");
+            Console.Beep(frequency, duration);
             return Memezo.Value.Zero;
         }
 
