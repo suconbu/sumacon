@@ -14,6 +14,7 @@ namespace Suconbu.Sumacon
         public DeviceManager DeviceManager = new DeviceManager();
         public event EventHandler<string> WriteConsoleRequested = delegate { };
         public event EventHandler<Bitmap> SaveCapturedImageRequested = delegate { };
+        public event EventHandler<PointF[]> ShowTouchMarkersRequested = delegate { };
 
         public void WriteConsole(string s)
         {
@@ -23,6 +24,11 @@ namespace Suconbu.Sumacon
         public void SaveCapturedImage(Bitmap bitmap)
         {
             this.SaveCapturedImageRequested(this, bitmap);
+        }
+
+        public void ShowTouchMarkers(params PointF[] normalizedPoints)
+        {
+            this.ShowTouchMarkersRequested(this, normalizedPoints);
         }
 
         #region IDisposable Support

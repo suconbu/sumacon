@@ -214,12 +214,16 @@ namespace Suconbu.Sumacon
             if (device == null) throw new InvalidOperationException("Device not available");
 
             var rotatedSize = device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped();
-            var x = (float)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
-            var y = (float)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
+            var x = (int)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
+            var y = (int)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
             var duration = (args.Count >= 3) ? (int)Math.Max(1.0, args[2].Number) : 100;
+
             this.sumacon.WriteConsole($"tap({x}, {y}, {duration})");
-            device.Input.Tap(x / rotatedSize.Width, y / rotatedSize.Height, duration);
+            this.sumacon.ShowTouchMarkers(new PointF((float)x / rotatedSize.Width, (float)y / rotatedSize.Height));
+            device.Input.Tap((float)x / rotatedSize.Width, (float)y / rotatedSize.Height, duration);
             Task.Delay(duration).Wait();
+            this.sumacon.ShowTouchMarkers();
+
             return Memezo.Value.Zero;
         }
 

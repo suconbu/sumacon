@@ -63,6 +63,7 @@ namespace Suconbu.Sumacon
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.ShowTouchMarkersRequested += this.Sumacon_ShowTouchMarkersRequested;
         }
 
         protected override void OnLoad(EventArgs e)
@@ -170,6 +171,7 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.ShowTouchMarkersRequested -= this.Sumacon_ShowTouchMarkersRequested;
             this.SaveSettings();
         }
 
@@ -183,9 +185,22 @@ namespace Suconbu.Sumacon
             this.StartScreenPictureUpdate();
         }
 
+        private void Sumacon_ShowTouchMarkersRequested(object sender, PointF[] e)
+        {
+            if (e.Length > 0)
+            {
+                this.uxTouchMarker.Location = this.NormalizedPointToPictureBoxPoint(e.First());
+                this.uxTouchMarker.Visible = true;
+            }
+            else
+            {
+                this.uxTouchMarker.Visible = false;
+            }
+        }
+
         void UxScreenPictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            if (this.GetScreenNormalizedPoint(e.Location, out var point))
+            if (this.TryPictureBoxPointToNormalizedPoint(e.Location, out var point))
             {
                 if (e.Button.HasFlag(MouseButtons.Left))
                 {
@@ -215,7 +230,7 @@ namespace Suconbu.Sumacon
             if (this.lastMousePosition == e.Location) return;
             this.lastMousePosition = e.Location;
 
-            if (this.GetScreenNormalizedPoint(e.Location, out var point))
+            if (this.TryPictureBoxPointToNormalizedPoint(e.Location, out var point))
             {
                 this.screenPointedPosition = new Point(
                     (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
@@ -410,31 +425,46 @@ namespace Suconbu.Sumacon
             this.sumacon.WriteConsole("Copy screen capture to clipboard.");
         }
 
-        bool GetScreenNormalizedPoint(Point point, out PointF normalizedPoint)
+        bool TryPictureBoxPointToNormalizedPoint(Point point, out PointF normalizedPoint)
         {
             // PictureBox相対座標からディスプレイ正規化座標へ
-            normalizedPoint = new PointF();
+            normalizedPoint = PointF.Empty;
+            var imageRect = this.GetImageRectInPictureBox();
+            if (!imageRect.IsEmpty && imageRect.Contains(point))
+            {
+                normalizedPoint = new PointF((float)(point.X - imageRect.X) / imageRect.Width, (float)(point.Y - imageRect.Y) / imageRect.Height);
+                return true;
+            }
+            return false;
+        }
+
+        Point NormalizedPointToPictureBoxPoint(PointF normalizedPoint)
+        {
+            var imageRect = this.GetImageRectInPictureBox();
+            return new Point(
+                (int)(normalizedPoint.X * imageRect.Width + imageRect.X),
+                (int)(normalizedPoint.Y * imageRect.Height + imageRect.Y));
+        }
+
+        Rectangle GetImageRectInPictureBox()
+        {
             var image = this.uxScreenPictureBox.Image;
-            if (image == null) return false;
+            if (image == null) return Rectangle.Empty;
             var imageRatio = (float)image.Width / image.Height;
             var boxRect = this.uxScreenPictureBox.ClientRectangle;
             var boxRatio = (float)boxRect.Width / boxRect.Height;
-            var screenRect = boxRect;
+            var imageRect = boxRect;
             if (imageRatio > boxRatio) // 絵の方が横長
             {
-                screenRect.Height = (int)(boxRect.Width / imageRatio);
-                screenRect.Y = (boxRect.Height - screenRect.Height) / 2;
+                imageRect.Height = (int)(boxRect.Width / imageRatio);
+                imageRect.Y = (boxRect.Height - imageRect.Height) / 2;
             }
             else
             {
-                screenRect.Width = (int)(boxRect.Height * imageRatio);
-                screenRect.X = (boxRect.Width - screenRect.Width) / 2;
+                imageRect.Width = (int)(boxRect.Height * imageRatio);
+                imageRect.X = (boxRect.Width - imageRect.Width) / 2;
             }
-            if (!screenRect.Contains(point)) return false;
-            normalizedPoint = new PointF(
-                (float)(point.X - screenRect.X) / screenRect.Width,
-                (float)(point.Y - screenRect.Y) / screenRect.Height);
-            return true;
+            return imageRect;
         }
 
         void UpdateZoomBox()
@@ -445,7 +475,7 @@ namespace Suconbu.Sumacon
 
             if (!new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size).Contains(this.screenPointedPosition)) return;
             var mousePosition = this.uxScreenPictureBox.PointToClient(MousePosition);
-            if (!this.GetScreenNormalizedPoint(mousePosition, out var dummy)) return;
+            if (!this.TryPictureBoxPointToNormalizedPoint(mousePosition, out var dummy)) return;
 
             var upperLimit = this.uxZoomBox.Height + this.kZoomPanelRelocateMarginPixels;
             var lowerLimit = this.uxScreenPictureBox.Height - this.uxZoomBox.Height - this.kZoomPanelRelocateMarginPixels;
