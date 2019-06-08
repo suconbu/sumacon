@@ -157,6 +157,7 @@ namespace Suconbu.Sumacon
             this.interpreter.ErrorOccurred += (s, errorInfo) => this.sumacon.WriteConsole(errorInfo.ToString());
             this.interpreter.StatementReached += this.Interpreter_StatementReached;
             this.interpreter.Functions["print"] = this.Interpreter_Print;
+            this.interpreter.Functions["wait"] = this.Interpreter_Wait;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
         }
 
@@ -194,19 +195,29 @@ namespace Suconbu.Sumacon
             return Memezo.Value.Zero;
         }
 
+        Memezo.Value Interpreter_Wait(List<Memezo.Value> args)
+        {
+            if (args.Count < 1) throw new ArgumentException("Too few arguments");
+
+            var duration = (int)Math.Max(1.0, args[0].Number);
+            this.sumacon.WriteConsole($"wait({duration})");
+            Task.Delay(duration).Wait();
+            return Memezo.Value.Zero;
+        }
+
         Memezo.Value Interpreter_Tap(List<Memezo.Value> args)
         {
+            if (args.Count < 2) throw new ArgumentException("Too few arguments");
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (args.Count >= 3 && device != null)
-            {
-                var rotatedSize = device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped();
-                var x = (float)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
-                var y = (float)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
-                var duration = (int)Math.Max(1.0, args[2].Number);
-                device.Input.Tap(x / rotatedSize.Width, y / rotatedSize.Height, duration);
-                Task.Delay(duration).Wait();
-                this.sumacon.WriteConsole($"tap x:{x} y:{y} duration:{duration}");
-            }
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var rotatedSize = device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped();
+            var x = (float)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
+            var y = (float)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
+            var duration = (args.Count >= 3) ? (int)Math.Max(1.0, args[2].Number) : 100;
+            this.sumacon.WriteConsole($"tap({x}, {y}, {duration})");
+            device.Input.Tap(x / rotatedSize.Width, y / rotatedSize.Height, duration);
+            Task.Delay(duration).Wait();
             return Memezo.Value.Zero;
         }
 
