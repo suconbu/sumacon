@@ -134,7 +134,7 @@ namespace Suconbu.Sumacon
         void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Mobile.Property> properties)
         {
             this.updateControlStateTimeoutKey = Delay.SetTimeout(
-                this.UpdateControlState, 100, this, this.updateControlStateTimeoutKey, true);
+                () => this.SafeInvoke(this.UpdateControlState), 100, this, this.updateControlStateTimeoutKey, true);
         }
 
         void OnStop()
