@@ -110,7 +110,7 @@ namespace Suconbu.Sumacon
 
             this.LoadSettings();
 
-            this.sumacon.SaveCapturedImageRequested += (s, image) => this.captureForm.SaveCapturedImage(image);
+            this.sumacon.SaveCapturedImageRequested += (image) => this.captureForm.SaveCapturedImage(image);
             this.sumacon.DeviceManager.StartDeviceDetection();
         }
 

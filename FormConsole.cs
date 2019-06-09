@@ -63,7 +63,7 @@ namespace Suconbu.Sumacon
             this.sumacon.DeviceManager.DeviceDisconnecting -= this.DeviceManager_DeviceDisconnecting;
         }
 
-        private void Sumacon_WriteConsoleRequested(object sender, string s)
+        private void Sumacon_WriteConsoleRequested(string s)
         {
             this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + s));
         }

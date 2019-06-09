@@ -12,24 +12,24 @@ namespace Suconbu.Sumacon
     public class Sumacon : IDisposable
     {
         public DeviceManager DeviceManager = new DeviceManager();
-        public event EventHandler<string> WriteConsoleRequested = delegate { };
-        public event EventHandler<Bitmap> SaveCapturedImageRequested = delegate { };
-        public event EventHandler<PointF[]> ShowTouchMarkersRequested = delegate { };
+        public event Action<string> WriteConsoleRequested = delegate { };
+        public event Func<Bitmap, string> SaveCapturedImageRequested = delegate { return null; };
+        public event Action<PointF[]> ShowTouchMarkersRequested = delegate { };
         public ColorSet ColorSet = ColorSet.Light;
 
         public void WriteConsole(string s)
         {
-            this.WriteConsoleRequested(this, s);
+            this.WriteConsoleRequested(s);
         }
 
-        public void SaveCapturedImage(Bitmap bitmap)
+        public string SaveCapturedImage(Bitmap bitmap)
         {
-            this.SaveCapturedImageRequested(this, bitmap);
+            return this.SaveCapturedImageRequested(bitmap);
         }
 
         public void ShowTouchMarkers(params PointF[] normalizedPoints)
         {
-            this.ShowTouchMarkersRequested(this, normalizedPoints);
+            this.ShowTouchMarkersRequested(normalizedPoints);
         }
 
         #region IDisposable Support

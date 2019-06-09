@@ -89,12 +89,12 @@ namespace Suconbu.Sumacon
             this.patternToolTipText = Properties.Resources.FileNamePatternHelp;
         }
 
-        public void SaveCapturedImage(Bitmap bitmap)
+        public string SaveCapturedImage(Bitmap bitmap)
         {
             var filePath = this.SaveCaptureToFile(bitmap);
             this.SafeInvoke(() => this.AddCapturedFile(filePath));
-            this.sumacon.WriteConsole($"Save screen capture to {filePath}.");
             // このbitmapは他の人のものだから勝手にDisposeしちゃだめよ
+            return filePath;
         }
 
         protected override void OnShown(EventArgs e)

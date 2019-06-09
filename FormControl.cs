@@ -29,6 +29,7 @@ namespace Suconbu.Sumacon
         ToolStripButton uxBeepButton = new ToolStripButton();
         ToolStripButton uxZoomButton = new ToolStripButton();
         ToolStripButton uxHoldButton = new ToolStripButton();
+        ToolStripButton uxLogButton = new ToolStripButton();
         BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
         SplitContainer uxMainSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
@@ -38,6 +39,7 @@ namespace Suconbu.Sumacon
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
         bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
         bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
+        bool logEnabled { get => this.uxLogButton.Checked; set => this.uxLogButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
         Point screenPointedPosition = new Point(-1, -1);
@@ -94,6 +96,10 @@ namespace Suconbu.Sumacon
             this.uxZoomButton.ToolTipText = "Press Control key to show the zoom view.";
             this.uxScreenStatusStrip.ShowItemToolTips = true;
 
+            this.uxLogButton.CheckOnClick = true;
+            this.uxLogButton.ToolTipText = "Operation log write to Console.";
+            this.uxLogButton.CheckedChanged += (s, ee) => this.UpdateControlState();
+
             this.uxHoldButton.CheckOnClick = true;
             this.uxHoldButton.AutoToolTip = false;
             this.uxHoldButton.CheckedChanged += (s, ee) => this.UpdateControlState();
@@ -118,6 +124,7 @@ namespace Suconbu.Sumacon
             this.uxTouchPositionLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
+            this.uxScreenStatusStrip.Items.Add(this.uxLogButton);
             this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxHoldButton);
@@ -200,11 +207,11 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void Sumacon_ShowTouchMarkersRequested(object sender, PointF[] e)
+        void Sumacon_ShowTouchMarkersRequested(PointF[] points)
         {
-            if (e.Length > 0)
+            if (points.Length > 0)
             {
-                this.uxTouchMarker.Location = this.NormalizedPointToPictureBoxPoint(e.First());
+                this.uxTouchMarker.Location = this.NormalizedPointToPictureBoxPoint(points.First());
                 this.uxTouchMarker.Visible = true;
             }
             else
@@ -230,6 +237,7 @@ namespace Suconbu.Sumacon
                         {
                             this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
                             if (this.beepEnabled) Beep.Play(Beep.Note.Po);
+                            if (this.logEnabled) this.sumacon.WriteConsole($"touch_on({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
                             this.uxTouchMarker.Visible = true;
                             this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                         }
@@ -255,6 +263,7 @@ namespace Suconbu.Sumacon
                 {
                     device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
                     this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                    if (this.logEnabled) this.sumacon.WriteConsole($"touch_move({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
                 }
             }
             else
@@ -275,6 +284,7 @@ namespace Suconbu.Sumacon
                 device.Input.OffTouch();
                 this.activeTouchNo = -1;
                 if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
+                if (this.logEnabled) this.sumacon.WriteConsole($"touch_off({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
             }
             this.UpdateControlState();
         }
@@ -374,6 +384,7 @@ namespace Suconbu.Sumacon
             if (!string.IsNullOrEmpty(action.Command))
             {
                 device.RunCommandAsync(action.Command);
+                if (this.logEnabled) this.sumacon.WriteConsole($"adb('{action.Command}')");
             }
             if(!string.IsNullOrEmpty(action.Proc))
             {
@@ -401,6 +412,7 @@ namespace Suconbu.Sumacon
             while (code < 0) code += 4;
             while (code >= 4) code -= 4;
             device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
+            if (this.logEnabled) this.sumacon.WriteConsole($"rotate_to({code})");
         }
 
         ControlAction GetSelectedAction()
@@ -416,7 +428,7 @@ namespace Suconbu.Sumacon
             {
                 var color = bitmap.GetPixel(screenPoint.X, screenPoint.Y);
                 var sb = new StringBuilder();
-                sb.Append($"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
+                sb.Append($"# {color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
                 sb.Append($" at ({screenPoint.X,4}px, {screenPoint.Y,4}px)");
                 this.sumacon.WriteConsole(sb.ToString());
                 if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
@@ -425,10 +437,12 @@ namespace Suconbu.Sumacon
 
         void SaveCapturedImage()
         {
-            this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
+            var path = this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
             if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+            if (this.logEnabled) this.sumacon.WriteConsole("save_capture()");
+            this.sumacon.WriteConsole($"# Save screen capture to {path}.");
         }
 
         void CopyCapturedImage()
@@ -438,7 +452,7 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
             if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
-            this.sumacon.WriteConsole("Copy screen capture to clipboard.");
+            this.sumacon.WriteConsole("# Copy screen capture to clipboard.");
         }
 
         bool TryPictureBoxPointToNormalizedPoint(Point point, out PointF normalizedPoint)
@@ -527,6 +541,7 @@ namespace Suconbu.Sumacon
             }
 
             this.uxBeepButton.Text = this.beepEnabled ? "Beep ON" : "Beep OFF";
+            this.uxLogButton.Text = this.logEnabled ? "Log ON" : "Log OFF";
             this.uxHoldButton.Text = this.holdEnabled ? "Screen hold ON" : "Screen hold OFF";
 
             this.uxScreenPictureBox.BackColor = this.holdEnabled ? Color.OrangeRed : SystemColors.Control;
