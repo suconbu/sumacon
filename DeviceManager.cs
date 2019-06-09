@@ -17,6 +17,7 @@ namespace Suconbu.Sumacon
         public event EventHandler<Device> DeviceDisconnecting = delegate { };
         public event EventHandler<Device> ActiveDeviceChanged = delegate { };
         public event EventHandler<IReadOnlyList<Property>> PropertyChanged = delegate { };
+        public event EventHandler<TouchProtocolType> TouchProtocolTypeChanged = delegate { };
 
         public Device ActiveDevice
         {
@@ -24,6 +25,22 @@ namespace Suconbu.Sumacon
             set { this.ChangeActiveDevice(value); }
         }
         public IReadOnlyList<Device> ConnectedDevices { get { return this.connectedDevices.Values.ToList(); } }
+        public TouchProtocolType TouchProtocolType
+        {
+            get => this.touchProtocolType;
+            set
+            {
+                if(this.touchProtocolType != value)
+                {
+                    this.touchProtocolType = value;
+                    if(this.activeDevice != null)
+                    {
+                        this.activeDevice.Input.TouchProtocol = value;
+                    }
+                    this.TouchProtocolTypeChanged(this, value);
+                }
+            }
+        }
 
         Device activeDevice;
         readonly ConcurrentDictionary<string/*serial*/, Device> connectedDevices = new ConcurrentDictionary<string, Device>();
@@ -32,6 +49,7 @@ namespace Suconbu.Sumacon
         readonly Dictionary<string/*serial*/, int> susupendRequestedCount = new Dictionary<string, int>();
         readonly Dictionary<string/*serial*/, Dictionary<Device.UpdatableProperties, string>> intervalKeys = new Dictionary<string, Dictionary<Device.UpdatableProperties, string>>();
         readonly Dictionary<Device.UpdatableProperties, int> intervalMilliseconds = new Dictionary<Device.UpdatableProperties, int>();
+        TouchProtocolType touchProtocolType;
 
         readonly int kWirelessPortMin = 5500;
         readonly int kWirelessPortMax = 5600;
@@ -41,6 +59,8 @@ namespace Suconbu.Sumacon
         {
             this.detector.Connected += this.Detector_Connected;
             this.detector.Disconnected += this.Detector_Disconnected;
+
+            this.LoadSettings();
 
             //this.intervalMilliseconds[Device.UpdatableProperties.Component] = 30 * 1000;
             this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 10 * 1000;
@@ -133,6 +153,7 @@ namespace Suconbu.Sumacon
                 }
 
                 this.activeDevice = nextActiveDevice;
+                this.activeDevice.Input.TouchProtocol = this.touchProtocolType;
                 foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
                 {
                     component.PropertyChanged += this.DeviceComponent_PropertyChanged;
@@ -247,12 +268,25 @@ namespace Suconbu.Sumacon
             });
         }
 
+        void LoadSettings()
+        {
+            this.TouchProtocolType = Properties.Settings.Default.DeviceManagerTouchProtocolType;
+            this.TouchProtocolTypeChanged(this, this.TouchProtocolType);
+        }
+
+        void SaveSettings()
+        {
+            Properties.Settings.Default.DeviceManagerTouchProtocolType = this.TouchProtocolType;
+        }
+
         #region IDisposable Support
         bool disposed = false;
 
         public virtual void Dispose()
         {
             if (this.disposed) return;
+
+            this.SaveSettings();
 
             foreach (var keys in this.intervalKeys.Values)
             {

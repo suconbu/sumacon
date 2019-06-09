@@ -77,7 +77,7 @@
     <Setting Name="ControlBeep" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="ControlTouchProtocol" Type="Suconbu.Mobile.TouchProtocolType" Scope="User">
+    <Setting Name="DeviceManagerTouchProtocolType" Type="Suconbu.Mobile.TouchProtocolType" Scope="User">
       <Value Profile="(Default)">A</Value>
     </Setting>
     <Setting Name="MainMaximized" Type="System.Boolean" Scope="User">

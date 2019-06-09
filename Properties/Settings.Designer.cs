@@ -326,12 +326,12 @@ namespace Suconbu.Sumacon.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("A")]
-        public global::Suconbu.Mobile.TouchProtocolType ControlTouchProtocol {
+        public global::Suconbu.Mobile.TouchProtocolType DeviceManagerTouchProtocolType {
             get {
-                return ((global::Suconbu.Mobile.TouchProtocolType)(this["ControlTouchProtocol"]));
+                return ((global::Suconbu.Mobile.TouchProtocolType)(this["DeviceManagerTouchProtocolType"]));
             }
             set {
-                this["ControlTouchProtocol"] = value;
+                this["DeviceManagerTouchProtocolType"] = value;
             }
         }
         

@@ -17,9 +17,9 @@ namespace Suconbu.Sumacon
 
         protected override void OnDropDownItemClicked(ToolStripItemClickedEventArgs e)
         {
-            base.OnDropDownItemClicked(e);
             this.Text = e.ClickedItem.Text;
             this.value = (T)e.ClickedItem.Tag;
+            base.OnDropDownItemClicked(e);
         }
 
         void ChangeDataSource(Dictionary<T, ToolStripDropDownItem> dataSource)

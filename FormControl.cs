@@ -63,6 +63,7 @@ namespace Suconbu.Sumacon
 
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.TouchProtocolTypeChanged += this.DeviceManager_TouchProtocolTypeChanged;
             this.sumacon.ShowTouchMarkersRequested += this.Sumacon_ShowTouchMarkersRequested;
         }
 
@@ -104,7 +105,7 @@ namespace Suconbu.Sumacon
                 protocols.Add(type, new ToolStripMenuItem($"Touch protocol {type}"));
             }
             this.uxTouchProtocolDropDown.DataSource = protocols;
-            this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.UpdateControlState();
+            this.uxTouchProtocolDropDown.DropDownItemClicked += (s, ee) => this.sumacon.DeviceManager.TouchProtocolType = this.touchProtocolType;
 
             this.uxColorLabel.Alignment = ToolStripItemAlignment.Right;
             this.uxColorLabel.AutoSize = false;
@@ -182,10 +183,24 @@ namespace Suconbu.Sumacon
 
         void DeviceManager_ActiveDeviceChanged(object sender, Device previousDevice)
         {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if(device != null)
+            {
+                this.touchProtocolType = device.Input.TouchProtocol;
+            }
             this.StartScreenPictureUpdate();
         }
 
-        private void Sumacon_ShowTouchMarkersRequested(object sender, PointF[] e)
+        void DeviceManager_TouchProtocolTypeChanged(object sender, TouchProtocolType e)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device != null)
+            {
+                this.touchProtocolType = device.Input.TouchProtocol;
+            }
+        }
+
+        void Sumacon_ShowTouchMarkersRequested(object sender, PointF[] e)
         {
             if (e.Length > 0)
             {
@@ -213,7 +228,6 @@ namespace Suconbu.Sumacon
                         var device = this.sumacon.DeviceManager.ActiveDevice;
                         if (device != null)
                         {
-                            device.Input.TouchProtocol = this.touchProtocolType;
                             this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
                             if (this.beepEnabled) Beep.Play(Beep.Note.Po);
                             this.uxTouchMarker.Visible = true;
@@ -524,13 +538,11 @@ namespace Suconbu.Sumacon
         void LoadSettings()
         {
             this.beepEnabled = Properties.Settings.Default.ControlBeep;
-            this.touchProtocolType = Properties.Settings.Default.ControlTouchProtocol;
         }
 
         void SaveSettings()
         {
             Properties.Settings.Default.ControlBeep = this.beepEnabled;
-            Properties.Settings.Default.ControlTouchProtocol = this.touchProtocolType;
         }
     }
 

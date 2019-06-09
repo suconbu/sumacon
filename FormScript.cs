@@ -177,11 +177,9 @@ namespace Suconbu.Sumacon
                 device.ScreenSize = size;
             }
 
-            var touchProtocolString = this.interpreter.Vars.GetValue("sumacon_touch_protocol", Memezo.Value.Zero).String;
-            var touchProtocol = Enum.TryParse(touchProtocolString, out Mobile.TouchProtocolType p) ? p : device.Input.TouchProtocol;
-            if (device.Input.TouchProtocol != touchProtocol)
+            if (Enum.TryParse(this.interpreter.Vars.GetValue("sumacon_touch_protocol", Memezo.Value.Zero).String, out Mobile.TouchProtocolType p))
             {
-                device.Input.TouchProtocol = touchProtocol;
+                this.sumacon.DeviceManager.TouchProtocolType = p;
             }
 
             this.UpdateScriptSelection(location.CharIndex);
