@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Azuki = Sgry.Azuki;
+using Sgry.Azuki.WinForms;
 
 namespace Suconbu.Sumacon
 {
@@ -19,7 +21,9 @@ namespace Suconbu.Sumacon
 
         readonly SplitContainer uxSplitContainer = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
         readonly ToolStrip uxToolStrip = new ToolStrip() { GripStyle = ToolStripGripStyle.Hidden };
-        readonly TextBox uxScriptTextBox = new TextBox() { Dock = DockStyle.Fill, Multiline = true, HideSelection = false };
+        readonly AzukiControl uxScriptTextBox = new AzukiControl() { Dock = DockStyle.Fill };
+        int markStartIndex;
+        int markEndIndex;
         readonly GridPanel uxWatchPanel = new GridPanel() { Dock = DockStyle.Fill };
         readonly Sumacon sumacon;
         readonly ToolStripButton uxStopButton;
@@ -34,6 +38,7 @@ namespace Suconbu.Sumacon
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
+        readonly int kCurrentLineMarkId = 1;
 
         public FormScript(Sumacon sumacon)
         {
@@ -54,7 +59,32 @@ namespace Suconbu.Sumacon
             base.OnLoad(e);
 
             this.uxScriptTextBox.Font = new Font(Properties.Resources.MonospaceFontName, this.uxScriptTextBox.Font.Size);
-            this.uxWatchPanel.ApplyColorSet(ColorSet.Light);
+            this.uxScriptTextBox.ColorScheme.BackColor = this.sumacon.ColorSet.Back;
+            this.uxScriptTextBox.ColorScheme.ForeColor = this.sumacon.ColorSet.Text;
+            this.uxScriptTextBox.ColorScheme.LineNumberBack = this.sumacon.ColorSet.SelectionBack;
+            this.uxScriptTextBox.ColorScheme.LineNumberFore = this.sumacon.ColorSet.GrayedText;
+            this.uxScriptTextBox.ColorScheme.SelectionBack = this.sumacon.ColorSet.Accent2;
+            this.uxScriptTextBox.ColorScheme.SelectionFore =
+                this.uxScriptTextBox.ColorScheme.SelectionBack.GetLuminance() >= 0.5f ? Color.Black : Color.White;
+            this.uxScriptTextBox.ColorScheme.CleanedLineBar = Color.Transparent;
+            this.uxScriptTextBox.ColorScheme.DirtyLineBar = this.sumacon.ColorSet.Accent2;
+            this.uxScriptTextBox.ColorScheme.MatchedBracketBack = this.sumacon.ColorSet.SelectionBack;
+            this.uxScriptTextBox.ColorScheme.MatchedBracketFore = this.sumacon.ColorSet.SelectionText;
+            this.uxScriptTextBox.ColorScheme.RightEdgeColor = Color.Transparent;
+            this.uxScriptTextBox.ColorScheme.HighlightColor = this.sumacon.ColorSet.GridLine;
+            this.uxScriptTextBox.ColorScheme.WhiteSpaceColor = this.sumacon.ColorSet.GrayedText;
+            this.uxScriptTextBox.ColorScheme.EolColor = this.sumacon.ColorSet.GrayedText;
+            this.uxScriptTextBox.ColorScheme.EofColor = this.sumacon.ColorSet.GrayedText;
+            Azuki.Marking.Register(new Azuki.MarkingInfo(this.kCurrentLineMarkId, "CurrentLine"));
+            this.uxScriptTextBox.ColorScheme.SetMarkingDecoration(this.kCurrentLineMarkId, new Azuki.BgColorTextDecoration(this.uxScriptTextBox.ColorScheme.SelectionBack));
+            this.uxScriptTextBox.TabWidth = 4;
+            this.uxScriptTextBox.LeftMargin = 4;
+            this.uxScriptTextBox.DrawsSpace = true;
+            this.uxScriptTextBox.DrawsFullWidthSpace = true;
+            this.uxScriptTextBox.DrawsEolCode = false;
+            this.uxScriptTextBox.DrawsEofMark = false;
+
+            this.uxWatchPanel.ApplyColorSet(this.sumacon.ColorSet);
             this.uxWatchPanel.DataSource = this.watchedVars;
             this.uxWatchPanel.KeyColumnName = nameof(VarEntry.Name);
 
@@ -106,9 +136,8 @@ namespace Suconbu.Sumacon
 
         void OnStop()
         {
-            this.uxScriptTextBox.SelectionLength = 0;
-
             this.runState = RunState.Ready;
+            this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
             this.UpdateControlState();
         }
 
@@ -326,13 +355,17 @@ namespace Suconbu.Sumacon
             var endIndex = this.interpreter.Source.IndexOf(Environment.NewLine, index);
             endIndex = (endIndex >= 0) ? endIndex : this.interpreter.Source.Length;
 
-            this.uxScriptTextBox.SelectionStart = startIndex;
-            this.uxScriptTextBox.SelectionLength = endIndex - startIndex;
+            this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
+            this.uxScriptTextBox.Document.Mark(startIndex, endIndex, this.kCurrentLineMarkId);
+            this.uxScriptTextBox.SetSelection(startIndex, endIndex);
+            this.markStartIndex = startIndex;
+            this.markEndIndex = endIndex;
         }
 
         void LoadSettings()
         {
             this.uxScriptTextBox.Text = Properties.Settings.Default.ScriptText;
+            this.uxScriptTextBox.ClearHistory();
             this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
             this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
         }
@@ -351,7 +384,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = false;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = false;
-                this.uxScriptTextBox.ReadOnly = false;
+                this.uxScriptTextBox.IsReadOnly = false;
             }
             else if (this.runState == RunState.Ready)
             {
@@ -359,7 +392,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = true;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = true;
-                this.uxScriptTextBox.ReadOnly = false;
+                this.uxScriptTextBox.IsReadOnly = false;
             }
             else if (this.runState == RunState.Running)
             {
@@ -367,7 +400,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = false;
                 this.uxPauseButton.Enabled = true;
                 this.uxStepButton.Enabled = false;
-                this.uxScriptTextBox.ReadOnly = true;
+                this.uxScriptTextBox.IsReadOnly = true;
             }
             else if (this.runState == RunState.Paused)
             {
@@ -375,12 +408,15 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = true;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = true;
-                this.uxScriptTextBox.ReadOnly = true;
+                this.uxScriptTextBox.IsReadOnly = true;
             }
             else
             {
                 Debug.Assert(false);
             }
+
+            this.uxScriptTextBox.ColorScheme.ForeColor = this.uxScriptTextBox.IsReadOnly ? this.sumacon.ColorSet.GrayedText : this.sumacon.ColorSet.Text;
+            this.uxScriptTextBox.Invalidate();
 
             this.PushSpecialVars();
             this.UpdateWatchedVars();

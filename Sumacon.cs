@@ -15,6 +15,7 @@ namespace Suconbu.Sumacon
         public event EventHandler<string> WriteConsoleRequested = delegate { };
         public event EventHandler<Bitmap> SaveCapturedImageRequested = delegate { };
         public event EventHandler<PointF[]> ShowTouchMarkersRequested = delegate { };
+        public ColorSet ColorSet = ColorSet.Light;
 
         public void WriteConsole(string s)
         {
