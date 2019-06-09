@@ -136,7 +136,7 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseLeave += (s, ee) => this.UpdateControlState();
             this.uxScreenPictureBox.Controls.Add(this.uxZoomBox);
 
-            this.uxScreenContextMenu.Items.Add("Pick color (Control + S / Control + Click)", null, (s, ee) => this.PickColor());
+            this.uxScreenContextMenu.Items.Add("Pick color (Click (on zoom enabled))", null, (s, ee) => this.PickColor(this.screenPointedPosition));
             this.uxScreenContextMenu.Items.Add(new ToolStripSeparator());
             this.uxScreenContextMenu.Items.Add("Save screen capture (P)", null, (s, ee) => this.SaveCapturedImage());
             this.uxScreenContextMenu.Items.Add("Copy screen capture (Control + C)", null, (s, ee) => this.SaveCapturedImage());
@@ -221,7 +221,7 @@ namespace Suconbu.Sumacon
                 {
                     if (this.zoomEnabled)
                     {
-                        this.PickColor();
+                        this.PickColor(this.screenPointedPosition);
                     }
                     else
                     {
@@ -287,7 +287,6 @@ namespace Suconbu.Sumacon
             {
                 if (e.KeyCode == Keys.P) this.SaveCapturedImage();
                 else if (e.KeyCode == Keys.C && ModifierKeys.HasFlag(Keys.Control)) this.CopyCapturedImage();
-                else if (e.KeyCode == Keys.S && ModifierKeys.HasFlag(Keys.Control)) this.PickColor();
                 else if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
                 else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
                 else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
@@ -410,15 +409,15 @@ namespace Suconbu.Sumacon
                 this.actionGroup.Actions[this.uxActionsGridPanel.SelectedRows[0].Index] : null;
         }
 
-        void PickColor()
+        void PickColor(Point screenPoint)
         {
             var bitmap = this.uxScreenPictureBox.Image as Bitmap;
-            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPointedPosition))
+            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(screenPoint))
             {
-                var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
+                var color = bitmap.GetPixel(screenPoint.X, screenPoint.Y);
                 var sb = new StringBuilder();
                 sb.Append($"{color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
-                sb.Append($" at ({this.screenPointedPosition.X,4}px, {this.screenPointedPosition.Y,4}px)");
+                sb.Append($" at ({screenPoint.X,4}px, {screenPoint.Y,4}px)");
                 this.sumacon.WriteConsole(sb.ToString());
                 if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
             }
