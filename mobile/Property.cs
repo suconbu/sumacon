@@ -79,8 +79,6 @@ namespace Suconbu.Mobile
 
         [XmlAttribute("name")]
         public string Name { get; set; }
-        [XmlAttribute("text")]
-        public string Text { get; set; }
         [XmlAttribute("type")]
         public DataType Type { get; set; }
         [XmlAttribute("pattern")]
