@@ -30,6 +30,7 @@ namespace Suconbu.Sumacon
         int currentSourceIndex;
         RunState runState = RunState.Ready;
         string stepTimeoutKey;
+        string updateControlStateTimeoutKey;
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
@@ -64,11 +65,13 @@ namespace Suconbu.Sumacon
             this.Controls.Add(this.uxSplitContainer);
             this.Controls.Add(this.uxToolStrip);
 
+            this.uxWatchPanel.Columns[nameof(VarEntry.Name)].Width = 150;
             this.uxWatchPanel.Columns[nameof(VarEntry.Value)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             this.SetupInterpreter();
 
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged += this.DeviceManager_PropertyChanged;
 
             this.LoadSettings();
 
@@ -79,6 +82,7 @@ namespace Suconbu.Sumacon
         {
             base.OnClosing(e);
             this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged -= this.DeviceManager_PropertyChanged;
             this.SaveSettings();
         }
 
@@ -92,6 +96,12 @@ namespace Suconbu.Sumacon
                 }
                 this.UpdateControlState();
             });
+        }
+
+        void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Mobile.Property> properties)
+        {
+            this.updateControlStateTimeoutKey = Delay.SetTimeout(
+                this.UpdateControlState, 100, this, this.updateControlStateTimeoutKey, true);
         }
 
         void OnStop()
@@ -174,9 +184,6 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
             this.interpreter.Functions["beep"] = this.Interpreter_Beep;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
-
-            this.PrepareToRun();
-            this.UpdateWatchedVars();
         }
 
         void Interpreter_StatementEnter(object sender, Memezo.SourceLocation location)
@@ -261,6 +268,13 @@ namespace Suconbu.Sumacon
         {
             this.interpreter.Source = this.uxScriptTextBox.Text;
             this.currentSourceIndex = 0;
+
+            this.SetSpecialVars();
+            this.UpdateWatchedVars();
+        }
+
+        void SetSpecialVars()
+        {
             this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
             this.interpreter.Vars["sumacon_step_interval"] = new Memezo.Value(this.activeStepIntervalMilliseconds);
             var device = this.sumacon.DeviceManager.ActiveDevice;
@@ -268,9 +282,6 @@ namespace Suconbu.Sumacon
             this.interpreter.Vars["sumacon_screen_width"] = new Memezo.Value(rotatedSize.Width);
             this.interpreter.Vars["sumacon_screen_height"] = new Memezo.Value(rotatedSize.Height);
             this.interpreter.Vars["sumacon_touch_protocol"] = new Memezo.Value((device?.Input.TouchProtocol ?? Mobile.TouchProtocolType.A).ToString());
-
-            this.UpdateWatchedVars();
-            this.uxWatchPanel.AutoResizeColumns();
         }
 
         void UpdateWatchedVars()
@@ -319,6 +330,7 @@ namespace Suconbu.Sumacon
         {
             this.uxScriptTextBox.Text = Properties.Settings.Default.ScriptText;
             this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
+            this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
         }
 
         void SaveSettings()
@@ -373,6 +385,9 @@ namespace Suconbu.Sumacon
             {
                 Debug.Assert(false);
             }
+
+            this.SetSpecialVars();
+            this.UpdateWatchedVars();
         }
 
         class VarEntry
