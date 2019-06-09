@@ -24,6 +24,7 @@ namespace Suconbu.Sumacon
         readonly AzukiControl uxScriptTextBox = new AzukiControl() { Dock = DockStyle.Fill };
         int markStartIndex;
         int markEndIndex;
+        readonly Azuki.Highlighter.KeywordHighlighter highlighter = new Azuki.Highlighter.KeywordHighlighter();
         readonly GridPanel uxWatchPanel = new GridPanel() { Dock = DockStyle.Fill };
         readonly Sumacon sumacon;
         readonly ToolStripButton uxStopButton;
@@ -63,7 +64,7 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.ColorScheme.ForeColor = this.sumacon.ColorSet.Text;
             this.uxScriptTextBox.ColorScheme.LineNumberBack = this.sumacon.ColorSet.SelectionBack;
             this.uxScriptTextBox.ColorScheme.LineNumberFore = this.sumacon.ColorSet.GrayedText;
-            this.uxScriptTextBox.ColorScheme.SelectionBack = this.sumacon.ColorSet.Accent2;
+            this.uxScriptTextBox.ColorScheme.SelectionBack = this.sumacon.ColorSet.SelectionBack;
             this.uxScriptTextBox.ColorScheme.SelectionFore =
                 this.uxScriptTextBox.ColorScheme.SelectionBack.GetLuminance() >= 0.5f ? Color.Black : Color.White;
             this.uxScriptTextBox.ColorScheme.CleanedLineBar = Color.Transparent;
@@ -75,6 +76,7 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.ColorScheme.WhiteSpaceColor = this.sumacon.ColorSet.GrayedText;
             this.uxScriptTextBox.ColorScheme.EolColor = this.sumacon.ColorSet.GrayedText;
             this.uxScriptTextBox.ColorScheme.EofColor = this.sumacon.ColorSet.GrayedText;
+            this.uxScriptTextBox.ColorScheme.SetColor(Azuki.CharClass.Comment, this.sumacon.ColorSet.GrayedText, Color.Transparent);
             Azuki.Marking.Register(new Azuki.MarkingInfo(this.kCurrentLineMarkId, "CurrentLine"));
             this.uxScriptTextBox.ColorScheme.SetMarkingDecoration(this.kCurrentLineMarkId, new Azuki.BgColorTextDecoration(this.uxScriptTextBox.ColorScheme.SelectionBack));
             this.uxScriptTextBox.TabWidth = 4;
@@ -83,6 +85,7 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.DrawsFullWidthSpace = true;
             this.uxScriptTextBox.DrawsEolCode = false;
             this.uxScriptTextBox.DrawsEofMark = false;
+            this.uxScriptTextBox.Document.Highlighter = this.highlighter;
 
             this.uxWatchPanel.ApplyColorSet(this.sumacon.ColorSet);
             this.uxWatchPanel.DataSource = this.watchedVars;
@@ -220,6 +223,19 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
             this.interpreter.Functions["beep"] = this.Interpreter_Beep;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
+
+            var keywords = Memezo.Interpreter.Keywords;
+            this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
+
+            var functionNames = this.interpreter.Functions.Keys;
+            this.highlighter.AddKeywordSet(functionNames.OrderBy(s => s).ToArray(), Azuki.CharClass.Function);
+
+            foreach (var quoteMarker in Memezo.Interpreter.StringQuoteMarkers)
+            {
+                this.highlighter.AddEnclosure(quoteMarker.ToString(), quoteMarker.ToString(), Azuki.CharClass.String, false, '\\');
+            }
+
+            this.highlighter.AddLineHighlight(Memezo.Interpreter.LineCommentMarker, Azuki.CharClass.Comment);
         }
 
         void PrepareToRun()
@@ -377,6 +393,7 @@ namespace Suconbu.Sumacon
 
         void UpdateControlState()
         {
+            var readOnly = false;
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if(device == null)
             {
@@ -384,7 +401,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = false;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = false;
-                this.uxScriptTextBox.IsReadOnly = false;
+                readOnly = false;
             }
             else if (this.runState == RunState.Ready)
             {
@@ -392,7 +409,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = true;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = true;
-                this.uxScriptTextBox.IsReadOnly = false;
+                readOnly = false;
             }
             else if (this.runState == RunState.Running)
             {
@@ -400,7 +417,7 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = false;
                 this.uxPauseButton.Enabled = true;
                 this.uxStepButton.Enabled = false;
-                this.uxScriptTextBox.IsReadOnly = true;
+                readOnly = true;
             }
             else if (this.runState == RunState.Paused)
             {
@@ -408,15 +425,28 @@ namespace Suconbu.Sumacon
                 this.uxRunButton.Enabled = true;
                 this.uxPauseButton.Enabled = false;
                 this.uxStepButton.Enabled = true;
-                this.uxScriptTextBox.IsReadOnly = true;
+                readOnly = true;
             }
             else
             {
                 Debug.Assert(false);
             }
 
-            this.uxScriptTextBox.ColorScheme.ForeColor = this.uxScriptTextBox.IsReadOnly ? this.sumacon.ColorSet.GrayedText : this.sumacon.ColorSet.Text;
-            this.uxScriptTextBox.Invalidate();
+            if (this.uxScriptTextBox.IsReadOnly != readOnly)
+            {
+                this.uxScriptTextBox.IsReadOnly = readOnly;
+                if (this.uxScriptTextBox.IsReadOnly)
+                {
+                    this.uxScriptTextBox.ColorScheme.ForeColor = this.sumacon.ColorSet.GrayedText;
+                    this.uxScriptTextBox.Document.Highlighter = null;
+                }
+                else
+                {
+                    this.uxScriptTextBox.ColorScheme.ForeColor = this.sumacon.ColorSet.Text;
+                    this.uxScriptTextBox.Document.Highlighter = this.highlighter;
+                }
+                this.uxScriptTextBox.Invalidate();
+            }
 
             this.PushSpecialVars();
             this.UpdateWatchedVars();
