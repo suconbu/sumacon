@@ -17,8 +17,10 @@ namespace Suconbu.Sumacon
     {
         enum RunState { Ready, Running, Paused, Stepping }
 
+        readonly SplitContainer uxSplitContainer = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal };
         readonly ToolStrip uxToolStrip = new ToolStrip() { GripStyle = ToolStripGripStyle.Hidden };
         readonly TextBox uxScriptTextBox = new TextBox() { Dock = DockStyle.Fill, Multiline = true, HideSelection = false };
+        readonly GridPanel uxWatchPanel = new GridPanel() { Dock = DockStyle.Fill };
         readonly Sumacon sumacon;
         readonly ToolStripButton uxStopButton;
         readonly ToolStripButton uxRunButton;
@@ -30,6 +32,7 @@ namespace Suconbu.Sumacon
         string stepTimeoutKey;
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
+        SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
 
         public FormScript(Sumacon sumacon)
         {
@@ -49,9 +52,19 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
-            this.Controls.Add(this.uxScriptTextBox);
-            this.Controls.Add(this.uxToolStrip);
             this.uxScriptTextBox.Font = new Font(Properties.Resources.MonospaceFontName, this.uxScriptTextBox.Font.Size);
+            this.uxWatchPanel.ApplyColorSet(ColorSet.Light);
+            this.uxWatchPanel.DataSource = this.watchedVars;
+            this.uxWatchPanel.KeyColumnName = nameof(VarEntry.Name);
+
+            this.uxSplitContainer.Panel1.Controls.Add(this.uxScriptTextBox);
+            this.uxSplitContainer.Panel2.Controls.Add(this.uxWatchPanel);
+            this.uxSplitContainer.SplitterDistance = this.uxSplitContainer.Height * 70 / 100;
+
+            this.Controls.Add(this.uxSplitContainer);
+            this.Controls.Add(this.uxToolStrip);
+
+            this.uxWatchPanel.Columns[nameof(VarEntry.Value)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
             this.SetupInterpreter();
 
@@ -155,14 +168,23 @@ namespace Suconbu.Sumacon
         {
             this.interpreter.Install(new Memezo.StandardLibrary(), new Memezo.RandomLibrary());
             this.interpreter.ErrorOccurred += this.Interpreter_ErrorOccurred;
-            this.interpreter.StatementReached += this.Interpreter_StatementReached;
+            this.interpreter.StatementEnter += this.Interpreter_StatementEnter;
+            this.interpreter.StatementLeave += this.Interpreter_StatementLeave;
             this.interpreter.Functions["print"] = this.Interpreter_Print;
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
             this.interpreter.Functions["beep"] = this.Interpreter_Beep;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
+
+            this.PrepareToRun();
+            this.UpdateWatchedVars();
         }
 
-        void Interpreter_StatementReached(object sender, Memezo.SourceLocation location)
+        void Interpreter_StatementEnter(object sender, Memezo.SourceLocation location)
+        {
+            this.UpdateScriptSelection(location.CharIndex);
+        }
+
+        void Interpreter_StatementLeave(object sender, Memezo.SourceLocation location)
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
 
@@ -182,7 +204,7 @@ namespace Suconbu.Sumacon
                 this.sumacon.DeviceManager.TouchProtocolType = p;
             }
 
-            this.UpdateScriptSelection(location.CharIndex);
+            this.UpdateWatchedVars();
         }
 
         void Interpreter_ErrorOccurred(object sender, Memezo.ErrorInfo errorInfo)
@@ -192,7 +214,7 @@ namespace Suconbu.Sumacon
 
         Memezo.Value Interpreter_Print(List<Memezo.Value> args)
         {
-            this.sumacon.WriteConsole(string.Join(" ", args));
+            this.sumacon.WriteConsole(string.Join(" ", args.Select(arg => arg.String)));
             return Memezo.Value.Zero;
         }
 
@@ -246,6 +268,39 @@ namespace Suconbu.Sumacon
             this.interpreter.Vars["sumacon_screen_width"] = new Memezo.Value(rotatedSize.Width);
             this.interpreter.Vars["sumacon_screen_height"] = new Memezo.Value(rotatedSize.Height);
             this.interpreter.Vars["sumacon_touch_protocol"] = new Memezo.Value((device?.Input.TouchProtocol ?? Mobile.TouchProtocolType.A).ToString());
+
+            this.UpdateWatchedVars();
+            this.uxWatchPanel.AutoResizeColumns();
+        }
+
+        void UpdateWatchedVars()
+        {
+            if (this.interpreter == null) return;
+
+            var vars = this.interpreter.Vars.Select(var => new VarEntry(var.Key, var.Value));
+
+            var threadViewState = this.uxWatchPanel.GetViewState();
+            this.uxWatchPanel.SuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
+
+            // 変数消えることはないけど...
+            var removes = this.watchedVars.Except(vars, new VarEntryComparer()).ToArray();
+            foreach (var t in removes) this.watchedVars.Remove(t);
+            var adds = vars.Except(this.watchedVars, new VarEntryComparer()).ToArray();
+            foreach (var t in adds) this.watchedVars.Add(t);
+
+            // 値が変わってたら更新
+            for(int i = 0; i < this.watchedVars.Count; i++)
+            {
+                var var = this.watchedVars[i];
+                var latestValue = this.interpreter.Vars[var.Name];
+                if (var.Value.ToString() != latestValue.ToString())
+                {
+                    this.watchedVars[i] = new VarEntry(var.Name, latestValue);
+                }
+            }
+
+            this.uxWatchPanel.SetViewState(threadViewState, GridViewState.ApplyTargets.SortedColumn | GridViewState.ApplyTargets.Selection);
+            this.uxWatchPanel.UnsuppressEvent(GridPanel.SupressibleEvent.SelectedItemChanged);
         }
 
         void UpdateScriptSelection(int index)
@@ -318,6 +373,22 @@ namespace Suconbu.Sumacon
             {
                 Debug.Assert(false);
             }
+        }
+
+        class VarEntry
+        {
+            public string Name { get; private set; }
+            public Memezo.Value Value { get; set; }
+            public VarEntry(string name, Memezo.Value value)
+            {
+                this.Name = name;
+                this.Value = value;
+            }
+        }
+        class VarEntryComparer : IEqualityComparer<VarEntry>
+        {
+            public bool Equals(VarEntry a, VarEntry b) => a?.Name == b?.Name;
+            public int GetHashCode(VarEntry p) => p.Name.GetHashCode();
         }
     }
 }
