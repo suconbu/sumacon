@@ -12,10 +12,10 @@ namespace Suconbu.Sumacon
     {
         public event EventHandler ConnectedDevicesChanged = delegate { };
         // ConnectedDevicesChangedの後に通知します(対象はConnectedDevicesにすでに存在します)
-        public event EventHandler<Device> DeviceConnected = delegate { };
+        public event EventHandler<Device/* connectedDevice */> DeviceConnected = delegate { };
         // ConnectedDevicesChangedの前に通知します(対象はConnectedDevicesにまだ存在します)
-        public event EventHandler<Device> DeviceDisconnecting = delegate { };
-        public event EventHandler<Device> ActiveDeviceChanged = delegate { };
+        public event EventHandler<Device/* disconnectingDevice */> DeviceDisconnecting = delegate { };
+        public event EventHandler<Device/* previousDevice */> ActiveDeviceChanged = delegate { };
         public event EventHandler<IReadOnlyList<Property>> PropertyChanged = delegate { };
         public event EventHandler<TouchProtocolType> TouchProtocolTypeChanged = delegate { };
 
