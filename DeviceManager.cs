@@ -153,7 +153,10 @@ namespace Suconbu.Sumacon
                 }
 
                 this.activeDevice = nextActiveDevice;
-                this.activeDevice.Input.TouchProtocol = this.touchProtocolType;
+                if (this.activeDevice != null)
+                {
+                    this.activeDevice.Input.TouchProtocol = this.touchProtocolType;
+                }
                 foreach (var component in (this.activeDevice?.Components).OrEmptyIfNull())
                 {
                     component.PropertyChanged += this.DeviceComponent_PropertyChanged;
