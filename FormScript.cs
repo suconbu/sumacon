@@ -284,7 +284,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            var rotatedSize = device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped();
+            var rotatedSize = device.RotatedScreenSize;
             var x = (int)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
             var y = (int)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
             var duration = (args.Count >= 3) ? (int)Math.Max(1.0, args[2].Number) : 100;
@@ -303,7 +303,7 @@ namespace Suconbu.Sumacon
             this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
             this.interpreter.Vars["sumacon_step_interval"] = new Memezo.Value(this.activeStepIntervalMilliseconds);
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            var rotatedSize = (device != null) ? (device.ScreenIsUpright ? device.ScreenSize : device.ScreenSize.Swapped()) : Size.Empty;
+            var rotatedSize = device?.RotatedScreenSize ?? Size.Empty;
             this.interpreter.Vars["sumacon_screen_width"] = new Memezo.Value(rotatedSize.Width);
             this.interpreter.Vars["sumacon_screen_height"] = new Memezo.Value(rotatedSize.Height);
             this.interpreter.Vars["sumacon_touch_protocol"] = new Memezo.Value((device?.Input.TouchProtocol ?? Mobile.TouchProtocolType.A).ToString());

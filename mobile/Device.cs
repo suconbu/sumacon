@@ -174,7 +174,9 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public int WirelessPort { get; private set; }
         [Browsable(false)]
-        public bool ScreenIsUpright { get { return this.CurrentRotation == Screen.RotationCode.Protrait || this.CurrentRotation == Screen.RotationCode.ProtraitReversed; } }
+        public bool ScreenIsUpright { get => this.CurrentRotation == Screen.RotationCode.Protrait || this.CurrentRotation == Screen.RotationCode.ProtraitReversed; }
+        [Browsable(false)]
+        public Size RotatedScreenSize { get => this.ScreenIsUpright ? this.ScreenSize : this.ScreenSize.Swapped(); }
 
         readonly DeviceData deviceData;
         CommandContext.NewLineMode newLineMode = CommandContext.NewLineMode.CrLf;

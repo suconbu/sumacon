@@ -42,12 +42,14 @@ namespace Suconbu.Sumacon
         bool logEnabled { get => this.uxLogButton.Checked; set => this.uxLogButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = -1;
-        Point screenPointedPosition = new Point(-1, -1);
+        Point screenPoint;
         Panel uxTouchMarker = new Panel();
         ZoomBox uxZoomBox = new ZoomBox();
         int zoomRatioIndex;
         Point lastMousePosition;
         string delayedUpdateTimeoutId;
+        DateTime lastMouseDownOrMoveAt = DateTime.MinValue;
+        bool swiping;
 
         readonly int kActionsGridPanelWidth = 150;
         readonly int kUpdateScreenIntervalMilliseconds = 500;
@@ -57,6 +59,8 @@ namespace Suconbu.Sumacon
         readonly int[] kZoomGridUnits = { 0, 5, 5, 5, 5, 5, 5 };
         readonly int[] kZoomGridAlphas = { 0, 16, 32, 64, 64, 64, 64 };
         readonly string[] kZoomNotes = { "E4", "A4", "E5", "A5", "E6", "A6", "E7" };
+        readonly int kLogTouchDurationMillisecondsUnit = 10;
+        readonly int kLogTouchMoveThresholdMilliseconds = 100;
 
         public FormControl(Sumacon sumacon)
         {
@@ -140,10 +144,11 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseDown += this.UxScreenPictureBox_MouseDown;
             this.uxScreenPictureBox.MouseMove += this.UxScreenPictureBox_MouseMove;
             this.uxScreenPictureBox.MouseUp += this.UxScreenPictureBox_MouseUp;
+            this.uxScreenPictureBox.MouseWheel += this.UxScreenPictureBox_MouseWheel;
             this.uxScreenPictureBox.MouseLeave += (s, ee) => this.UpdateControlState();
             this.uxScreenPictureBox.Controls.Add(this.uxZoomBox);
 
-            this.uxScreenContextMenu.Items.Add("Pick color (Click (on zoom enabled))", null, (s, ee) => this.PickColor(this.screenPointedPosition));
+            this.uxScreenContextMenu.Items.Add("Pick color (Left click (on zoom enabled))", null, (s, ee) => this.PickColor(this.screenPoint));
             this.uxScreenContextMenu.Items.Add(new ToolStripSeparator());
             this.uxScreenContextMenu.Items.Add("Save screen capture (P)", null, (s, ee) => this.SaveCapturedImage());
             this.uxScreenContextMenu.Items.Add("Copy screen capture (Control + C)", null, (s, ee) => this.SaveCapturedImage());
@@ -222,28 +227,34 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            if (this.TryPictureBoxPointToNormalizedPoint(e.Location, out var point))
+            if (this.TryPictureBoxPointToScreenPoint(e.Location, out var point))
             {
+                this.screenPoint = point;
+
                 if (e.Button.HasFlag(MouseButtons.Left))
                 {
                     if (this.zoomEnabled)
                     {
-                        this.PickColor(this.screenPointedPosition);
+                        this.PickColor(this.screenPoint);
                     }
                     else
                     {
                         var device = this.sumacon.DeviceManager.ActiveDevice;
                         if (device != null)
                         {
-                            this.activeTouchNo = device.Input.OnTouch(point.X, point.Y);
-                            if (this.beepEnabled) Beep.Play(Beep.Note.Po);
-                            if (this.logEnabled) this.sumacon.WriteConsole($"touch_on({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
+                            var rotatedSize = device.RotatedScreenSize;
+                            var nx = (float)this.screenPoint.X / rotatedSize.Width;
+                            var ny = (float)this.screenPoint.Y / rotatedSize.Height;
+                            this.activeTouchNo = device.Input.OnTouch(nx, ny);
+                            this.PlayBeepIfEnabled(Beep.Note.Po);
+                            this.lastMouseDownOrMoveAt = DateTime.Now;
                             this.uxTouchMarker.Visible = true;
                             this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
                         }
                     }
                 }
             }
+
             this.UpdateControlState();
         }
 
@@ -252,23 +263,35 @@ namespace Suconbu.Sumacon
             if (this.lastMousePosition == e.Location) return;
             this.lastMousePosition = e.Location;
 
-            if (this.TryPictureBoxPointToNormalizedPoint(e.Location, out var point))
+            var previousScreenPoint = this.screenPoint;
+            if (this.TryPictureBoxPointToScreenPoint(e.Location, out var point))
             {
-                this.screenPointedPosition = new Point(
-                    (int)Math.Floor(point.X * this.uxScreenPictureBox.Image.Width),
-                    (int)Math.Floor(point.Y * this.uxScreenPictureBox.Image.Height));
+                this.screenPoint = point;
 
-                var device = this.sumacon.DeviceManager.ActiveDevice;
-                if (device != null && this.activeTouchNo != -1 && e.Button.HasFlag(MouseButtons.Left))
+                if (e.Button.HasFlag(MouseButtons.Left))
                 {
-                    device.Input.MoveTouch(this.activeTouchNo, point.X, point.Y);
-                    this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
-                    if (this.logEnabled) this.sumacon.WriteConsole($"touch_move({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
+                    var device = this.sumacon.DeviceManager.ActiveDevice;
+                    if (device != null && this.activeTouchNo != -1)
+                    {
+                        var rotatedSize = device.RotatedScreenSize;
+                        var nx = (float)this.screenPoint.X / rotatedSize.Width;
+                        var ny = (float)this.screenPoint.Y / rotatedSize.Height;
+                        device.Input.MoveTouch(this.activeTouchNo, nx, ny);
+                        this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                        if (!this.swiping)
+                        {
+                            this.swiping = true;
+                            this.OutputControlLogIfEnabled($"touch_on({previousScreenPoint.X}, {previousScreenPoint.Y})");
+                        }
+
+                        var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
+                        if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
+                        {
+                            this.OutputControlLogIfEnabled($"touch_move({this.screenPoint.X}, {this.screenPoint.Y}, {elapsedMilliseconds})");
+                            this.lastMouseDownOrMoveAt = DateTime.Now;
+                        }
+                    }
                 }
-            }
-            else
-            {
-                screenPointedPosition = new Point(-1, -1);
             }
 
             // ここいっぱい呼ばれるからちょびっと遅延させて負荷抑制
@@ -278,14 +301,44 @@ namespace Suconbu.Sumacon
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
         {
             this.uxTouchMarker.Visible = false;
+
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null && this.activeTouchNo != -1)
             {
                 device.Input.OffTouch();
                 this.activeTouchNo = -1;
-                if (this.beepEnabled) Beep.Play(Beep.Note.Pe);
-                if (this.logEnabled) this.sumacon.WriteConsole($"touch_off({this.screenPointedPosition.X}, {this.screenPointedPosition.Y})");
+                this.PlayBeepIfEnabled(Beep.Note.Pe);
+                if (this.swiping)
+                {
+                    this.OutputControlLogIfEnabled($"touch_off({this.screenPoint.X}, {this.screenPoint.Y})");
+                }
+                else
+                {
+                    var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
+                    elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogTouchDurationMillisecondsUnit);
+                    this.OutputControlLogIfEnabled($"tap({this.screenPoint.X}, {this.screenPoint.Y}, {elapsedMilliseconds})");
+                }
             }
+
+            this.lastMouseDownOrMoveAt = DateTime.MinValue;
+            this.swiping = false;
+            this.UpdateControlState();
+        }
+
+        void UxScreenPictureBox_MouseWheel(object sender, MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            var imageRect = this.GetImageRectInPictureBox();
+            if (!imageRect.Contains(e.Location)) return;
+
+            var nextIndex =
+                (e.Delta > 0) ? this.zoomRatioIndex + 1 :
+                (e.Delta < 0) ? this.zoomRatioIndex - 1 :
+                this.zoomRatioIndex;
+            nextIndex = Math.Max(0, Math.Min(nextIndex, this.kZoomRatios.Length - 1));
+            if (nextIndex != this.zoomRatioIndex) this.PlayBeepIfEnabled(this.kZoomNotes[nextIndex]);
+            this.zoomRatioIndex = nextIndex;
+            this.zoomEnabled = (this.zoomRatioIndex > 0);
             this.UpdateControlState();
         }
 
@@ -297,30 +350,14 @@ namespace Suconbu.Sumacon
             {
                 if (e.KeyCode == Keys.P) this.SaveCapturedImage();
                 else if (e.KeyCode == Keys.C && ModifierKeys.HasFlag(Keys.Control)) this.CopyCapturedImage();
-                else if (e.KeyCode == Keys.Left) this.screenPointedPosition.X = Math.Max(0, this.screenPointedPosition.X - 1);
-                else if (e.KeyCode == Keys.Right) this.screenPointedPosition.X = Math.Min(this.screenPointedPosition.X + 1, image.Width - 1);
-                else if (e.KeyCode == Keys.Up) this.screenPointedPosition.Y = Math.Max(0, this.screenPointedPosition.Y - 1);
-                else if (e.KeyCode == Keys.Down) this.screenPointedPosition.Y = Math.Min(this.screenPointedPosition.Y + 1, image.Height - 1);
+                else if (e.KeyCode == Keys.Left) this.screenPoint.X = Math.Max(0, this.screenPoint.X - 1);
+                else if (e.KeyCode == Keys.Right) this.screenPoint.X = Math.Min(this.screenPoint.X + 1, image.Width - 1);
+                else if (e.KeyCode == Keys.Up) this.screenPoint.Y = Math.Max(0, this.screenPoint.Y - 1);
+                else if (e.KeyCode == Keys.Down) this.screenPoint.Y = Math.Min(this.screenPoint.Y + 1, image.Height - 1);
                 else return;
                 this.UpdateControlState();
                 e.Handled = true;
             }
-        }
-
-        protected override void OnMouseWheel(MouseEventArgs e)
-        {
-            base.OnMouseWheel(e);
-            if (this.uxScreenPictureBox.Image == null) return;
-            var imageRect = new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size);
-            if (!imageRect.Contains(this.screenPointedPosition)) return;
-            var index = this.zoomRatioIndex;
-            if (e.Delta > 0) index++;
-            if (e.Delta < 0) index--;
-            index = Math.Max(0, Math.Min(index, this.kZoomRatios.Length - 1));
-            if (this.beepEnabled && index != this.zoomRatioIndex) Beep.Play(this.kZoomNotes[index]);
-            this.zoomRatioIndex = index;
-            this.zoomEnabled = (this.zoomRatioIndex > 0);
-            this.UpdateControlState();
         }
 
         void UxActionsGridPanel_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
@@ -379,12 +416,12 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (action == null || device == null) return;
 
-            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+            this.PlayBeepIfEnabled(Beep.Note.Po, Beep.Note.Pe);
 
             if (!string.IsNullOrEmpty(action.Command))
             {
                 device.RunCommandAsync(action.Command);
-                if (this.logEnabled) this.sumacon.WriteConsole($"adb('{action.Command}')");
+                this.OutputControlLogIfEnabled($"adb('{action.Command}')");
             }
             if(!string.IsNullOrEmpty(action.Proc))
             {
@@ -412,7 +449,7 @@ namespace Suconbu.Sumacon
             while (code < 0) code += 4;
             while (code >= 4) code -= 4;
             device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
-            if (this.logEnabled) this.sumacon.WriteConsole($"rotate_to({code})");
+            this.OutputControlLogIfEnabled($"rotate_to({code})");
         }
 
         ControlAction GetSelectedAction()
@@ -431,7 +468,7 @@ namespace Suconbu.Sumacon
                 sb.Append($"# {color.ToRgbString(true)} {color.ToHslString(true)} {color.ToHex6String()}");
                 sb.Append($" at ({screenPoint.X,4}px, {screenPoint.Y,4}px)");
                 this.sumacon.WriteConsole(sb.ToString());
-                if (this.beepEnabled) Beep.Play(Beep.Note.Pi);
+                this.PlayBeepIfEnabled(Beep.Note.Pi);
             }
         }
 
@@ -440,8 +477,8 @@ namespace Suconbu.Sumacon
             var path = this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
-            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
-            if (this.logEnabled) this.sumacon.WriteConsole("save_capture()");
+            this.PlayBeepIfEnabled(Beep.Note.Po, Beep.Note.Pe);
+            this.OutputControlLogIfEnabled("save_capture()");
             this.sumacon.WriteConsole($"# Save screen capture to {path}.");
         }
 
@@ -451,22 +488,44 @@ namespace Suconbu.Sumacon
             Clipboard.SetImage(this.uxScreenPictureBox.Image);
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
-            if (this.beepEnabled) Beep.Play(Beep.Note.Po, Beep.Note.Pe);
+            this.PlayBeepIfEnabled(Beep.Note.Po, Beep.Note.Pe);
             this.sumacon.WriteConsole("# Copy screen capture to clipboard.");
         }
 
-        bool TryPictureBoxPointToNormalizedPoint(Point point, out PointF normalizedPoint)
+        bool TryPictureBoxPointToScreenPoint(Point pictureBoxPoint, out Point screenPoint)
         {
-            // PictureBox相対座標からディスプレイ正規化座標へ
-            normalizedPoint = PointF.Empty;
+            screenPoint = Point.Empty;
             var imageRect = this.GetImageRectInPictureBox();
-            if (!imageRect.IsEmpty && imageRect.Contains(point))
+            if (!imageRect.IsEmpty && imageRect.Contains(pictureBoxPoint))
             {
-                normalizedPoint = new PointF((float)(point.X - imageRect.X) / imageRect.Width, (float)(point.Y - imageRect.Y) / imageRect.Height);
+                var x = (int)Math.Round((double)(pictureBoxPoint.X - imageRect.X) / imageRect.Width * this.uxScreenPictureBox.Image.Width);
+                var y = (int)Math.Round((double)(pictureBoxPoint.Y - imageRect.Y) / imageRect.Height * this.uxScreenPictureBox.Image.Height);
+                screenPoint = new Point(x, y);
                 return true;
             }
             return false;
         }
+
+        //PointF ScreenPointToNormalizedPoint(Point screenPoint)
+        //{
+        //    var imageRect = this.GetImageRectInPictureBox();
+        //    return new PointF(
+        //        (float)Math.Round((double)screenPoint.X / imageRect.Width),
+        //        (float)Math.Round((double)screenPoint.Y / imageRect.Height));
+        //}
+
+        //bool TryPictureBoxPointToNormalizedPoint(Point point, out PointF normalizedPoint)
+        //{
+        //    // PictureBox相対座標からディスプレイ正規化座標へ
+        //    normalizedPoint = PointF.Empty;
+        //    var imageRect = this.GetImageRectInPictureBox();
+        //    if (!imageRect.IsEmpty && imageRect.Contains(point))
+        //    {
+        //        normalizedPoint = new PointF((float)(point.X - imageRect.X) / imageRect.Width, (float)(point.Y - imageRect.Y) / imageRect.Height);
+        //        return true;
+        //    }
+        //    return false;
+        //}
 
         Point NormalizedPointToPictureBoxPoint(PointF normalizedPoint)
         {
@@ -503,9 +562,11 @@ namespace Suconbu.Sumacon
 
             if (!this.zoomEnabled) return;
             if (this.uxScreenPictureBox.Image == null) return;
-            if (!new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size).Contains(this.screenPointedPosition)) return;
-            var mousePosition = this.uxScreenPictureBox.PointToClient(MousePosition);
-            if (!this.TryPictureBoxPointToNormalizedPoint(mousePosition, out var dummy)) return;
+
+            var mousePosition = this.uxScreenPictureBox.PointToClient(Control.MousePosition);
+            if (!this.GetImageRectInPictureBox().Contains(mousePosition)) return;
+            //if (!new Rectangle(new Point(0, 0), this.uxScreenPictureBox.Image.Size).Contains(this.screenPoint)) return;
+            //if (!this.TryPictureBoxPointToScreenPoint(mousePosition, out var dummy)) return;
 
             var upperLimit = this.uxZoomBox.Height + this.kZoomPanelRelocateMarginPixels;
             var lowerLimit = this.uxScreenPictureBox.Height - this.uxZoomBox.Height - this.kZoomPanelRelocateMarginPixels;
@@ -518,17 +579,37 @@ namespace Suconbu.Sumacon
             var zoomRatio = this.kZoomRatios[this.zoomRatioIndex];
             var gridUnit = this.kZoomGridUnits[this.zoomRatioIndex];
             var gridAlpha = this.kZoomGridAlphas[this.zoomRatioIndex];
-            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPointedPosition, zoomRatio, gridUnit, gridAlpha);
+            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPoint, zoomRatio, gridUnit, gridAlpha);
             this.uxZoomBox.Visible = true;
+        }
+
+        void PlayBeepIfEnabled(params Beep.Note[] notes)
+        {
+            if (this.beepEnabled) Beep.Play(notes);
+        }
+
+        void PlayBeepIfEnabled(params string[] notes)
+        {
+            if (this.beepEnabled) Beep.Play(notes);
+        }
+
+        void OutputControlLogIfEnabled(string s)
+        {
+            if (this.logEnabled) this.sumacon.WriteConsole(s);
+        }
+
+        int GetTruncatedElapseMilliseconds(DateTime from, DateTime to, int multiply = 1)
+        {
+            return (int)Math.Truncate((DateTime.Now - this.lastMouseDownOrMoveAt).TotalMilliseconds / multiply) * multiply;
         }
 
         void UpdateControlState()
         {
             var bitmap = this.uxScreenPictureBox.Image as Bitmap;
-            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPointedPosition))
+            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPoint))
             {
-                this.uxTouchPositionLabel.Text = $"👆 {this.screenPointedPosition.X}, {this.screenPointedPosition.Y}";
-                var color = bitmap.GetPixel(this.screenPointedPosition.X, this.screenPointedPosition.Y);
+                this.uxTouchPositionLabel.Text = $"👆 {this.screenPoint.X}, {this.screenPoint.Y}";
+                var color = bitmap.GetPixel(this.screenPoint.X, this.screenPoint.Y);
                 this.uxColorLabel.Text = color.ToRgbString(true);
                 this.uxColorLabel.BackColor = color;
                 this.uxColorLabel.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
