@@ -41,7 +41,7 @@ namespace Suconbu.Sumacon
         bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
         bool logEnabled { get => this.uxLogButton.Checked; set => this.uxLogButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
-        int activeTouchNo = -1;
+        int activeTouchNo = Input.InvalidTouchNo;
         Point screenPoint;
         Panel uxTouchMarker = new Panel();
         ZoomBox uxZoomBox = new ZoomBox();
@@ -271,7 +271,7 @@ namespace Suconbu.Sumacon
                 if (e.Button.HasFlag(MouseButtons.Left))
                 {
                     var device = this.sumacon.DeviceManager.ActiveDevice;
-                    if (device != null && this.activeTouchNo != -1)
+                    if (device != null && this.activeTouchNo != Input.InvalidTouchNo)
                     {
                         var rotatedSize = device.RotatedScreenSize;
                         var nx = (float)this.screenPoint.X / rotatedSize.Width;
@@ -281,13 +281,15 @@ namespace Suconbu.Sumacon
                         if (!this.swiping)
                         {
                             this.swiping = true;
-                            this.OutputControlLogIfEnabled($"touch_on({previousScreenPoint.X}, {previousScreenPoint.Y})");
+                            var pnx = (float)previousScreenPoint.X / rotatedSize.Width;
+                            var pny = (float)previousScreenPoint.Y / rotatedSize.Height;
+                            this.OutputControlLogIfEnabled($"touch_on({this.activeTouchNo}, {pnx:F4}, {pny:F4})");
                         }
 
                         var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
                         if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
                         {
-                            this.OutputControlLogIfEnabled($"touch_move({this.screenPoint.X}, {this.screenPoint.Y}, {elapsedMilliseconds})");
+                            this.OutputControlLogIfEnabled($"touch_move({this.activeTouchNo}, {nx:F4}, {ny:F4}, {elapsedMilliseconds})");
                             this.lastMouseDownOrMoveAt = DateTime.Now;
                         }
                     }
@@ -303,21 +305,24 @@ namespace Suconbu.Sumacon
             this.uxTouchMarker.Visible = false;
 
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null && this.activeTouchNo != -1)
+            if (device != null && this.activeTouchNo != Input.InvalidTouchNo)
             {
                 device.Input.OffTouch();
-                this.activeTouchNo = -1;
                 this.PlayBeepIfEnabled(Beep.Note.Pe);
                 if (this.swiping)
                 {
-                    this.OutputControlLogIfEnabled($"touch_off({this.screenPoint.X}, {this.screenPoint.Y})");
+                    this.OutputControlLogIfEnabled($"touch_off({this.activeTouchNo})");
                 }
                 else
                 {
+                    var rotatedSize = device.RotatedScreenSize;
+                    var nx = (float)this.screenPoint.X / rotatedSize.Width;
+                    var ny = (float)this.screenPoint.Y / rotatedSize.Height;
                     var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
                     elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogTouchDurationMillisecondsUnit);
-                    this.OutputControlLogIfEnabled($"tap({this.screenPoint.X}, {this.screenPoint.Y}, {elapsedMilliseconds})");
+                    this.OutputControlLogIfEnabled($"tap({nx:F4}, {ny:F4}, {elapsedMilliseconds})");
                 }
+                this.activeTouchNo = Input.InvalidTouchNo;
             }
 
             this.lastMouseDownOrMoveAt = DateTime.MinValue;

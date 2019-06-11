@@ -14,6 +14,7 @@ namespace Suconbu.Mobile
 
     public class Input : DeviceComponent
     {
+        public const int InvalidTouchNo = -1;
         public string TouchDevice { get => (string)this[nameof(this.TouchDevice)].Value; }
         public Point TouchMin { get => (Point)this[nameof(this.TouchMin)].Value; }
         public Point TouchMax { get => (Point)this[nameof(this.TouchMax)].Value; }
@@ -22,65 +23,79 @@ namespace Suconbu.Mobile
             get => this.touchProtocol.Type;
             set => this.touchProtocol = (this.touchProtocol.Type != value) ? TouchProtocolFactory.New(value) : this.touchProtocol;
         }
+        public IReadOnlyDictionary<int, TouchPoint> TouchPoints { get => this.touchPoints; }
 
         CommandContext touchPadContext;
-        readonly HashSet<int> activeTouchNos = new HashSet<int>();
         ITouchProtocol touchProtocol = new TouchProtocolA();
+        readonly Dictionary<int, TouchPoint> touchPoints = new Dictionary<int, TouchPoint>();
 
         public Input(Device device, string xmlPath) : base(device, xmlPath) { }
 
         public int OnTouch(float x, float y)
         {
-            int touchNo;
-            lock (this)
+            return this.OnTouch(Input.InvalidTouchNo, x, y);
+        }
+
+        public int OnTouch(int no, float x, float y)
+        {
+            if (no == Input.InvalidTouchNo)
             {
-                touchNo = this.activeTouchNos.Count;
-                this.activeTouchNos.Add(touchNo);
+                lock (this)
+                {
+                    no = this.touchPoints.Count;
+                }
             }
+
+            this.touchPoints[no] = new TouchPoint(no, x, y);
+
             var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
 
-            var e = this.touchProtocol.On(touchNo, point.X, point.Y);
+            var e = this.touchProtocol.On(no, point.X, point.Y);
 
             if (this.touchPadContext == null || this.touchPadContext.Finished)
             {
                 this.touchPadContext = this.device.RunCommandAsync($"shell cat - > {this.TouchDevice}");
             }
             this.touchPadContext.PushInputBinary(e.ToArray(true));
-            return touchNo;
+            return no;
         }
 
-        public void MoveTouch(int touchNo, float x, float y)
+        public void MoveTouch(int no, float x, float y)
         {
-            if (!this.activeTouchNos.Contains(touchNo)) return;
+            if (!this.touchPoints.TryGetValue(no, out var touchPoint)) return;
 
             var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
-            var e = this.touchProtocol.Move(touchNo, point.X, point.Y);
+            var e = this.touchProtocol.Move(no, point.X, point.Y);
             this.touchPadContext?.PushInputBinary(e.ToArray(true));
+
+            touchPoint.X = x;
+            touchPoint.Y = y;
         }
 
-        public void OffTouch(int touchNo = -1)
+        public void OffTouch(int no = Input.InvalidTouchNo)
         {
-            if (touchNo != -1)
+            if (no != Input.InvalidTouchNo)
             {
-                lock (this) this.activeTouchNos.Remove(touchNo);
-                var e = this.touchProtocol.Off(touchNo);
+                lock (this) this.touchPoints.Remove(no);
+                var e = this.touchProtocol.Off(no);
                 this.touchPadContext?.PushInputBinary(e.ToArray(true));
             }
             else
             {
-                foreach(var no in this.activeTouchNos)
+                foreach(var touchPoint in this.touchPoints)
                 {
-                    var e = this.touchProtocol.Off(no);
+                    var e = this.touchProtocol.Off(touchPoint.Key);
                     this.touchPadContext?.PushInputBinary(e.ToArray(true));
                 }
-                lock (this) this.activeTouchNos.Clear();
+                lock (this) this.touchPoints.Clear();
             }
         }
 
-        public void Tap(float x, float y, int durationMilliseconds = 100)
+        public int Tap(float x, float y, int durationMilliseconds = 100)
         {
             var no = this.OnTouch(x, y);
             Delay.SetTimeout(() => this.OffTouch(no), durationMilliseconds);
+            return no;
         }
 
         public void Swipe(float x1, float y1, float x2, float y2, int durationMilliseconds = 100)
@@ -104,6 +119,34 @@ namespace Suconbu.Mobile
                 throw new NotSupportedException();
             return Point.Truncate(point);
         }
+    }
+
+    public class TouchPoint
+    {
+        /// <summary>
+        /// Identification no for the touch point.
+        /// </summary>
+        public int No { get; private set; }
+
+        /// <summary>
+        /// Normalized touch point location.
+        /// (0.0, 0.0): Left top
+        /// (1.0, 1.0): Right bottom
+        /// </summary>
+        public PointF Location { get => this.location; }
+
+        public float X { get => this.location.X; internal set => this.location.X = value; }
+        public float Y { get => this.location.Y; internal set => this.location.Y = value; }
+
+        PointF location;
+
+        public TouchPoint(int no, float x, float y)
+        {
+            this.No = no;
+            this.location = new PointF(x, y);
+        }
+
+        TouchPoint() { }
     }
 
     interface ITouchProtocol
@@ -240,7 +283,7 @@ namespace Suconbu.Mobile
         }
     }
 
-    public struct InputEvent
+    struct InputEvent
     {
         List<byte> data;
 

@@ -1,4 +1,5 @@
-﻿using Memezo = Suconbu.Scripting.Memezo;
+﻿using Sgry.Azuki.WinForms;
+using Suconbu.Mobile;
 using Suconbu.Toolbox;
 using System;
 using System.Collections.Generic;
@@ -7,11 +8,10 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Azuki = Sgry.Azuki;
-using Sgry.Azuki.WinForms;
+using Memezo = Suconbu.Scripting.Memezo;
 
 namespace Suconbu.Sumacon
 {
@@ -223,6 +223,9 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["wait"] = this.Interpreter_Wait;
             this.interpreter.Functions["beep"] = this.Interpreter_Beep;
             this.interpreter.Functions["tap"] = this.Interpreter_Tap;
+            this.interpreter.Functions["touch_on"] = this.Interpreter_TouchOn;
+            this.interpreter.Functions["touch_move"] = this.Interpreter_TouchMove;
+            this.interpreter.Functions["touch_off"] = this.Interpreter_TouchOff;
 
             var keywords = Memezo.Interpreter.Keywords;
             this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
@@ -281,21 +284,139 @@ namespace Suconbu.Sumacon
         Memezo.Value Interpreter_Tap(List<Memezo.Value> args)
         {
             if (args.Count < 2) throw new ArgumentException("Too few arguments");
+
+            var x = (args[0].Type == Memezo.DataType.Number) ? (float)args[0].Number : throw new ArgumentException("Argument type mismatch", "x");
+            var y = (args[1].Type == Memezo.DataType.Number) ? (float)args[1].Number : throw new ArgumentException("Argument type mismatch", "y");
+            var duration = 100;
+            if (args.Count > 2)
+            {
+                duration = (args[2].Type == Memezo.DataType.Number) ? (int)args[2].Number : throw new ArgumentException("Argument type mismatch", "duration");
+            }
+
+            this.Tap(x, y, duration);
+
+            return Memezo.Value.Zero;
+        }
+
+        // touch_on(no, x, y)
+        Memezo.Value Interpreter_TouchOn(List<Memezo.Value> args)
+        {
+            if (args.Count < 3) throw new ArgumentException("Too few arguments");
+
+            var no = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "no");
+            var x = (args[1].Type == Memezo.DataType.Number) ? (float)args[1].Number : throw new ArgumentException("Argument type mismatch", "x");
+            var y = (args[2].Type == Memezo.DataType.Number) ? (float)args[2].Number : throw new ArgumentException("Argument type mismatch", "y");
+
+            this.TouchOn(no, x, y);
+
+            return Memezo.Value.Zero;
+        }
+
+        // touch_move(no, x, y, duration)
+        Memezo.Value Interpreter_TouchMove(List<Memezo.Value> args)
+        {
+            if (args.Count < 3) throw new ArgumentException("Too few arguments");
+
+            var no = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "no");
+            var x = (args[1].Type == Memezo.DataType.Number) ? (float)args[1].Number : throw new ArgumentException("Argument type mismatch", "x");
+            var y = (args[2].Type == Memezo.DataType.Number) ? (float)args[2].Number : throw new ArgumentException("Argument type mismatch", "y");
+            var duration = 0;
+            if (args.Count > 3)
+            {
+                duration = (args[3].Type == Memezo.DataType.Number) ? (int)args[3].Number : throw new ArgumentException("Argument type mismatch", "duration");
+            }
+
+            this.TouchMove(no, x, y, duration);
+
+            return Memezo.Value.Zero;
+        }
+
+        // touch_off(no)
+        Memezo.Value Interpreter_TouchOff(List<Memezo.Value> args)
+        {
+            var no = Input.InvalidTouchNo;
+            if (args.Count > 0)
+            {
+                no = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "no");
+            }
+
+            this.TouchOff(no);
+
+            return Memezo.Value.Zero;
+        }
+
+        void Tap(float x, float y, int duration)
+        {
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            var rotatedSize = device.RotatedScreenSize;
-            var x = (int)Math.Max(0.0, Math.Min(args[0].Number, rotatedSize.Width));
-            var y = (int)Math.Max(0.0, Math.Min(args[1].Number, rotatedSize.Height));
-            var duration = (args.Count >= 3) ? (int)Math.Max(1.0, args[2].Number) : 100;
+            //var rotatedSize = device.RotatedScreenSize;
+            //x = (int)Math.Max(0.0, Math.Min(x, rotatedSize.Width));
+            //y = (int)Math.Max(0.0, Math.Min(y, rotatedSize.Height));
 
-            this.sumacon.WriteConsole($"tap({x}, {y}, {duration})");
-            this.sumacon.ShowTouchMarkers(new PointF((float)x / rotatedSize.Width, (float)y / rotatedSize.Height));
-            device.Input.Tap((float)x / rotatedSize.Width, (float)y / rotatedSize.Height, duration);
+            //this.sumacon.WriteConsole($"tap({x}, {y}, {duration})");
+            //this.sumacon.ShowTouchMarkers(new PointF(x, y));
+            //this.sumacon.ShowTouchMarkers(new PointF((float)x / rotatedSize.Width, (float)y / rotatedSize.Height));
+
+            var no = device.Input.Tap(x, y, duration);
+            //device.Input.Tap((float)x / rotatedSize.Width, (float)y / rotatedSize.Height, duration);
+
+            this.UpdateTouchMarkers(device);
+
             Task.Delay(duration).Wait();
-            this.sumacon.ShowTouchMarkers();
+            while (device.Input.TouchPoints.ContainsKey(no)) Task.Delay(10).Wait();
 
-            return Memezo.Value.Zero;
+            this.UpdateTouchMarkers(device);
+        }
+
+        void TouchOn(int no, float x, float y)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            device.Input.OnTouch(no, x, y);
+
+            this.UpdateTouchMarkers(device);
+        }
+
+        void TouchMove(int no, float x, float y, int duration)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var previousPoint = device.Input.TouchPoints[no].Location;
+            var step = 10;
+            var remain = duration;
+            var startedAt = DateTime.Now;
+            for (int i = step; i < duration; i += step)
+            {
+                while((DateTime.Now - startedAt).TotalMilliseconds < i) Task.Delay(10).Wait();
+
+                remain -= step;
+                var ix = previousPoint.X + (x - previousPoint.X) * i / duration;
+                var iy = previousPoint.Y + (y - previousPoint.Y) * i / duration;
+                device.Input.MoveTouch(no, ix, iy);
+                this.UpdateTouchMarkers(device);
+            }
+            while ((DateTime.Now - startedAt).TotalMilliseconds < duration) Task.Delay(10).Wait();
+            device.Input.MoveTouch(no, x, y);
+            this.UpdateTouchMarkers(device);
+        }
+
+        void TouchOff(int no)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            device.Input.OffTouch(no);
+
+            this.UpdateTouchMarkers(device);
+        }
+
+        void UpdateTouchMarkers(Device device)
+        {
+            var points = device.Input.TouchPoints.Select(p => p.Value.Location).ToArray();
+            this.sumacon.ShowTouchMarkers(points);
         }
 
         void PushSpecialVars()
