@@ -427,7 +427,6 @@ namespace Suconbu.Sumacon
 
         void PushSpecialVars()
         {
-            this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
             this.interpreter.Vars["sumacon_step_interval"] = new Memezo.Value(this.activeStepIntervalMilliseconds);
             var device = this.sumacon.DeviceManager.ActiveDevice;
             var rotatedSize = device?.RotatedScreenSize ?? Size.Empty;
@@ -441,6 +440,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
 
             this.activeStepIntervalMilliseconds = (int)(this.interpreter.Vars.GetValue("sumacon_step_interval", new Memezo.Value(this.defaultStepIntervalMilliseconds)).Number);
+            this.activeStepIntervalMilliseconds = Math.Max(1, this.activeStepIntervalMilliseconds);
 
             if (device != null)
             {
