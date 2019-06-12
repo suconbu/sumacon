@@ -65,18 +65,21 @@ namespace Suconbu.Sumacon
 
         private void Sumacon_WriteConsoleRequested(string s)
         {
-            this.SafeInvoke(() => this.uxOutputText.AppendText(Environment.NewLine + s));
+            this.SafeInvoke(() => this.Output(s));
         }
 
         void DeviceManager_DeviceConnected(object sender, Device device)
         {
-            this.sumacon.WriteConsole($"Connected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
+            this.SafeInvoke(() => this.Output($"Connected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'"));
         }
 
         void DeviceManager_DeviceDisconnecting(object sender, Device device)
         {
-            this.CancelCommandRun(device.Serial);
-            this.sumacon.WriteConsole($"Disconnected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
+            this.SafeInvoke(() =>
+            {
+                this.CancelShellCommand(device.Serial);
+                this.Output($"Disconnected: '{device.ToString(Properties.Resources.DeviceLabelFormat)}'");
+            });
         }
 
         private void UxInputCombo_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -104,7 +107,12 @@ namespace Suconbu.Sumacon
                 if (device == null) return;
 
                 var command = this.uxInputCombo.Text;
-                if (this.StartCommandRun(device, command))
+                if(command == "clear")
+                {
+                    this.ClearBuffer();
+                    this.uxInputCombo.Text = string.Empty;
+                }
+                else if (this.ExecuteShellCommand(device, command))
                 {
                     this.PushCommandHistory(command);
                     this.uxInputCombo.Text = string.Empty;
@@ -113,28 +121,35 @@ namespace Suconbu.Sumacon
             else if(e.KeyCode == Keys.C && e.Modifiers.HasFlag(Keys.Control))
             {
                 e.SuppressKeyPress = true;
-                this.CancelCommandRun(device?.Serial);
+                this.CancelShellCommand(device?.Serial);
             }
         }
 
-        bool StartCommandRun(Device device, string command)
+        void Output(string s)
+        {
+            this.uxOutputText.AppendText(Environment.NewLine + s);
+        }
+
+        void ClearBuffer()
+        {
+            this.uxOutputText.Clear();
+        }
+
+        bool ExecuteShellCommand(Device device, string command)
         {
             if (device == null) return false;
             if (!this.contexts.TryGetValue(device.Serial, out var context))
             {
                 // まだshellを開いてなかったら開く
-                context = device.RunCommandAsync("shell", output =>
-                {
-                    if (output != null)
+                context = device.RunCommandAsync("shell",
+                    output => this.SafeInvoke(() =>
                     {
-                        this.sumacon.WriteConsole(output);
-                    }
-                    else
-                    {
-                        // 終了
-                        this.SafeInvoke(() => this.contexts.Remove(device.Serial));
-                    }
-                });
+                        if (output != null)
+                            this.Output(output);
+                        else
+                            this.contexts.Remove(device.Serial);
+                    }),
+                    error => this.SafeInvoke(() => this.Output(error)));
                 this.contexts.Add(device.Serial, context);
             }
             context.PushInput($"echo '> {command}'");
@@ -142,7 +157,7 @@ namespace Suconbu.Sumacon
             return true;
         }
 
-        void CancelCommandRun(string deviceId)
+        void CancelShellCommand(string deviceId)
         {
             if (this.contexts.TryGetValue(deviceId, out var context))
             {
