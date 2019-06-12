@@ -382,5 +382,17 @@ namespace Suconbu.Sumacon.Properties {
                 this["ScriptStepIntervalMilliseconds"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
+        public int ScriptAdbTimeoutMilliseconds {
+            get {
+                return ((int)(this["ScriptAdbTimeoutMilliseconds"]));
+            }
+            set {
+                this["ScriptAdbTimeoutMilliseconds"] = value;
+            }
+        }
     }
 }

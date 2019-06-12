@@ -8,6 +8,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -39,10 +40,12 @@ namespace Suconbu.Sumacon
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
         int nextStepIntervalMilliseconds;
+        int defaultAdbTimeoutMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
-        readonly int kCurrentLineMarkId = 1;
         Task scriptTask;
         CancellationTokenSource scriptTaskCanceller;
+
+        readonly int kCurrentLineMarkId = 1;
 
         public FormScript(Sumacon sumacon)
         {
@@ -266,6 +269,7 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["touch_on"] = this.Interpreter_TouchOn;
             this.interpreter.Functions["touch_move"] = this.Interpreter_TouchMove;
             this.interpreter.Functions["touch_off"] = this.Interpreter_TouchOff;
+            this.interpreter.Functions["adb"] = this.Interpreter_Adb;
 
             var keywords = Memezo.Interpreter.Keywords;
             this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
@@ -391,6 +395,30 @@ namespace Suconbu.Sumacon
             this.nextStepIntervalMilliseconds = 0;
 
             return Memezo.Value.Zero;
+        }
+
+        Memezo.Value Interpreter_Adb(List<Memezo.Value> args)
+        {
+            if (args.Count < 1) throw new ArgumentException("Too few arguments");
+
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var command = (args[0].Type == Memezo.DataType.String) ? args[0].String : throw new ArgumentException("Argument type mismatch", "command");
+            var timeoutMilliseconds = this.defaultAdbTimeoutMilliseconds;
+            if (args.Count > 1)
+            {
+                timeoutMilliseconds = (args[1].Type == Memezo.DataType.Number) ? (int)args[1].Number : throw new ArgumentException("Argument type mismatch", "timeout");
+            }
+
+            var sb = new StringBuilder();
+            device.RunCommandAsync(command, output => sb.AppendLine(output), error => sb.AppendLine(error))
+                .Wait(timeoutMilliseconds);
+
+            // Waitしてるのに待ってくれないので仕方なく
+            Task.Delay(1).Wait();
+
+            return new Memezo.Value(sb.ToString());
         }
 
         void Tap(float x, float y, int duration)
@@ -544,6 +572,7 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.ClearHistory();
             this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
             this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
+            this.defaultAdbTimeoutMilliseconds = Properties.Settings.Default.ScriptAdbTimeoutMilliseconds;
         }
 
         void SaveSettings()

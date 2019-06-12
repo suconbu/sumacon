@@ -92,5 +92,8 @@
     <Setting Name="ScriptStepIntervalMilliseconds" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">100</Value>
     </Setting>
+    <Setting Name="ScriptAdbTimeoutMilliseconds" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">5000</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
