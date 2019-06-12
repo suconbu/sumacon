@@ -141,6 +141,8 @@ namespace Suconbu.Sumacon
         {
             this.runState = RunState.Ready;
             this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
+            this.markStartIndex = 0;
+            this.markEndIndex = 0;
             this.UpdateControlState();
         }
 
