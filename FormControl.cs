@@ -70,7 +70,7 @@ namespace Suconbu.Sumacon
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
             this.sumacon.DeviceManager.TouchProtocolTypeChanged += this.DeviceManager_TouchProtocolTypeChanged;
-            this.sumacon.ShowTouchMarkersRequested += this.Sumacon_ShowTouchMarkersRequested;
+            this.sumacon.ShowTouchMarkersRequested += (points) => this.SafeInvoke(() => this.Sumacon_ShowTouchMarkersRequested(points));
         }
 
         protected override void OnLoad(EventArgs e)

@@ -8,6 +8,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Azuki = Sgry.Azuki;
@@ -34,12 +35,14 @@ namespace Suconbu.Sumacon
         Memezo.Interpreter interpreter = new Memezo.Interpreter();
         int currentSourceIndex;
         RunState runState = RunState.Ready;
-        string stepTimeoutKey;
         string updateControlStateTimeoutKey;
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
+        int nextStepIntervalMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
         readonly int kCurrentLineMarkId = 1;
+        Task scriptTask;
+        CancellationTokenSource scriptTaskCanceller;
 
         public FormScript(Sumacon sumacon)
         {
@@ -157,6 +160,7 @@ namespace Suconbu.Sumacon
 
         void OnStop()
         {
+            this.scriptTaskCanceller?.Cancel();
             this.runState = RunState.Ready;
             this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
             this.markStartIndex = 0;
@@ -168,7 +172,9 @@ namespace Suconbu.Sumacon
         {
             if (this.runState == RunState.Ready) this.PrepareToRun();
 
-            this.RunAuto();
+            this.scriptTaskCanceller?.Cancel();
+            this.scriptTaskCanceller = new CancellationTokenSource();
+            this.scriptTask = Task.Run(() => this.RunLoop(), this.scriptTaskCanceller.Token);
 
             this.runState = RunState.Running;
             this.UpdateControlState();
@@ -176,7 +182,7 @@ namespace Suconbu.Sumacon
 
         void OnPause()
         {
-            Delay.ClearTimeout(this.stepTimeoutKey);
+            this.scriptTaskCanceller?.Cancel();
 
             this.runState = RunState.Paused;
             this.UpdateControlState();
@@ -189,7 +195,7 @@ namespace Suconbu.Sumacon
                 this.PrepareToRun();
                 this.runState = RunState.Paused;
             }
-            else
+            else if(this.runState == RunState.Paused)
             {
                 if (this.RunOneStep())
                 {
@@ -200,25 +206,31 @@ namespace Suconbu.Sumacon
                     this.OnStop();
                 }
             }
+            else
+            {
+                Trace.TraceError($"Unexpected runState:{this.runState}");
+            }
             this.UpdateControlState();
         }
 
-        void RunAuto()
+        void RunLoop()
         {
-            this.stepTimeoutKey = Delay.SetTimeout(() =>
+            while(this.runState == RunState.Running)
             {
-                if (this.runState == RunState.Running)
+                // 実行する関数によっては nextStepIntervalMilliseconds を書き換えることがあります。
+                this.nextStepIntervalMilliseconds = this.activeStepIntervalMilliseconds;
+
+                if (!this.RunOneStep() || this.sumacon.DeviceManager.ActiveDevice == null)
                 {
-                    if (this.RunOneStep() && this.sumacon.DeviceManager.ActiveDevice != null)
-                    {
-                        this.RunAuto();
-                    }
-                    else
-                    {
-                        this.OnStop();
-                    }
+                    this.SafeInvoke(this.OnStop);
+                    break;
                 }
-            }, this.activeStepIntervalMilliseconds, this, this.stepTimeoutKey, true);
+
+                if (this.nextStepIntervalMilliseconds > 0)
+                {
+                    Task.Delay(this.nextStepIntervalMilliseconds).Wait();
+                }
+            }
         }
 
         bool RunOneStep()
@@ -226,10 +238,13 @@ namespace Suconbu.Sumacon
             var result = this.interpreter.Step(out var nextIndex);
             if (result && nextIndex >= 0)
             {
-                this.PullSpecialVars();
-                this.UpdateWatchedVars();
                 this.interpreter.ForwardToNextStatement(out this.currentSourceIndex);
-                this.UpdateScriptSelection(this.currentSourceIndex);
+                this.SafeInvoke(() =>
+                {
+                    this.PullSpecialVars();
+                    this.UpdateWatchedVars();
+                    this.UpdateScriptSelection(this.currentSourceIndex);
+                });
                 return true;
             }
             return false;
@@ -315,6 +330,8 @@ namespace Suconbu.Sumacon
 
             this.Tap(x, y, duration);
 
+            this.nextStepIntervalMilliseconds = 0;
+
             return Memezo.Value.Zero;
         }
 
@@ -328,6 +345,8 @@ namespace Suconbu.Sumacon
             var y = (args[2].Type == Memezo.DataType.Number) ? (float)args[2].Number : throw new ArgumentException("Argument type mismatch", "y");
 
             this.TouchOn(no, x, y);
+
+            this.nextStepIntervalMilliseconds = 0;
 
             return Memezo.Value.Zero;
         }
@@ -348,6 +367,8 @@ namespace Suconbu.Sumacon
 
             this.TouchMove(no, x, y, duration);
 
+            this.nextStepIntervalMilliseconds = 0;
+
             return Memezo.Value.Zero;
         }
 
@@ -361,6 +382,8 @@ namespace Suconbu.Sumacon
             }
 
             this.TouchOff(no);
+
+            this.nextStepIntervalMilliseconds = 0;
 
             return Memezo.Value.Zero;
         }
