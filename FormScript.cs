@@ -40,7 +40,7 @@ namespace Suconbu.Sumacon
         int defaultStepIntervalMilliseconds;
         int activeStepIntervalMilliseconds;
         int nextStepIntervalMilliseconds;
-        int defaultAdbTimeoutMilliseconds;
+        int defaultStepTimeoutMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
         Task scriptTask;
         CancellationTokenSource scriptTaskCanceller;
@@ -406,7 +406,7 @@ namespace Suconbu.Sumacon
             if (device == null) throw new InvalidOperationException("Device not available");
 
             var command = (args[0].Type == Memezo.DataType.String) ? args[0].String : throw new ArgumentException("Argument type mismatch", "command");
-            var timeoutMilliseconds = this.defaultAdbTimeoutMilliseconds;
+            var timeoutMilliseconds = this.defaultStepTimeoutMilliseconds;
             if (args.Count > 1)
             {
                 timeoutMilliseconds = (args[1].Type == Memezo.DataType.Number) ? (int)args[1].Number : throw new ArgumentException("Argument type mismatch", "timeout");
@@ -429,7 +429,7 @@ namespace Suconbu.Sumacon
             {
                 filePath = this.sumacon.SaveCapturedImage(bitmap);
                 bitmap.Dispose();
-            }).Wait(this.defaultAdbTimeoutMilliseconds);
+            }).Wait(this.defaultStepTimeoutMilliseconds);
 
             return new Memezo.Value(filePath);
         }
@@ -585,7 +585,7 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.ClearHistory();
             this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
             this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
-            this.defaultAdbTimeoutMilliseconds = Properties.Settings.Default.ScriptAdbTimeoutMilliseconds;
+            this.defaultStepTimeoutMilliseconds = Properties.Settings.Default.ScriptStepTimeoutMilliseconds;
         }
 
         void SaveSettings()

@@ -385,13 +385,13 @@ namespace Suconbu.Sumacon.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
-        public int ScriptAdbTimeoutMilliseconds {
+        [global::System.Configuration.DefaultSettingValueAttribute("10000")]
+        public int ScriptStepTimeoutMilliseconds {
             get {
-                return ((int)(this["ScriptAdbTimeoutMilliseconds"]));
+                return ((int)(this["ScriptStepTimeoutMilliseconds"]));
             }
             set {
-                this["ScriptAdbTimeoutMilliseconds"] = value;
+                this["ScriptStepTimeoutMilliseconds"] = value;
             }
         }
     }

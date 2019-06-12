@@ -46,7 +46,7 @@ namespace Suconbu.Sumacon
             this.uxOutputText.BackColor = Color.Black;
             this.uxOutputText.ForeColor = Color.White;
 
-            this.uxOutputText.AppendText($"{Util.GetApplicationName()} version {Util.GetVersionString(3)}" + Environment.NewLine);
+            this.uxOutputText.AppendText($"{Util.GetApplicationName()} v{Util.GetVersionString(3)}" + Environment.NewLine);
         }
 
         protected override void OnClosing(CancelEventArgs e)
