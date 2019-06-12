@@ -66,6 +66,74 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnLoad(e);
 
+            this.uxWatchPanel.ApplyColorSet(this.sumacon.ColorSet);
+            this.uxWatchPanel.DataSource = this.watchedVars;
+            this.uxWatchPanel.KeyColumnName = nameof(VarEntry.Name);
+
+            this.SetupScriptTextBox();
+
+            this.uxSplitContainer.Panel1.Controls.Add(this.uxScriptTextBox);
+            this.uxSplitContainer.Panel2.Controls.Add(this.uxWatchPanel);
+            this.uxSplitContainer.SplitterDistance = this.uxSplitContainer.Height * 70 / 100;
+
+            this.Controls.Add(this.uxSplitContainer);
+            this.Controls.Add(this.uxToolStrip);
+
+            this.uxWatchPanel.Columns[nameof(VarEntry.Name)].Width = 150;
+            this.uxWatchPanel.Columns[nameof(VarEntry.Value)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            this.uxWatchPanel.CellMouseDoubleClick += this.UxWatchPanel_CellMouseDoubleClick;
+
+            this.SetupInterpreter();
+
+            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged += this.DeviceManager_PropertyChanged;
+
+            this.LoadSettings();
+
+            this.UpdateControlState();
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
+            this.sumacon.DeviceManager.PropertyChanged -= this.DeviceManager_PropertyChanged;
+            this.SaveSettings();
+        }
+
+        void DeviceManager_ActiveDeviceChanged(object sender, Mobile.Device e)
+        {
+            this.SafeInvoke(() =>
+            {
+                if (this.sumacon.DeviceManager.ActiveDevice == null)
+                {
+                    this.OnStop();
+                }
+                this.UpdateControlState();
+            });
+        }
+
+        void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Mobile.Property> properties)
+        {
+            this.updateControlStateTimeoutKey = Delay.SetTimeout(
+                () => this.SafeInvoke(this.UpdateControlState), 100, this, this.updateControlStateTimeoutKey, true);
+        }
+
+        void UxWatchPanel_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.RowIndex < this.watchedVars.Count)
+            {
+                this.uxScriptTextBox.GetSelection(out var start, out var end);
+                var index = Math.Min(start, end);
+                var length = Math.Abs(end - start);
+                this.uxScriptTextBox.Text = this.uxScriptTextBox.Text
+                    .Remove(index, length)
+                    .Insert(index, this.watchedVars[e.RowIndex].Name);
+            }
+        }
+
+        void SetupScriptTextBox()
+        {
             this.uxScriptTextBox.Font = new Font(Properties.Resources.MonospaceFontName, this.uxScriptTextBox.Font.Size);
             this.uxScriptTextBox.ColorScheme.BackColor = this.sumacon.ColorSet.Back;
             this.uxScriptTextBox.ColorScheme.ForeColor = this.sumacon.ColorSet.Text;
@@ -93,69 +161,6 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.DrawsEolCode = false;
             this.uxScriptTextBox.DrawsEofMark = false;
             this.uxScriptTextBox.Document.Highlighter = this.highlighter;
-
-            this.uxWatchPanel.ApplyColorSet(this.sumacon.ColorSet);
-            this.uxWatchPanel.DataSource = this.watchedVars;
-            this.uxWatchPanel.KeyColumnName = nameof(VarEntry.Name);
-
-            this.uxSplitContainer.Panel1.Controls.Add(this.uxScriptTextBox);
-            this.uxSplitContainer.Panel2.Controls.Add(this.uxWatchPanel);
-            this.uxSplitContainer.SplitterDistance = this.uxSplitContainer.Height * 70 / 100;
-
-            this.Controls.Add(this.uxSplitContainer);
-            this.Controls.Add(this.uxToolStrip);
-
-            this.uxWatchPanel.Columns[nameof(VarEntry.Name)].Width = 150;
-            this.uxWatchPanel.Columns[nameof(VarEntry.Value)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            this.uxWatchPanel.CellMouseDoubleClick += this.UxWatchPanel_CellMouseDoubleClick;
-
-            this.SetupInterpreter();
-
-            this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
-            this.sumacon.DeviceManager.PropertyChanged += this.DeviceManager_PropertyChanged;
-
-            this.LoadSettings();
-
-            this.UpdateControlState();
-        }
-
-        private void UxWatchPanel_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
-        {
-            if(e.RowIndex < this.watchedVars.Count)
-            {
-                this.uxScriptTextBox.GetSelection(out var start, out var end);
-                var index = Math.Min(start, end);
-                var length = Math.Abs(end - start);
-                this.uxScriptTextBox.Text = this.uxScriptTextBox.Text
-                    .Remove(index, length)
-                    .Insert(index, this.watchedVars[e.RowIndex].Name);
-            }
-        }
-
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            base.OnClosing(e);
-            this.sumacon.DeviceManager.ActiveDeviceChanged -= this.DeviceManager_ActiveDeviceChanged;
-            this.sumacon.DeviceManager.PropertyChanged -= this.DeviceManager_PropertyChanged;
-            this.SaveSettings();
-        }
-
-        void DeviceManager_ActiveDeviceChanged(object sender, Mobile.Device e)
-        {
-            this.SafeInvoke(() =>
-            {
-                if (this.sumacon.DeviceManager.ActiveDevice == null)
-                {
-                    this.OnStop();
-                }
-                this.UpdateControlState();
-            });
-        }
-
-        void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Mobile.Property> properties)
-        {
-            this.updateControlStateTimeoutKey = Delay.SetTimeout(
-                () => this.SafeInvoke(this.UpdateControlState), 100, this, this.updateControlStateTimeoutKey, true);
         }
 
         void OnStop()
@@ -393,16 +398,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            //var rotatedSize = device.RotatedScreenSize;
-            //x = (int)Math.Max(0.0, Math.Min(x, rotatedSize.Width));
-            //y = (int)Math.Max(0.0, Math.Min(y, rotatedSize.Height));
-
-            //this.sumacon.WriteConsole($"tap({x}, {y}, {duration})");
-            //this.sumacon.ShowTouchMarkers(new PointF(x, y));
-            //this.sumacon.ShowTouchMarkers(new PointF((float)x / rotatedSize.Width, (float)y / rotatedSize.Height));
-
             var no = device.Input.Tap(x, y, duration);
-            //device.Input.Tap((float)x / rotatedSize.Width, (float)y / rotatedSize.Height, duration);
 
             this.UpdateTouchMarkers(device);
 
