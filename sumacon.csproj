@@ -175,6 +175,9 @@
     <EmbeddedResource Include="FormProperty.resx">
       <DependentUpon>FormProperty.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="FormScript.resx">
+      <DependentUpon>FormScript.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

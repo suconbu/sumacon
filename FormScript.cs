@@ -47,9 +47,13 @@ namespace Suconbu.Sumacon
             InitializeComponent();
 
             this.uxStopButton = this.uxToolStrip.Items.Add("Stop", null, (s, ee) => this.OnStop()) as ToolStripButton;
+            this.uxStopButton.Image = this.imageList1.Images["control_stop_blue.png"];
             this.uxRunButton = this.uxToolStrip.Items.Add("Run", null, (s, ee) => this.OnRun()) as ToolStripButton;
+            this.uxRunButton.Image = this.imageList1.Images["control_play_blue.png"];
             this.uxPauseButton = this.uxToolStrip.Items.Add("Pause", null, (s, ee) => this.OnPause()) as ToolStripButton;
+            this.uxPauseButton.Image = this.imageList1.Images["control_pause_blue.png"];
             this.uxStepButton = this.uxToolStrip.Items.Add("Step", null, (s, ee) => this.OnStep()) as ToolStripButton;
+            this.uxStepButton.Image = this.imageList1.Images["control_step_blue.png"];
 
             this.sumacon = sumacon;
         }
@@ -521,32 +525,32 @@ namespace Suconbu.Sumacon
             if(device == null)
             {
                 this.uxStopButton.Enabled = false;
-                this.uxRunButton.Enabled = false;
-                this.uxPauseButton.Enabled = false;
+                this.uxRunButton.Visible = true;
+                this.uxPauseButton.Visible = false;
                 this.uxStepButton.Enabled = false;
                 readOnly = false;
             }
             else if (this.runState == RunState.Ready)
             {
                 this.uxStopButton.Enabled = false;
-                this.uxRunButton.Enabled = true;
-                this.uxPauseButton.Enabled = false;
+                this.uxRunButton.Visible = true;
+                this.uxPauseButton.Visible = false;
                 this.uxStepButton.Enabled = true;
                 readOnly = false;
             }
             else if (this.runState == RunState.Running)
             {
                 this.uxStopButton.Enabled = true;
-                this.uxRunButton.Enabled = false;
-                this.uxPauseButton.Enabled = true;
+                this.uxRunButton.Visible = false;
+                this.uxPauseButton.Visible = true;
                 this.uxStepButton.Enabled = false;
                 readOnly = true;
             }
             else if (this.runState == RunState.Paused)
             {
                 this.uxStopButton.Enabled = true;
-                this.uxRunButton.Enabled = true;
-                this.uxPauseButton.Enabled = false;
+                this.uxRunButton.Visible = true;
+                this.uxPauseButton.Visible = false;
                 this.uxStepButton.Enabled = true;
                 readOnly = true;
             }
