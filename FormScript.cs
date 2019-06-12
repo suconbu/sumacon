@@ -104,6 +104,7 @@ namespace Suconbu.Sumacon
 
             this.uxWatchPanel.Columns[nameof(VarEntry.Name)].Width = 150;
             this.uxWatchPanel.Columns[nameof(VarEntry.Value)].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            this.uxWatchPanel.CellMouseDoubleClick += this.UxWatchPanel_CellMouseDoubleClick;
 
             this.SetupInterpreter();
 
@@ -113,6 +114,19 @@ namespace Suconbu.Sumacon
             this.LoadSettings();
 
             this.UpdateControlState();
+        }
+
+        private void UxWatchPanel_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if(e.RowIndex < this.watchedVars.Count)
+            {
+                this.uxScriptTextBox.GetSelection(out var start, out var end);
+                var index = Math.Min(start, end);
+                var length = Math.Abs(end - start);
+                this.uxScriptTextBox.Text = this.uxScriptTextBox.Text
+                    .Remove(index, length)
+                    .Insert(index, this.watchedVars[e.RowIndex].Name);
+            }
         }
 
         protected override void OnClosing(CancelEventArgs e)
