@@ -270,6 +270,7 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["touch_move"] = this.Interpreter_TouchMove;
             this.interpreter.Functions["touch_off"] = this.Interpreter_TouchOff;
             this.interpreter.Functions["adb"] = this.Interpreter_Adb;
+            this.interpreter.Functions["save_capture"] = this.Interpreter_SaveCapture;
 
             var keywords = Memezo.Interpreter.Keywords;
             this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
@@ -415,10 +416,22 @@ namespace Suconbu.Sumacon
             device.RunCommandAsync(command, output => sb.AppendLine(output), error => sb.AppendLine(error))
                 .Wait(timeoutMilliseconds);
 
-            // Waitしてるのに待ってくれないので仕方なく
-            Task.Delay(1).Wait();
-
             return new Memezo.Value(sb.ToString());
+        }
+
+        Memezo.Value Interpreter_SaveCapture(List<Memezo.Value> args)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var filePath = string.Empty;
+            device.Screen.CaptureAsync(bitmap =>
+            {
+                filePath = this.sumacon.SaveCapturedImage(bitmap);
+                bitmap.Dispose();
+            }).Wait(this.defaultAdbTimeoutMilliseconds);
+
+            return new Memezo.Value(filePath);
         }
 
         void Tap(float x, float y, int duration)

@@ -92,7 +92,7 @@ namespace Suconbu.Sumacon
         public string SaveCapturedImage(Bitmap bitmap)
         {
             var filePath = this.SaveCaptureToFile(bitmap);
-            this.SafeInvoke(() => this.AddCapturedFile(filePath));
+            Task.Run(() => this.SafeInvoke(() => this.AddCapturedFile(filePath)));
             // このbitmapは他の人のものだから勝手にDisposeしちゃだめよ
             return filePath;
         }
