@@ -198,7 +198,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if(device != null)
             {
-                this.touchProtocolType = device.Input.TouchProtocol;
+                this.SafeInvoke(() => this.touchProtocolType = device.Input.TouchProtocol);
             }
             this.StartScreenPictureUpdate();
         }
@@ -208,7 +208,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null)
             {
-                this.touchProtocolType = device.Input.TouchProtocol;
+                this.SafeInvoke(() => this.touchProtocolType = device.Input.TouchProtocol);
             }
         }
 
