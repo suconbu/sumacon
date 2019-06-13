@@ -64,9 +64,6 @@ namespace Suconbu.Sumacon
 
             //this.intervalMilliseconds[Device.UpdatableProperties.Component] = 30 * 1000;
             this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 10 * 1000;
-#if DEBUG
-            this.intervalMilliseconds[Device.UpdatableProperties.ProcessInfo] = 5 * 1000;
-#endif
         }
 
         /// <summary>

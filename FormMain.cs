@@ -119,9 +119,14 @@ namespace Suconbu.Sumacon
             Trace.TraceInformation(Util.GetCurrentMethodName());
             base.OnClosing(e);
 
-            foreach (var component in (this.sumacon.DeviceManager.ActiveDevice?.Components).OrEmptyIfNull())
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if(device != null)
             {
-                component.ResetAsync();
+                this.sumacon.DeviceManager.SuspendPropertyUpdate(device);
+                foreach (var component in device.Components)
+                {
+                    component.ResetAsync();
+                }
             }
 
             // 片付けているところが見えないように
