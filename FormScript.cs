@@ -577,6 +577,8 @@ namespace Suconbu.Sumacon
             this.uxScriptTextBox.SetSelection(startIndex, endIndex);
             this.markStartIndex = startIndex;
             this.markEndIndex = endIndex;
+
+            this.uxScriptTextBox.ScrollToCaret();
         }
 
         void LoadSettings()
