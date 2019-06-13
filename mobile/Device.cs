@@ -146,9 +146,9 @@ namespace Suconbu.Mobile
         [Category(ComponentCategory.Screen)]
         public bool AutoRotate { get { return this.Screen.AutoRotate; } set { this.Screen.AutoRotate = value; } }
         [Category(ComponentCategory.Screen)]
-        public Screen.RotationCode UserRotation { get { return this.Screen.UserRotation; } set { this.Screen.UserRotation = value; } }
+        public Screen.Rotation UserRotation { get { return this.Screen.UserRotation; } set { this.Screen.UserRotation = value; } }
         [Category(ComponentCategory.Screen)]
-        public Screen.RotationCode CurrentRotation { get { return this.Screen.CurrentRotation; } }
+        public Screen.Rotation CurrentRotation { get { return this.Screen.CurrentRotation; } }
         [Category(ComponentCategory.Screen), Description("[s]")]
         public int OffTimeout { get { return this.Screen.OffTimeout / 1000; } set { this.Screen.OffTimeout = value * 1000; } }
 
@@ -174,7 +174,7 @@ namespace Suconbu.Mobile
         [Browsable(false)]
         public int WirelessPort { get; private set; }
         [Browsable(false)]
-        public bool ScreenIsUpright { get => this.CurrentRotation == Screen.RotationCode.Protrait || this.CurrentRotation == Screen.RotationCode.ProtraitReversed; }
+        public bool ScreenIsUpright { get => this.CurrentRotation == Screen.Rotation.Protrait || this.CurrentRotation == Screen.Rotation.ProtraitReversed; }
         [Browsable(false)]
         public Size RotatedScreenSize { get => this.ScreenIsUpright ? this.ScreenSize : this.ScreenSize.Swapped(); }
 

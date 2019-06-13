@@ -271,6 +271,8 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions["touch_off"] = this.Interpreter_TouchOff;
             this.interpreter.Functions["adb"] = this.Interpreter_Adb;
             this.interpreter.Functions["save_capture"] = this.Interpreter_SaveCapture;
+            this.interpreter.Functions["rotate"] = this.Interpreter_Rotate;
+            this.interpreter.Functions["rotate_to"] = this.Interpreter_RotateTo;
 
             var keywords = Memezo.Interpreter.Keywords;
             this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
@@ -432,6 +434,33 @@ namespace Suconbu.Sumacon
             }).Wait(this.defaultStepTimeoutMilliseconds);
 
             return new Memezo.Value(filePath);
+        }
+
+        Memezo.Value Interpreter_Rotate(List<Memezo.Value> args)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var degrees = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "degrees");
+
+            device.Screen.Rotate(degrees);
+
+            return new Memezo.Value((int)device.Screen.UserRotation);
+        }
+
+        Memezo.Value Interpreter_RotateTo(List<Memezo.Value> args)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var degrees = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "degrees");
+            if (degrees < 0) degrees += 360;
+            if (360 <= degrees) degrees -= 360;
+            var rotationValue = (int)Math.Round(degrees / 90.0f);
+
+            device.Screen.UserRotation = (Mobile.Screen.Rotation)Enum.Parse(typeof(Mobile.Screen.Rotation), rotationValue.ToString());
+
+            return new Memezo.Value((int)device.Screen.UserRotation);
         }
 
         void Tap(float x, float y, int duration)

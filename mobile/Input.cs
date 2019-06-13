@@ -107,15 +107,15 @@ namespace Suconbu.Mobile
             this.device.RunCommandAsync($"shell input {x1} {y1} {x2} {y2} {durationMilliseconds}");
         }
 
-        Point NormalizedToTouchPadPoint(float nx, float ny, Screen.RotationCode rotation)
+        Point NormalizedToTouchPadPoint(float nx, float ny, Screen.Rotation rotation)
         {
             var w = this.TouchMax.X - this.TouchMin.X;
             var h = this.TouchMax.Y - this.TouchMin.Y;
             var point =
-                (rotation == Screen.RotationCode.Protrait) ? new PointF(nx * w, ny * h) :
-                (rotation == Screen.RotationCode.ProtraitReversed) ? new PointF((1.0f - nx) * w, (1.0f - ny) * h) :
-                (rotation == Screen.RotationCode.Landscape) ? new PointF((1.0f - ny) * w, nx * h) :
-                (rotation == Screen.RotationCode.LandscapeReversed) ? new PointF(ny * w, (1.0f - nx) * h) :
+                (rotation == Screen.Rotation.Protrait) ? new PointF(nx * w, ny * h) :
+                (rotation == Screen.Rotation.ProtraitReversed) ? new PointF((1.0f - nx) * w, (1.0f - ny) * h) :
+                (rotation == Screen.Rotation.Landscape) ? new PointF((1.0f - ny) * w, nx * h) :
+                (rotation == Screen.Rotation.LandscapeReversed) ? new PointF(ny * w, (1.0f - nx) * h) :
                 throw new NotSupportedException();
             return Point.Truncate(point);
         }

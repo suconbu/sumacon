@@ -8,7 +8,7 @@ namespace Suconbu.Mobile
 {
     public class Screen : DeviceComponent
     {
-        public enum RotationCode { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
+        public enum Rotation { Protrait = 0, Landscape = 1, ProtraitReversed = 2, LandscapeReversed = 3 };
 
         public Size RealSize
         {
@@ -49,14 +49,18 @@ namespace Suconbu.Mobile
             get { return (int)this.propertyGroup[nameof(this.AutoRotate)].Value != 0; }
             set { this.SetAndPushValue(nameof(this.AutoRotate), value ? 1 : 0); }
         }
-        public RotationCode UserRotation
+        public Rotation UserRotation
         {
-            get { return (RotationCode)this.propertyGroup[nameof(this.UserRotation)].Value; }
-            set { this.SetAndPushValue(nameof(this.UserRotation), (int)value); }
+            get { return (Rotation)this.propertyGroup[nameof(this.UserRotation)].Value; }
+            set
+            {
+                this.AutoRotate = false;
+                this.SetAndPushValue(nameof(this.UserRotation), (int)value);
+            }
         }
-        public RotationCode CurrentRotation
+        public Rotation CurrentRotation
         {
-            get { return (RotationCode)this.propertyGroup[nameof(this.CurrentRotation)].Value; }
+            get { return (Rotation)this.propertyGroup[nameof(this.CurrentRotation)].Value; }
             set { this.SetAndPushValue(nameof(this.CurrentRotation), (int)value); }
         }
         public int OffTimeout
@@ -90,6 +94,15 @@ namespace Suconbu.Mobile
         public CommandContext CaptureIntoDeviceAsync(string saveTo, Action<string> onCaptured)
         {
             return this.device.RunCommandOutputTextAsync($"shell screencap -p {saveTo}", (output, error) => onCaptured(saveTo));
+        }
+
+        public void Rotate(int degrees)
+        {
+            var current = this.CurrentRotation;
+            int nextRotation = (int)current + (int)Math.Round(degrees / 90.0f);
+            if (nextRotation < 0) nextRotation += 4;
+            if (4 <= nextRotation) nextRotation -= 4;
+            this.UserRotation = (Rotation)Enum.Parse(typeof(Rotation), nextRotation.ToString());
         }
 
         string GetDensityClass(int density)

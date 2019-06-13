@@ -438,23 +438,14 @@ namespace Suconbu.Sumacon
         {
             if (!Enum.TryParse<ProcAction>(procName, out var proc)) return;
 
-            if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 1);
-            else if (proc == ProcAction.RotateScreenCcw) this.ExecuteProcRotateScreen(device, -1);
+            if (proc == ProcAction.RotateScreenCw) this.ExecuteProcRotateScreen(device, 90);
+            else if (proc == ProcAction.RotateScreenCcw) this.ExecuteProcRotateScreen(device, -90);
         }
 
-        void ExecuteProcRotateScreen(Device device, int direction)
+        void ExecuteProcRotateScreen(Device device, int degrees)
         {
-            var current = device.UserRotation;
-            if (device.AutoRotate)
-            {
-                current = device.CurrentRotation;
-                device.AutoRotate = false;
-            }
-            int code = (int)current + direction;
-            while (code < 0) code += 4;
-            while (code >= 4) code -= 4;
-            device.UserRotation = (Mobile.Screen.RotationCode)Enum.Parse(typeof(Mobile.Screen.RotationCode), code.ToString());
-            this.OutputControlLogIfEnabled($"rotate_to({code})");
+            device.Screen.Rotate(degrees);
+            this.OutputControlLogIfEnabled($"rotate_to({(int)device.Screen.CurrentRotation * 90})");
         }
 
         ControlAction GetSelectedAction()
