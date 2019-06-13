@@ -314,7 +314,6 @@ namespace Suconbu.Sumacon
             if (args.Count < 1) throw new ArgumentException("Too few arguments");
 
             var duration = (int)Math.Max(1.0, args[0].Number);
-            this.sumacon.WriteConsole($"wait({duration})");
             Task.Delay(duration).Wait();
             return Memezo.Value.Zero;
         }
@@ -323,7 +322,6 @@ namespace Suconbu.Sumacon
         {
             var frequency = (args.Count > 0) ? (int)args[0].Number : 1000;
             var duration = (args.Count > 1) ? (int)args[1].Number : 100;
-            this.sumacon.WriteConsole($"beep({frequency}, {duration})");
             Console.Beep(frequency, duration);
             return Memezo.Value.Zero;
         }
