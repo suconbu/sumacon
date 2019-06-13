@@ -82,12 +82,8 @@ namespace Suconbu.Sumacon
                 Directory.CreateDirectory(this.setting.DirectoryPath);
             }
 
-            this.recordScreenSize = this.Device.ScreenSize;
-            if (this.Device.CurrentRotation == Screen.RotationCode.Landscape ||
-                this.Device.CurrentRotation == Screen.RotationCode.LandscapeReversed)
-            {
-                this.recordScreenSize = this.recordScreenSize.Swapped();
-            }
+            this.recordScreenSize = this.Device.RotatedScreenSize;
+
             if (this.setting.ViewSizeMultiply != 1.0f)
             {
                 this.recordScreenSize = this.recordScreenSize.Multiplied(this.setting.ViewSizeMultiply);
