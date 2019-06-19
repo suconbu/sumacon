@@ -37,9 +37,6 @@ namespace Suconbu.Sumacon
         int currentSourceIndex;
         RunState runState = RunState.Ready;
         string updateControlStateTimeoutKey;
-        int defaultStepIntervalMilliseconds;
-        int activeStepIntervalMilliseconds;
-        int nextStepIntervalMilliseconds;
         int defaultStepTimeoutMilliseconds;
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
         Task scriptTask;
@@ -226,18 +223,10 @@ namespace Suconbu.Sumacon
         {
             while(this.runState == RunState.Running)
             {
-                // 実行する関数によっては nextStepIntervalMilliseconds を書き換えることがあります。
-                this.nextStepIntervalMilliseconds = this.activeStepIntervalMilliseconds;
-
                 if (!this.RunOneStep() || this.sumacon.DeviceManager.ActiveDevice == null)
                 {
                     this.SafeInvoke(this.OnStop);
                     break;
-                }
-
-                if (this.nextStepIntervalMilliseconds > 0)
-                {
-                    Task.Delay(this.nextStepIntervalMilliseconds).Wait();
                 }
             }
         }
@@ -365,8 +354,6 @@ namespace Suconbu.Sumacon
 
             this.Tap(x, y, duration);
 
-            this.nextStepIntervalMilliseconds = 0;
-
             return Memezo.Value.Zero;
         }
 
@@ -380,8 +367,6 @@ namespace Suconbu.Sumacon
             var y = (args[2].Type == Memezo.DataType.Number) ? (float)args[2].Number : throw new ArgumentException("Argument type mismatch", "y");
 
             this.TouchOn(no, x, y);
-
-            this.nextStepIntervalMilliseconds = 0;
 
             return Memezo.Value.Zero;
         }
@@ -402,8 +387,6 @@ namespace Suconbu.Sumacon
 
             this.TouchMove(no, x, y, duration);
 
-            this.nextStepIntervalMilliseconds = 0;
-
             return Memezo.Value.Zero;
         }
 
@@ -417,8 +400,6 @@ namespace Suconbu.Sumacon
             }
 
             this.TouchOff(no);
-
-            this.nextStepIntervalMilliseconds = 0;
 
             return Memezo.Value.Zero;
         }
@@ -572,7 +553,6 @@ namespace Suconbu.Sumacon
 
         void PushSpecialVars()
         {
-            this.interpreter.Vars["sumacon_step_interval"] = new Memezo.Value(this.activeStepIntervalMilliseconds);
             var device = this.sumacon.DeviceManager.ActiveDevice;
             var rotatedSize = device?.RotatedScreenSize ?? Size.Empty;
             this.interpreter.Vars["sumacon_screen_width"] = new Memezo.Value(rotatedSize.Width);
@@ -583,9 +563,6 @@ namespace Suconbu.Sumacon
         void PullSpecialVars()
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
-
-            this.activeStepIntervalMilliseconds = (int)(this.interpreter.Vars.GetValue("sumacon_step_interval", new Memezo.Value(this.defaultStepIntervalMilliseconds)).Number);
-            this.activeStepIntervalMilliseconds = Math.Max(1, this.activeStepIntervalMilliseconds);
 
             if (device != null)
             {
@@ -656,8 +633,6 @@ namespace Suconbu.Sumacon
         {
             this.uxScriptTextBox.Text = Properties.Settings.Default.ScriptText;
             this.uxScriptTextBox.ClearHistory();
-            this.defaultStepIntervalMilliseconds = Properties.Settings.Default.ScriptStepIntervalMilliseconds;
-            this.activeStepIntervalMilliseconds = this.defaultStepIntervalMilliseconds;
             this.defaultStepTimeoutMilliseconds = Properties.Settings.Default.ScriptStepTimeoutMilliseconds;
         }
 
