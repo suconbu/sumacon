@@ -43,7 +43,7 @@ namespace Suconbu.Sumacon
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = Input.InvalidTouchNo;
         Point screenPoint;
-        Panel uxTouchMarker = new Panel();
+        List<Control> uxTouchMarkers = new List<Control>();
         ZoomBox uxZoomBox = new ZoomBox();
         int zoomRatioIndex;
         Point lastMousePosition;
@@ -61,6 +61,7 @@ namespace Suconbu.Sumacon
         readonly string[] kZoomNotes = { "E4", "A4", "E5", "A5", "E6", "A6", "E7" };
         readonly int kLogTouchDurationMillisecondsUnit = 10;
         readonly int kLogTouchMoveThresholdMilliseconds = 100;
+        readonly int kTouchMarkerCountMax = 10;
 
         public FormControl(Sumacon sumacon)
         {
@@ -70,7 +71,7 @@ namespace Suconbu.Sumacon
             this.sumacon = sumacon;
             this.sumacon.DeviceManager.ActiveDeviceChanged += this.DeviceManager_ActiveDeviceChanged;
             this.sumacon.DeviceManager.TouchProtocolTypeChanged += this.DeviceManager_TouchProtocolTypeChanged;
-            this.sumacon.ShowTouchMarkersRequested += (points) => this.SafeInvoke(() => this.Sumacon_ShowTouchMarkersRequested(points));
+            this.sumacon.ShowTouchMarkersRequested += (touchPoints) => this.SafeInvoke(() => this.Sumacon_ShowTouchMarkersRequested(touchPoints));
         }
 
         protected override void OnLoad(EventArgs e)
@@ -155,10 +156,17 @@ namespace Suconbu.Sumacon
             this.uxScreenContextMenu.Opening += (s, ee) => ee.Cancel = this.uxScreenPictureBox.Image == null;
             this.uxScreenPictureBox.ContextMenuStrip = this.uxScreenContextMenu;
 
-            this.uxTouchMarker.Visible = false;
-            this.uxTouchMarker.BackColor = Color.OrangeRed;
-            this.uxTouchMarker.Size = new Size(10, 10);
-            this.uxScreenPictureBox.Controls.Add(this.uxTouchMarker);
+            for (int i = 0; i < this.kTouchMarkerCountMax; i++)
+            {
+                var touchMarker = new Panel()
+                {
+                    Visible = false,
+                    BackColor = Color.Lime,
+                    Size = new Size(10, 10)
+                };
+                this.uxScreenPictureBox.Controls.Add(touchMarker);
+                this.uxTouchMarkers.Add(touchMarker);
+            }
 
             this.uxMainSplitContaier.Orientation = Orientation.Vertical;
             this.uxMainSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
@@ -212,16 +220,20 @@ namespace Suconbu.Sumacon
             }
         }
 
-        void Sumacon_ShowTouchMarkersRequested(PointF[] points)
+        void Sumacon_ShowTouchMarkersRequested(Mobile.TouchPoint[] touchPoints)
         {
-            if (points.Length > 0)
+            for(int i = 0; i < this.kTouchMarkerCountMax; i++)
             {
-                this.uxTouchMarker.Location = this.NormalizedPointToPictureBoxPoint(points.First());
-                this.uxTouchMarker.Visible = true;
-            }
-            else
-            {
-                this.uxTouchMarker.Visible = false;
+                var touchPoint = touchPoints.FirstOrDefault(p => p.No == i);
+                if (touchPoint != null)
+                {
+                    this.uxTouchMarkers[i].Location = this.NormalizedPointToPictureBoxPoint(touchPoint.Location);
+                    this.uxTouchMarkers[i].Visible = true;
+                }
+                else
+                {
+                    this.uxTouchMarkers[i].Visible = false;
+                }
             }
         }
 
@@ -248,8 +260,8 @@ namespace Suconbu.Sumacon
                             this.activeTouchNo = device.Input.OnTouch(nx, ny);
                             this.PlayBeepIfEnabled(Beep.Note.Po);
                             this.lastMouseDownOrMoveAt = DateTime.Now;
-                            this.uxTouchMarker.Visible = true;
-                            this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                            this.uxTouchMarkers[0].Visible = true;
+                            this.uxTouchMarkers[0].Location = new Point(e.X - this.uxTouchMarkers[0].Width / 2, e.Y - this.uxTouchMarkers[0].Height / 2);
                         }
                     }
                 }
@@ -277,7 +289,7 @@ namespace Suconbu.Sumacon
                         var nx = (float)this.screenPoint.X / rotatedSize.Width;
                         var ny = (float)this.screenPoint.Y / rotatedSize.Height;
                         device.Input.MoveTouch(this.activeTouchNo, nx, ny);
-                        this.uxTouchMarker.Location = new Point(e.X - this.uxTouchMarker.Width / 2, e.Y - this.uxTouchMarker.Height / 2);
+                        this.uxTouchMarkers[0].Location = new Point(e.X - this.uxTouchMarkers[0].Width / 2, e.Y - this.uxTouchMarkers[0].Height / 2);
                         if (!this.swiping)
                         {
                             this.swiping = true;
@@ -302,7 +314,7 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            this.uxTouchMarker.Visible = false;
+            this.uxTouchMarkers[0].Visible = false;
 
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device != null && this.activeTouchNo != Input.InvalidTouchNo)

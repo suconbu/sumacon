@@ -44,6 +44,7 @@ namespace Suconbu.Sumacon
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
         Task scriptTask;
         CancellationTokenSource scriptTaskCanceller;
+        List<TouchMoveCommand> deferredTouchMoves = new List<TouchMoveCommand>();
 
         readonly int kCurrentLineMarkId = 1;
 
@@ -258,21 +259,37 @@ namespace Suconbu.Sumacon
             return false;
         }
 
+        static class ScriptCommandNames
+        {
+            public static readonly string Print = "print";
+            public static readonly string Wait = "wait";
+            public static readonly string Beep = "beep";
+            public static readonly string Tap = "tap";
+            public static readonly string TouchOn = "touch_on";
+            public static readonly string TouchMove = "touch_move";
+            public static readonly string TouchOff = "touch_off";
+            public static readonly string Adb = "adb";
+            public static readonly string SaveCapture = "save_capture";
+            public static readonly string Rotate = "rotate";
+            public static readonly string RotateTo = "rotate_to";
+        }
+
         void SetupInterpreter()
         {
             this.interpreter.Install(new Memezo.StandardLibrary(), new Memezo.RandomLibrary());
             this.interpreter.ErrorOccurred += this.Interpreter_ErrorOccurred;
-            this.interpreter.Functions["print"] = this.Interpreter_Print;
-            this.interpreter.Functions["wait"] = this.Interpreter_Wait;
-            this.interpreter.Functions["beep"] = this.Interpreter_Beep;
-            this.interpreter.Functions["tap"] = this.Interpreter_Tap;
-            this.interpreter.Functions["touch_on"] = this.Interpreter_TouchOn;
-            this.interpreter.Functions["touch_move"] = this.Interpreter_TouchMove;
-            this.interpreter.Functions["touch_off"] = this.Interpreter_TouchOff;
-            this.interpreter.Functions["adb"] = this.Interpreter_Adb;
-            this.interpreter.Functions["save_capture"] = this.Interpreter_SaveCapture;
-            this.interpreter.Functions["rotate"] = this.Interpreter_Rotate;
-            this.interpreter.Functions["rotate_to"] = this.Interpreter_RotateTo;
+            this.interpreter.FunctionInvoking += this.Interpreter_FunctionInvoking;
+            this.interpreter.Functions[ScriptCommandNames.Print] = this.Interpreter_Print;
+            this.interpreter.Functions[ScriptCommandNames.Wait] = this.Interpreter_Wait;
+            this.interpreter.Functions[ScriptCommandNames.Beep] = this.Interpreter_Beep;
+            this.interpreter.Functions[ScriptCommandNames.Tap] = this.Interpreter_Tap;
+            this.interpreter.Functions[ScriptCommandNames.TouchOn] = this.Interpreter_TouchOn;
+            this.interpreter.Functions[ScriptCommandNames.TouchMove] = this.Interpreter_TouchMove;
+            this.interpreter.Functions[ScriptCommandNames.TouchOff] = this.Interpreter_TouchOff;
+            this.interpreter.Functions[ScriptCommandNames.Adb] = this.Interpreter_Adb;
+            this.interpreter.Functions[ScriptCommandNames.SaveCapture] = this.Interpreter_SaveCapture;
+            this.interpreter.Functions[ScriptCommandNames.Rotate] = this.Interpreter_Rotate;
+            this.interpreter.Functions[ScriptCommandNames.RotateTo] = this.Interpreter_RotateTo;
 
             var keywords = Memezo.Interpreter.Keywords;
             this.highlighter.AddKeywordSet(keywords.OrderBy(s => s).ToArray(), Azuki.CharClass.Keyword);
@@ -301,6 +318,14 @@ namespace Suconbu.Sumacon
         void Interpreter_ErrorOccurred(object sender, Memezo.ErrorInfo errorInfo)
         {
             this.sumacon.WriteConsole($"ERROR: {errorInfo}");
+        }
+
+        private void Interpreter_FunctionInvoking(object sender, string name)
+        {
+            if (name != ScriptCommandNames.TouchMove)
+            {
+                this.FlushDeferfedTouchMoves(this.sumacon.DeviceManager.ActiveDevice);
+            }
         }
 
         Memezo.Value Interpreter_Print(List<Memezo.Value> args)
@@ -491,23 +516,12 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            var previousPoint = device.Input.TouchPoints[no].Location;
-            var step = 10;
-            var remain = duration;
-            var startedAt = DateTime.Now;
-            for (int i = step; i < duration; i += step)
+            if(this.deferredTouchMoves.Count > 0 &&
+               this.deferredTouchMoves.Exists(c => c.TouchNo == no))
             {
-                while((DateTime.Now - startedAt).TotalMilliseconds < i) Task.Delay(10).Wait();
-
-                remain -= step;
-                var ix = previousPoint.X + (x - previousPoint.X) * i / duration;
-                var iy = previousPoint.Y + (y - previousPoint.Y) * i / duration;
-                device.Input.MoveTouch(no, ix, iy);
-                this.UpdateTouchMarkers(device);
+                this.FlushDeferfedTouchMoves(device);
             }
-            while ((DateTime.Now - startedAt).TotalMilliseconds < duration) Task.Delay(10).Wait();
-            device.Input.MoveTouch(no, x, y);
-            this.UpdateTouchMarkers(device);
+            this.deferredTouchMoves.Add(new TouchMoveCommand(no, x, y, duration));
         }
 
         void TouchOff(int no)
@@ -520,10 +534,40 @@ namespace Suconbu.Sumacon
             this.UpdateTouchMarkers(device);
         }
 
+        void FlushDeferfedTouchMoves(Device device)
+        {
+            if (device == null) return;
+            if (this.deferredTouchMoves.Count == 0) return;
+
+            var previousPoints = device.Input.TouchPoints.ToDictionary(p => p.Key, p => new TouchPoint(p.Value));
+            var durations = this.deferredTouchMoves.ToDictionary(c => c.TouchNo, c => c.Duration);
+            var maxDuration = this.deferredTouchMoves.Max(c => c.Duration);
+            var startedAt = DateTime.Now;
+            while (true)
+            {
+                var elaspseMilliseconds = (float)(DateTime.Now - startedAt).TotalMilliseconds;
+                foreach (var command in this.deferredTouchMoves)
+                {
+                    var no = command.TouchNo;
+                    var previousPoint = previousPoints[no].Location;
+                    var progress = Math.Min(1.0f, elaspseMilliseconds / durations[no]);
+                    var ix = previousPoint.X + (command.MoveTo.X - previousPoint.X) * progress;
+                    var iy = previousPoint.Y + (command.MoveTo.Y - previousPoint.Y) * progress;
+                    device.Input.MoveTouch(no, ix, iy);
+                }
+                this.UpdateTouchMarkers(device);
+
+                this.deferredTouchMoves.RemoveAll(c => c.Duration < elaspseMilliseconds);
+                if (elaspseMilliseconds > maxDuration) break;
+
+                Task.Delay(1).Wait();
+            }
+            this.deferredTouchMoves.Clear();
+        }
+
         void UpdateTouchMarkers(Device device)
         {
-            var points = device.Input.TouchPoints.Select(p => p.Value.Location).ToArray();
-            this.sumacon.ShowTouchMarkers(points);
+            this.sumacon.ShowTouchMarkers(device.Input.TouchPoints.Values.ToArray());
         }
 
         void PushSpecialVars()
@@ -697,6 +741,20 @@ namespace Suconbu.Sumacon
         {
             public bool Equals(VarEntry a, VarEntry b) => a?.Name == b?.Name;
             public int GetHashCode(VarEntry p) => p.Name.GetHashCode();
+        }
+
+        struct TouchMoveCommand
+        {
+            public int TouchNo { get; private set; }
+            public PointF MoveTo { get; private set; }
+            public int Duration { get; private set; }
+
+            public TouchMoveCommand(int no, float x, float y, int duration)
+            {
+                this.TouchNo = no;
+                this.MoveTo = new PointF(x, y);
+                this.Duration = duration;
+            }
         }
     }
 }

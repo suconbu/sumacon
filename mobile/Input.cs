@@ -146,6 +146,12 @@ namespace Suconbu.Mobile
             this.location = new PointF(x, y);
         }
 
+        public TouchPoint(TouchPoint from)
+        {
+            this.No = from.No;
+            this.location = from.location;
+        }
+
         TouchPoint() { }
     }
 
