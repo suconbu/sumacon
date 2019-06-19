@@ -511,12 +511,18 @@ namespace Suconbu.Sumacon
 
         void SaveCapturedImage()
         {
-            var path = this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
+            if (this.recordingEnabled)
+            {
+                this.OutputControlLogIfEnabled("save_capture()");
+            }
+            else
+            {
+                var path = this.sumacon.SaveCapturedImage(this.uxScreenPictureBox.Image as Bitmap);
+                this.sumacon.WriteConsole($"# Save screen capture to {path}.");
+            }
             this.uxScreenPictureBox.Visible = false;
             Delay.SetTimeout(() => this.uxScreenPictureBox.Visible = true, 100, this);
             this.PlayBeepIfEnabled(Beep.Note.Po, Beep.Note.Pe);
-            this.OutputControlLogIfEnabled("save_capture()");
-            this.sumacon.WriteConsole($"# Save screen capture to {path}.");
         }
 
         void CopyCapturedImage()
