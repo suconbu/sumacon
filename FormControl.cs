@@ -29,7 +29,7 @@ namespace Suconbu.Sumacon
         ToolStripButton uxBeepButton = new ToolStripButton();
         ToolStripButton uxZoomButton = new ToolStripButton();
         ToolStripButton uxHoldButton = new ToolStripButton();
-        ToolStripButton uxLogButton = new ToolStripButton();
+        ToolStripButton uxRecordingButton = new ToolStripButton();
         BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
         SplitContainer uxMainSplitContaier = new SplitContainer() { Dock = DockStyle.Fill };
         PictureBox uxScreenPictureBox = new PictureBox() { Dock = DockStyle.Fill };
@@ -39,7 +39,7 @@ namespace Suconbu.Sumacon
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
         bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
         bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
-        bool logEnabled { get => this.uxLogButton.Checked; set => this.uxLogButton.Checked = value; }
+        bool recordingEnabled { get => this.uxRecordingButton.Checked; set => this.uxRecordingButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
         int activeTouchNo = Input.InvalidTouchNo;
         Point screenPoint;
@@ -49,6 +49,7 @@ namespace Suconbu.Sumacon
         Point lastMousePosition;
         string delayedUpdateTimeoutId;
         DateTime lastMouseDownOrMoveAt = DateTime.MinValue;
+        DateTime lastOutputControlLogAt = DateTime.MinValue;
         bool swiping;
 
         readonly int kActionsGridPanelWidth = 150;
@@ -59,7 +60,7 @@ namespace Suconbu.Sumacon
         readonly int[] kZoomGridUnits = { 0, 5, 5, 5, 5, 5, 5 };
         readonly int[] kZoomGridAlphas = { 0, 16, 32, 64, 64, 64, 64 };
         readonly string[] kZoomNotes = { "E4", "A4", "E5", "A5", "E6", "A6", "E7" };
-        readonly int kLogTouchDurationMillisecondsUnit = 10;
+        readonly int kLogDurationUnitMilliseconds = 10;
         readonly int kLogTouchMoveThresholdMilliseconds = 100;
         readonly int kTouchMarkerCountMax = 10;
 
@@ -101,13 +102,41 @@ namespace Suconbu.Sumacon
             this.uxZoomButton.ToolTipText = "Press Control key to show the zoom view.";
             this.uxScreenStatusStrip.ShowItemToolTips = true;
 
-            this.uxLogButton.CheckOnClick = true;
-            this.uxLogButton.ToolTipText = "Operation log write to Console.";
-            this.uxLogButton.CheckedChanged += (s, ee) => this.UpdateControlState();
-
             this.uxHoldButton.CheckOnClick = true;
             this.uxHoldButton.AutoToolTip = false;
-            this.uxHoldButton.CheckedChanged += (s, ee) => this.UpdateControlState();
+            this.uxHoldButton.Image = this.imageList1.Images["lock.png"];
+            this.uxHoldButton.CheckedChanged += (s, ee) =>
+            {
+                if (this.holdEnabled)
+                {
+                    Beep.Play(Beep.Note.Pi, Beep.Note.Pi);
+                }
+                else
+                {
+                    Beep.Play(Beep.Note.Pi, Beep.Note.Po);
+                }
+                this.UpdateControlState();
+            };
+
+            this.uxRecordingButton.CheckOnClick = true;
+            this.uxRecordingButton.ToolTipText = "Recording your operations to console.";
+            this.uxRecordingButton.Image = this.imageList1.Images["script_edit.png"];
+            this.uxRecordingButton.CheckedChanged += (s, ee) =>
+            {
+                if (this.recordingEnabled)
+                {
+                    this.sumacon.WriteConsole("");
+                    this.sumacon.WriteConsole("# Start recording");
+                    Beep.Play(Beep.Note.Po, Beep.Note.Pi);
+                }
+                else
+                {
+                    this.sumacon.WriteConsole("# End recording");
+                    Beep.Play(Beep.Note.Pi, Beep.Note.Po);
+                    this.lastOutputControlLogAt = DateTime.MinValue;
+                }
+                this.UpdateControlState();
+            };
 
             this.uxTouchProtocolDropDown.AutoToolTip = false;
             var protocols = new Dictionary<TouchProtocolType, ToolStripDropDownItem>();
@@ -129,10 +158,10 @@ namespace Suconbu.Sumacon
             this.uxTouchPositionLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
-            this.uxScreenStatusStrip.Items.Add(this.uxLogButton);
             this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxHoldButton);
+            this.uxScreenStatusStrip.Items.Add(this.uxRecordingButton);
             this.uxScreenStatusStrip.Items.Add(new ToolStripStatusLabel() { Spring = true });
             this.uxScreenStatusStrip.Items.Add(this.uxColorLabel);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchPositionLabel);
@@ -298,10 +327,10 @@ namespace Suconbu.Sumacon
                             this.OutputControlLogIfEnabled($"touch_on({this.activeTouchNo}, {pnx:F4}, {pny:F4})");
                         }
 
-                        var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
+                        var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
                         if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
                         {
-                            this.OutputControlLogIfEnabled($"touch_move({this.activeTouchNo}, {nx:F4}, {ny:F4}, {elapsedMilliseconds})");
+                            this.OutputControlLogIfEnabled($"touch_move({this.activeTouchNo}, {nx:F4}, {ny:F4}, {elapsedMilliseconds})", false);
                             this.lastMouseDownOrMoveAt = DateTime.Now;
                         }
                     }
@@ -323,15 +352,15 @@ namespace Suconbu.Sumacon
                 this.PlayBeepIfEnabled(Beep.Note.Pe);
                 if (this.swiping)
                 {
-                    this.OutputControlLogIfEnabled($"touch_off({this.activeTouchNo})");
+                    this.OutputControlLogIfEnabled($"touch_off({this.activeTouchNo})", false);
                 }
                 else
                 {
                     var rotatedSize = device.RotatedScreenSize;
                     var nx = (float)this.screenPoint.X / rotatedSize.Width;
                     var ny = (float)this.screenPoint.Y / rotatedSize.Height;
-                    var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogTouchDurationMillisecondsUnit);
-                    elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogTouchDurationMillisecondsUnit);
+                    var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
+                    elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogDurationUnitMilliseconds);
                     this.OutputControlLogIfEnabled($"tap({nx:F4}, {ny:F4}, {elapsedMilliseconds})");
                 }
                 this.activeTouchNo = Input.InvalidTouchNo;
@@ -601,14 +630,23 @@ namespace Suconbu.Sumacon
             if (this.beepEnabled) Beep.Play(notes);
         }
 
-        void OutputControlLogIfEnabled(string s)
+        void OutputControlLogIfEnabled(string s, bool insertWait = true)
         {
-            if (this.logEnabled) this.sumacon.WriteConsole(s);
+            if (!this.recordingEnabled) return;
+
+            var now = DateTime.Now;
+            if (insertWait && this.lastOutputControlLogAt != DateTime.MinValue)
+            {
+                var elapsed = this.GetTruncatedElapseMilliseconds(this.lastOutputControlLogAt, now, this.kLogDurationUnitMilliseconds);
+                this.sumacon.WriteConsole($"wait({elapsed})");
+            }
+            this.sumacon.WriteConsole(s);
+            this.lastOutputControlLogAt = now;
         }
 
         int GetTruncatedElapseMilliseconds(DateTime from, DateTime to, int multiply = 1)
         {
-            return (int)Math.Truncate((DateTime.Now - this.lastMouseDownOrMoveAt).TotalMilliseconds / multiply) * multiply;
+            return (int)Math.Truncate((to - from).TotalMilliseconds / multiply) * multiply;
         }
 
         void UpdateControlState()
@@ -630,10 +668,19 @@ namespace Suconbu.Sumacon
             }
 
             this.uxBeepButton.Text = this.beepEnabled ? "Beep ON" : "Beep OFF";
-            this.uxLogButton.Text = this.logEnabled ? "Log ON" : "Log OFF";
             this.uxHoldButton.Text = this.holdEnabled ? "Screen hold ON" : "Screen hold OFF";
+            this.uxRecordingButton.Text = this.recordingEnabled ? "Recording ON" : "Recording OFF";
 
-            this.uxScreenPictureBox.BackColor = this.holdEnabled ? Color.OrangeRed : SystemColors.Control;
+            if (this.recordingEnabled)
+            {
+                this.uxScreenPictureBox.BackColor = Color.FromArgb(128, Color.OrangeRed);
+                this.uxRecordingButton.ForeColor = Color.OrangeRed;
+            }
+            else
+            {
+                this.uxScreenPictureBox.BackColor = this.holdEnabled ? SystemColors.ControlDark : SystemColors.Control;
+                this.uxRecordingButton.ForeColor = SystemColors.ControlText;
+            }
 
             this.UpdateZoomBox();
         }

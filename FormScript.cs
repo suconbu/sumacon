@@ -560,7 +560,7 @@ namespace Suconbu.Sumacon
                 this.deferredTouchMoves.RemoveAll(c => c.Duration < elaspseMilliseconds);
                 if (elaspseMilliseconds > maxDuration) break;
 
-                Task.Delay(1).Wait();
+                Task.Delay(10).Wait();
             }
             this.deferredTouchMoves.Clear();
         }
