@@ -27,7 +27,6 @@ namespace Suconbu.Sumacon
         ToolStripStatusLabel uxTouchPositionLabel = new ToolStripStatusLabel();
         ToolStripStatusLabel uxColorLabel = new ToolStripStatusLabel();
         ToolStripButton uxBeepButton = new ToolStripButton();
-        ToolStripButton uxZoomButton = new ToolStripButton();
         ToolStripButton uxHoldButton = new ToolStripButton();
         ToolStripButton uxRecordingButton = new ToolStripButton();
         BindingDropDownButton<TouchProtocolType> uxTouchProtocolDropDown = new BindingDropDownButton<TouchProtocolType>();
@@ -37,7 +36,7 @@ namespace Suconbu.Sumacon
         ContextMenuStrip uxScreenContextMenu = new ContextMenuStrip();
         ControlActionGroup actionGroup;
         bool beepEnabled { get => this.uxBeepButton.Checked; set => this.uxBeepButton.Checked = value; }
-        bool zoomEnabled { get => this.uxZoomButton.Checked; set => this.uxZoomButton.Checked = value; }
+        bool zoomEnabled;
         bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
         bool recordingEnabled { get => this.uxRecordingButton.Checked; set => this.uxRecordingButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
@@ -98,10 +97,6 @@ namespace Suconbu.Sumacon
             this.uxBeepButton.AutoToolTip = false;
             this.uxBeepButton.CheckedChanged += (s, ee) => this.UpdateControlState();
 
-            this.uxZoomButton.Text = "🔍 Zoom";
-            this.uxZoomButton.ToolTipText = "Press Control key to show the zoom view.";
-            this.uxScreenStatusStrip.ShowItemToolTips = true;
-
             this.uxHoldButton.CheckOnClick = true;
             this.uxHoldButton.AutoToolTip = false;
             this.uxHoldButton.Image = this.imageList1.Images["lock.png"];
@@ -158,7 +153,6 @@ namespace Suconbu.Sumacon
             this.uxTouchPositionLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             this.uxScreenStatusStrip.Items.Add(this.uxBeepButton);
-            this.uxScreenStatusStrip.Items.Add(this.uxZoomButton);
             this.uxScreenStatusStrip.Items.Add(this.uxTouchProtocolDropDown);
             this.uxScreenStatusStrip.Items.Add(this.uxHoldButton);
             this.uxScreenStatusStrip.Items.Add(this.uxRecordingButton);
