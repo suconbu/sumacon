@@ -40,9 +40,13 @@ namespace Suconbu.Sumacon
         bool holdEnabled { get => this.uxHoldButton.Checked; set => this.uxHoldButton.Checked = value; }
         bool recordingEnabled { get => this.uxRecordingButton.Checked; set => this.uxRecordingButton.Checked = value; }
         TouchProtocolType touchProtocolType { get => this.uxTouchProtocolDropDown.Value; set => this.uxTouchProtocolDropDown.Value = value; }
-        int activeTouchNo = Input.InvalidTouchNo;
-        Point screenPoint;
-        List<Control> uxTouchMarkers = new List<Control>();
+        int mainTouchNo = Input.InvalidTouchNo;
+        int subTouchNo = Input.InvalidTouchNo;
+        Point currentScreenPoint;
+        List<MarkerPanel> uxTouchMarkers = new List<MarkerPanel>();
+        MarkerPanel uxTouchCenterMarker;
+        bool touchCenterEnabled { get => this.uxTouchCenterMarker.Visible; set => this.uxTouchCenterMarker.Visible = value; }
+        PointF touchCenterNormalizedPoint;
         ZoomBox uxZoomBox = new ZoomBox();
         int zoomRatioIndex;
         Point lastMousePosition;
@@ -172,7 +176,7 @@ namespace Suconbu.Sumacon
             this.uxScreenPictureBox.MouseLeave += (s, ee) => this.UpdateControlState();
             this.uxScreenPictureBox.Controls.Add(this.uxZoomBox);
 
-            this.uxScreenContextMenu.Items.Add("Pick color (Left click (on zoom enabled))", null, (s, ee) => this.PickColor(this.screenPoint));
+            this.uxScreenContextMenu.Items.Add("Pick color (Left click (on zoom enabled))", null, (s, ee) => this.PickColor(this.currentScreenPoint));
             this.uxScreenContextMenu.Items.Add(new ToolStripSeparator());
             this.uxScreenContextMenu.Items.Add("Save screen capture (P)", null, (s, ee) => this.SaveCapturedImage());
             this.uxScreenContextMenu.Items.Add("Copy screen capture (Control + C)", null, (s, ee) => this.SaveCapturedImage());
@@ -181,7 +185,7 @@ namespace Suconbu.Sumacon
 
             for (int i = 0; i < this.kTouchMarkerCountMax; i++)
             {
-                var touchMarker = new Panel()
+                var touchMarker = new MarkerPanel()
                 {
                     Visible = false,
                     BackColor = Color.Lime,
@@ -190,6 +194,13 @@ namespace Suconbu.Sumacon
                 this.uxScreenPictureBox.Controls.Add(touchMarker);
                 this.uxTouchMarkers.Add(touchMarker);
             }
+            this.uxTouchCenterMarker = new MarkerPanel()
+            {
+                Visible = false,
+                BackColor = Color.OrangeRed,
+                Size = new Size(10, 10)
+            };
+            this.uxScreenPictureBox.Controls.Add(this.uxTouchCenterMarker);
 
             this.uxMainSplitContaier.Orientation = Orientation.Vertical;
             this.uxMainSplitContaier.Panel1.Controls.Add(this.uxScreenPictureBox);
@@ -250,7 +261,7 @@ namespace Suconbu.Sumacon
                 var touchPoint = touchPoints.FirstOrDefault(p => p.No == i);
                 if (touchPoint != null)
                 {
-                    this.uxTouchMarkers[i].Location = this.NormalizedPointToPictureBoxPoint(touchPoint.Location);
+                    this.uxTouchMarkers[i].CenterLocation = this.NormalizedPointToPictureBoxPoint(touchPoint.Location);
                     this.uxTouchMarkers[i].Visible = true;
                 }
                 else
@@ -264,28 +275,26 @@ namespace Suconbu.Sumacon
         {
             if (this.TryPictureBoxPointToScreenPoint(e.Location, out var point))
             {
-                this.screenPoint = point;
+                this.currentScreenPoint = point;
 
                 if (e.Button.HasFlag(MouseButtons.Left))
                 {
                     if (this.zoomEnabled)
                     {
-                        this.PickColor(this.screenPoint);
+                        this.PickColor(this.currentScreenPoint);
                     }
                     else
                     {
                         var device = this.sumacon.DeviceManager.ActiveDevice;
-                        if (device != null)
+                        if (!this.touchCenterEnabled && Control.ModifierKeys.HasFlag(Keys.Control))
                         {
-                            var rotatedSize = device.RotatedScreenSize;
-                            var nx = (float)this.screenPoint.X / rotatedSize.Width;
-                            var ny = (float)this.screenPoint.Y / rotatedSize.Height;
-                            this.activeTouchNo = device.Input.OnTouch(nx, ny);
-                            this.PlayBeepIfEnabled(Beep.Note.Po);
-                            this.lastMouseDownOrMoveAt = DateTime.Now;
-                            this.uxTouchMarkers[0].Visible = true;
-                            this.uxTouchMarkers[0].Location = new Point(e.X - this.uxTouchMarkers[0].Width / 2, e.Y - this.uxTouchMarkers[0].Height / 2);
+                            this.TouchCenterOn(device, this.currentScreenPoint);
                         }
+                        else
+                        {
+                            this.TouchOn(device, this.currentScreenPoint);
+                        }
+                        this.UpdateTouchMarkers(device);
                     }
                 }
             }
@@ -298,36 +307,16 @@ namespace Suconbu.Sumacon
             if (this.lastMousePosition == e.Location) return;
             this.lastMousePosition = e.Location;
 
-            var previousScreenPoint = this.screenPoint;
+            var previousScreenPoint = this.currentScreenPoint;
             if (this.TryPictureBoxPointToScreenPoint(e.Location, out var point))
             {
-                this.screenPoint = point;
+                this.currentScreenPoint = point;
 
                 if (e.Button.HasFlag(MouseButtons.Left))
                 {
                     var device = this.sumacon.DeviceManager.ActiveDevice;
-                    if (device != null && this.activeTouchNo != Input.InvalidTouchNo)
-                    {
-                        var rotatedSize = device.RotatedScreenSize;
-                        var nx = (float)this.screenPoint.X / rotatedSize.Width;
-                        var ny = (float)this.screenPoint.Y / rotatedSize.Height;
-                        device.Input.MoveTouch(this.activeTouchNo, nx, ny);
-                        this.uxTouchMarkers[0].Location = new Point(e.X - this.uxTouchMarkers[0].Width / 2, e.Y - this.uxTouchMarkers[0].Height / 2);
-                        if (!this.swiping)
-                        {
-                            this.swiping = true;
-                            var pnx = (float)previousScreenPoint.X / rotatedSize.Width;
-                            var pny = (float)previousScreenPoint.Y / rotatedSize.Height;
-                            this.OutputControlLogIfEnabled($"touch_on({this.activeTouchNo}, {pnx:F4}, {pny:F4})");
-                        }
-
-                        var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
-                        if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
-                        {
-                            this.OutputControlLogIfEnabled($"touch_move({this.activeTouchNo}, {nx:F4}, {ny:F4}, {elapsedMilliseconds})", false);
-                            this.lastMouseDownOrMoveAt = DateTime.Now;
-                        }
-                    }
+                    this.TouchMove(device, this.currentScreenPoint, previousScreenPoint);
+                    this.UpdateTouchMarkers(device);
                 }
             }
 
@@ -337,31 +326,9 @@ namespace Suconbu.Sumacon
 
         void UxScreenPictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            this.uxTouchMarkers[0].Visible = false;
-
             var device = this.sumacon.DeviceManager.ActiveDevice;
-            if (device != null && this.activeTouchNo != Input.InvalidTouchNo)
-            {
-                device.Input.OffTouch();
-                this.PlayBeepIfEnabled(Beep.Note.Pe);
-                if (this.swiping)
-                {
-                    this.OutputControlLogIfEnabled($"touch_off({this.activeTouchNo})", false);
-                }
-                else
-                {
-                    var rotatedSize = device.RotatedScreenSize;
-                    var nx = (float)this.screenPoint.X / rotatedSize.Width;
-                    var ny = (float)this.screenPoint.Y / rotatedSize.Height;
-                    var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
-                    elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogDurationUnitMilliseconds);
-                    this.OutputControlLogIfEnabled($"tap({nx:F4}, {ny:F4}, {elapsedMilliseconds})");
-                }
-                this.activeTouchNo = Input.InvalidTouchNo;
-            }
-
-            this.lastMouseDownOrMoveAt = DateTime.MinValue;
-            this.swiping = false;
+            this.TouchOff(device, this.currentScreenPoint);
+            this.UpdateTouchMarkers(device);
             this.UpdateControlState();
         }
 
@@ -389,14 +356,25 @@ namespace Suconbu.Sumacon
             if (image != null)
             {
                 if (e.KeyCode == Keys.P) this.SaveCapturedImage();
-                else if (e.KeyCode == Keys.C && ModifierKeys.HasFlag(Keys.Control)) this.CopyCapturedImage();
-                else if (e.KeyCode == Keys.Left) this.screenPoint.X = Math.Max(0, this.screenPoint.X - 1);
-                else if (e.KeyCode == Keys.Right) this.screenPoint.X = Math.Min(this.screenPoint.X + 1, image.Width - 1);
-                else if (e.KeyCode == Keys.Up) this.screenPoint.Y = Math.Max(0, this.screenPoint.Y - 1);
-                else if (e.KeyCode == Keys.Down) this.screenPoint.Y = Math.Min(this.screenPoint.Y + 1, image.Height - 1);
+                else if (e.KeyCode == Keys.C && Control.ModifierKeys.HasFlag(Keys.Control)) this.CopyCapturedImage();
+                else if (e.KeyCode == Keys.Left) this.currentScreenPoint.X = Math.Max(0, this.currentScreenPoint.X - 1);
+                else if (e.KeyCode == Keys.Right) this.currentScreenPoint.X = Math.Min(this.currentScreenPoint.X + 1, image.Width - 1);
+                else if (e.KeyCode == Keys.Up) this.currentScreenPoint.Y = Math.Max(0, this.currentScreenPoint.Y - 1);
+                else if (e.KeyCode == Keys.Down) this.currentScreenPoint.Y = Math.Min(this.currentScreenPoint.Y + 1, image.Height - 1);
                 else return;
                 this.UpdateControlState();
                 e.Handled = true;
+            }
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+            if (!Control.ModifierKeys.HasFlag(Keys.Control))
+            {
+                var device = this.sumacon.DeviceManager.ActiveDevice;
+                this.TouchCenterOff(device);
+                this.UpdateTouchMarkers(device);
             }
         }
 
@@ -425,6 +403,124 @@ namespace Suconbu.Sumacon
             {
                 this.uxActionsGridPanel.ClearSelection();
             }
+        }
+
+        void TouchOn(Device device, Point screenPoint)
+        {
+            if (device == null) return;
+
+            var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
+            this.mainTouchNo = device.Input.OnTouch(mainPoint.X, mainPoint.Y);
+            this.subTouchNo = Input.InvalidTouchNo;
+            if (this.touchCenterEnabled)
+            {
+                var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
+                this.subTouchNo = device.Input.OnTouch(subPoint.X, subPoint.Y);
+            }
+            this.OutputControlLogIfEnabled();
+            this.lastMouseDownOrMoveAt = DateTime.Now;
+            this.PlayBeepIfEnabled(Beep.Note.Po);
+        }
+
+        void TouchMove(Device device, Point screenPoint, Point previousScreenPoint)
+        {
+            if (device == null || this.mainTouchNo == Input.InvalidTouchNo) return;
+
+            var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
+            device.Input.MoveTouch(this.mainTouchNo, mainPoint.X, mainPoint.Y);
+            if(this.touchCenterEnabled)
+            {
+                var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
+                device.Input.MoveTouch(this.subTouchNo, subPoint.X, subPoint.Y);
+            }
+            if (!this.swiping)
+            {
+                this.swiping = true;
+                var previousMainPoint = this.ScreenPointToNormalizedPoint(device, previousScreenPoint);
+                var sb = new StringBuilder();
+                sb.Append($"touch_on({this.mainTouchNo}, {previousMainPoint.X:F4}, {previousMainPoint.Y:F4})");
+                if (this.touchCenterEnabled)
+                {
+                    var previousSubPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, previousMainPoint);
+                    sb.AppendLine();
+                    sb.Append($"touch_on({this.subTouchNo}, {previousSubPoint.X:F4}, {previousSubPoint.Y:F4})");
+                }
+                this.OutputControlLogIfEnabled(sb.ToString(), false);
+            }
+
+            var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
+            if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
+            {
+                var sb = new StringBuilder();
+                sb.Append($"touch_move({this.mainTouchNo}, {mainPoint.X:F4}, {mainPoint.Y:F4}, {elapsedMilliseconds})");
+                if (this.touchCenterEnabled)
+                {
+                    var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
+                    sb.AppendLine();
+                    sb.Append($"touch_move({this.subTouchNo}, {subPoint.X:F4}, {subPoint.Y:F4}, {elapsedMilliseconds})");
+                }
+                this.OutputControlLogIfEnabled(sb.ToString(), false);
+                this.lastMouseDownOrMoveAt = DateTime.Now;
+            }
+        }
+
+        void TouchOff(Device device, Point screenPoint)
+        {
+            if (device == null || device.Input.TouchPoints.Count == 0) return;
+
+            device.Input.OffTouch();
+            if (this.swiping)
+            {
+                var sb = new StringBuilder();
+                sb.Append($"touch_off({this.mainTouchNo})");
+                if (this.touchCenterEnabled)
+                {
+                    sb.AppendLine();
+                    sb.Append($"touch_off({this.subTouchNo})");
+                }
+                this.OutputControlLogIfEnabled(sb.ToString(), false);
+            }
+            else
+            {
+                var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
+                var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
+                elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogDurationUnitMilliseconds);
+                var sb = new StringBuilder();
+                if (this.touchCenterEnabled)
+                {
+                    var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
+                    sb.Append($"tap({this.mainTouchNo}, {mainPoint.X:F4}, {mainPoint.Y:F4}, {elapsedMilliseconds})");
+                    sb.AppendLine();
+                    sb.Append($"tap({this.subTouchNo}, {subPoint.X:F4}, {subPoint.Y:F4}, {elapsedMilliseconds})");
+                }
+                else
+                {
+                    sb.Append($"tap({mainPoint.X:F4}, {mainPoint.Y:F4}, {elapsedMilliseconds})");
+                }
+                this.OutputControlLogIfEnabled(sb.ToString(), false);
+            }
+            this.mainTouchNo = Input.InvalidTouchNo;
+            this.subTouchNo = Input.InvalidTouchNo;
+            this.lastMouseDownOrMoveAt = DateTime.MinValue;
+            this.swiping = false;
+            this.PlayBeepIfEnabled(Beep.Note.Pe);
+        }
+
+        void TouchCenterOn(Device device, Point screenPoint)
+        {
+            if (device == null) return;
+            var point = this.ScreenPointToNormalizedPoint(device, screenPoint);
+            this.uxTouchCenterMarker.CenterLocation = this.NormalizedPointToPictureBoxPoint(point);
+            this.touchCenterEnabled = true;
+            this.touchCenterNormalizedPoint = point;
+            this.PlayBeepIfEnabled(Beep.Note.Po);
+        }
+
+        void TouchCenterOff(Device device)
+        {
+            if (device == null) return;
+            this.TouchOff(device, this.currentScreenPoint);
+            this.touchCenterEnabled = false;
         }
 
         void StartScreenPictureUpdate()
@@ -543,13 +639,18 @@ namespace Suconbu.Sumacon
             return false;
         }
 
-        //PointF ScreenPointToNormalizedPoint(Point screenPoint)
-        //{
-        //    var imageRect = this.GetImageRectInPictureBox();
-        //    return new PointF(
-        //        (float)Math.Round((double)screenPoint.X / imageRect.Width),
-        //        (float)Math.Round((double)screenPoint.Y / imageRect.Height));
-        //}
+        PointF ScreenPointToNormalizedPoint(Device device, Point point)
+        {
+            var rotatedSize = device.RotatedScreenSize;
+            return new PointF(
+                (float)point.X / rotatedSize.Width,
+                (float)point.Y / rotatedSize.Height);
+        }
+
+        PointF GetMirroredPoint(PointF center, PointF point)
+        {
+            return new PointF(center.X - (point.X - center.X), center.Y - (point.Y - center.Y));
+        }
 
         //bool TryPictureBoxPointToNormalizedPoint(Point point, out PointF normalizedPoint)
         //{
@@ -616,7 +717,7 @@ namespace Suconbu.Sumacon
             var zoomRatio = this.kZoomRatios[this.zoomRatioIndex];
             var gridUnit = this.kZoomGridUnits[this.zoomRatioIndex];
             var gridAlpha = this.kZoomGridAlphas[this.zoomRatioIndex];
-            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.screenPoint, zoomRatio, gridUnit, gridAlpha);
+            this.uxZoomBox.UpdateContent(this.uxScreenPictureBox.Image, this.uxScreenPictureBox.BackColor, this.currentScreenPoint, zoomRatio, gridUnit, gridAlpha);
             this.uxZoomBox.Visible = true;
         }
 
@@ -630,7 +731,7 @@ namespace Suconbu.Sumacon
             if (this.beepEnabled) Beep.Play(notes);
         }
 
-        void OutputControlLogIfEnabled(string s, bool insertWait = true)
+        void OutputControlLogIfEnabled(string s = null, bool insertWait = true)
         {
             if (!this.recordingEnabled) return;
 
@@ -640,7 +741,10 @@ namespace Suconbu.Sumacon
                 var elapsed = this.GetTruncatedElapseMilliseconds(this.lastOutputControlLogAt, now, this.kLogDurationUnitMilliseconds);
                 this.sumacon.WriteConsole($"wait({elapsed})");
             }
-            this.sumacon.WriteConsole(s);
+            if (s != null)
+            {
+                this.sumacon.WriteConsole(s);
+            }
             this.lastOutputControlLogAt = now;
         }
 
@@ -649,13 +753,20 @@ namespace Suconbu.Sumacon
             return (int)Math.Truncate((to - from).TotalMilliseconds / multiply) * multiply;
         }
 
+        void UpdateTouchMarkers(Device device)
+        {
+            if (device == null) return;
+
+            this.Sumacon_ShowTouchMarkersRequested(device.Input.TouchPoints.Values.ToArray());
+        }
+
         void UpdateControlState()
         {
             var bitmap = this.uxScreenPictureBox.Image as Bitmap;
-            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.screenPoint))
+            if (bitmap != null && new Rectangle(new Point(0, 0), bitmap.Size).Contains(this.currentScreenPoint))
             {
-                this.uxTouchPositionLabel.Text = $"👆 {this.screenPoint.X}, {this.screenPoint.Y}";
-                var color = bitmap.GetPixel(this.screenPoint.X, this.screenPoint.Y);
+                this.uxTouchPositionLabel.Text = $"👆 {this.currentScreenPoint.X}, {this.currentScreenPoint.Y}";
+                var color = bitmap.GetPixel(this.currentScreenPoint.X, this.currentScreenPoint.Y);
                 this.uxColorLabel.Text = color.ToRgbString(true);
                 this.uxColorLabel.BackColor = color;
                 this.uxColorLabel.ForeColor = color.GetLuminance() >= 0.5f ? Color.Black : Color.White;
@@ -795,6 +906,15 @@ namespace Suconbu.Sumacon
                 g.FillRectangle(backBrush, rectangle);
             }
             g.DrawString(s, font, foreBrush, rectangle);
+        }
+    }
+
+    public class MarkerPanel : Panel
+    {
+        public Point CenterLocation
+        {
+            get => Point.Add(this.Location, this.Size.Multiplied(0.5));
+            set => this.Location = Point.Subtract(value, this.Size.Multiplied(0.5));
         }
     }
 
