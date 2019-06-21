@@ -334,7 +334,7 @@ namespace Suconbu.Sumacon
         {
             this.filteredLogs?.AddRange(this.GetFilteredLogs(new[] { log }));
 
-            this.logUpdateTimeoutId = Delay.SetTimeout(() =>
+            this.logUpdateTimeoutId = Delay.SetTimeout(() => this.SafeInvoke(() =>
             {
                 this.uxLogGridPanel.RowCount = this.GetLogCount();
                 if (this.AutoScrollEnabled && this.uxLogGridPanel.RowCount > 0 && this.uxLogGridPanel.Visible)
@@ -342,7 +342,7 @@ namespace Suconbu.Sumacon
                     this.uxLogGridPanel.FirstDisplayedScrollingRowIndex = this.uxLogGridPanel.RowCount - 1;
                 }
                 this.UpdateControlState();
-            }, this.logUpdateIntervalMilliseconds, this, this.logUpdateTimeoutId);
+            }), this.logUpdateIntervalMilliseconds, this.logUpdateTimeoutId);
         }
 
         bool IsValidFilter(string filter)
