@@ -12,7 +12,7 @@ namespace Suconbu.Mobile
 {
     public enum TouchProtocolType { A, B, C }
 
-    public class Input : DeviceComponent
+    public class Input : DeviceComponent, IDisposable
     {
         public const int InvalidTouchNo = -1;
         public string TouchDevice { get => (string)this[nameof(this.TouchDevice)].Value; }
@@ -45,7 +45,7 @@ namespace Suconbu.Mobile
             }
 
             var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
-            var e = this.touchProtocol.On(no, point.X, point.Y);
+            var e = this.touchProtocol.On(no, point.X, point.Y, this.TouchPoints.Count);
             if (this.touchPadContext == null || this.touchPadContext.Finished)
             {
                 this.touchPadContext = this.device.RunCommandAsync($"shell cat - > {this.TouchDevice}");
@@ -73,18 +73,18 @@ namespace Suconbu.Mobile
             {
                 if (no != Input.InvalidTouchNo)
                 {
-                    var e = this.touchProtocol.Off(no);
+                    var e = this.touchProtocol.Off(no, this.TouchPoints.Count);
                     this.touchPadContext?.PushInputBinary(e.ToArray(true));
                     this.touchPoints.Remove(no);
                 }
                 else
                 {
-                    foreach (var touchPoint in this.touchPoints)
+                    foreach (var touchPoint in this.touchPoints.Values.ToArray())
                     {
-                        var e = this.touchProtocol.Off(touchPoint.Key);
+                        var e = this.touchProtocol.Off(touchPoint.No, this.touchPoints.Count);
                         this.touchPadContext?.PushInputBinary(e.ToArray(true));
+                        this.touchPoints.Remove(touchPoint.No);
                     }
-                    this.touchPoints.Clear();
                 }
             }
         }
@@ -124,6 +124,17 @@ namespace Suconbu.Mobile
                 throw new NotSupportedException();
             return Point.Truncate(point);
         }
+
+        #region IDisposable Support
+        bool disposed = false;
+
+        public virtual void Dispose()
+        {
+            if (this.disposed) return;
+            this?.touchPadContext.Cancel();
+            this.disposed = true;
+        }
+        #endregion
     }
 
     public class TouchPoint
@@ -164,9 +175,9 @@ namespace Suconbu.Mobile
     {
         TouchProtocolType Type { get; }
 
-        InputEvent On(int no, int x, int y);
+        InputEvent On(int no, int x, int y, int count);
         InputEvent Move(int no, int x, int y);
-        InputEvent Off(int no);
+        InputEvent Off(int no, int count);
     }
 
     static class TouchProtocolFactory
@@ -186,7 +197,7 @@ namespace Suconbu.Mobile
 
         public TouchProtocolType Type { get => TouchProtocolType.A; }
 
-        public InputEvent On(int no, int x, int y)
+        public InputEvent On(int no, int x, int y, int count)
         {
             int sequenceNo;
             lock(this) sequenceNo = this.nextSequenceNo++;
@@ -209,7 +220,7 @@ namespace Suconbu.Mobile
             return e;
         }
 
-        public InputEvent Off(int no)
+        public InputEvent Off(int no, int count)
         {
             var e = new InputEvent();
             e.Add(0x0003, 0x002F, no);
@@ -223,10 +234,13 @@ namespace Suconbu.Mobile
     {
         public TouchProtocolType Type { get => TouchProtocolType.B; }
 
-        public InputEvent On(int no, int x, int y)
+        public InputEvent On(int no, int x, int y, int count)
         {
             var e = new InputEvent();
-            e.Add(0x0001, 0x014A, 1);
+            if (count == 1)
+            {
+                e.Add(0x0001, 0x014A, 1);
+            }
             e.Add(0x0003, 0x0039, no);
             e.Add(0x0003, 0x0035, x);
             e.Add(0x0003, 0x0036, y);
@@ -244,10 +258,13 @@ namespace Suconbu.Mobile
             return e;
         }
 
-        public InputEvent Off(int no)
+        public InputEvent Off(int no, int count)
         {
             var e = new InputEvent();
-            e.Add(0x0001, 0x014A, 0);
+            if (count == 1)
+            {
+                e.Add(0x0001, 0x014A, 0);
+            }
             e.Add(0x0000, 0x0000, 0);
             return e;
         }
@@ -259,7 +276,7 @@ namespace Suconbu.Mobile
 
         readonly int kPressure = 50;
 
-        public InputEvent On(int no, int x, int y)
+        public InputEvent On(int no, int x, int y, int count)
         {
             var e = new InputEvent();
             e.Add(0x0003, 0x0039, no);
@@ -285,7 +302,7 @@ namespace Suconbu.Mobile
             return e;
         }
 
-        public InputEvent Off(int no)
+        public InputEvent Off(int no, int count)
         {
             var e = new InputEvent();
             e.Add(0x0000, 0x0002, 0);
