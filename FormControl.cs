@@ -448,7 +448,7 @@ namespace Suconbu.Sumacon
                 this.OutputControlLogIfEnabled(sb.ToString(), false);
             }
 
-            var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
+            var elapsedMilliseconds = this.GetElapsedMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
             if (elapsedMilliseconds >= this.kLogTouchMoveThresholdMilliseconds)
             {
                 var sb = new StringBuilder();
@@ -483,7 +483,7 @@ namespace Suconbu.Sumacon
             else
             {
                 var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
-                var elapsedMilliseconds = this.GetTruncatedElapseMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
+                var elapsedMilliseconds = this.GetElapsedMilliseconds(this.lastMouseDownOrMoveAt, DateTime.Now, this.kLogDurationUnitMilliseconds);
                 elapsedMilliseconds = Math.Max(elapsedMilliseconds, this.kLogDurationUnitMilliseconds);
                 var sb = new StringBuilder();
                 if (this.touchCenterEnabled)
@@ -738,7 +738,7 @@ namespace Suconbu.Sumacon
             var now = DateTime.Now;
             if (insertWait && this.lastOutputControlLogAt != DateTime.MinValue)
             {
-                var elapsed = this.GetTruncatedElapseMilliseconds(this.lastOutputControlLogAt, now, this.kLogDurationUnitMilliseconds);
+                var elapsed = this.GetElapsedMilliseconds(this.lastOutputControlLogAt, now, this.kLogDurationUnitMilliseconds);
                 this.sumacon.WriteConsole($"wait({elapsed})");
             }
             if (s != null)
@@ -748,9 +748,9 @@ namespace Suconbu.Sumacon
             this.lastOutputControlLogAt = now;
         }
 
-        int GetTruncatedElapseMilliseconds(DateTime from, DateTime to, int multiply = 1)
+        int GetElapsedMilliseconds(DateTime from, DateTime to, int multiply = 1)
         {
-            return (int)Math.Truncate((to - from).TotalMilliseconds / multiply) * multiply;
+            return (int)Math.Ceiling((to - from).TotalMilliseconds / multiply) * multiply;
         }
 
         void UpdateTouchMarkers(Device device)
