@@ -41,7 +41,9 @@ namespace Suconbu.Sumacon
         SortableBindingList<VarEntry> watchedVars = new SortableBindingList<VarEntry>();
         Task scriptTask;
         CancellationTokenSource scriptTaskCanceller;
-        List<TouchMoveCommand> deferredTouchMoves = new List<TouchMoveCommand>();
+        List<TouchCommand> deferredTaps = new List<TouchCommand>();
+        List<TouchCommand> deferredTouchMoves = new List<TouchCommand>();
+        string previousInvokedFunctionName;
 
         readonly int kCurrentLineMarkId = 1;
 
@@ -166,6 +168,8 @@ namespace Suconbu.Sumacon
 
         void OnStop()
         {
+            this.deferredTaps.Clear();
+            this.deferredTouchMoves.Clear();
             this.scriptTaskCanceller?.Cancel();
             this.runState = RunState.Ready;
             this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
@@ -245,7 +249,11 @@ namespace Suconbu.Sumacon
                 });
                 return true;
             }
-            return false;
+            else
+            {
+                this.FlushDeferredTouchCommands(this.sumacon.DeviceManager.ActiveDevice);
+                return false;
+            }
         }
 
         static class ScriptCommandNames
@@ -311,10 +319,12 @@ namespace Suconbu.Sumacon
 
         private void Interpreter_FunctionInvoking(object sender, string name)
         {
-            if (name != ScriptCommandNames.TouchMove)
+            if (this.previousInvokedFunctionName != name &&
+                this.IsDeferrableFunction(this.previousInvokedFunctionName))
             {
-                this.FlushDeferfedTouchMoves(this.sumacon.DeviceManager.ActiveDevice);
+                this.FlushDeferredTouchCommands(this.sumacon.DeviceManager.ActiveDevice);
             }
+            this.previousInvokedFunctionName = name;
         }
 
         Memezo.Value Interpreter_Print(List<Memezo.Value> args)
@@ -342,17 +352,19 @@ namespace Suconbu.Sumacon
 
         Memezo.Value Interpreter_Tap(List<Memezo.Value> args)
         {
-            if (args.Count < 2) throw new ArgumentException("Too few arguments");
+            if (args.Count < 3) throw new ArgumentException("Too few arguments");
 
-            var x = (args[0].Type == Memezo.DataType.Number) ? (float)args[0].Number : throw new ArgumentException("Argument type mismatch", "x");
-            var y = (args[1].Type == Memezo.DataType.Number) ? (float)args[1].Number : throw new ArgumentException("Argument type mismatch", "y");
-            var duration = 100;
-            if (args.Count > 2)
+            var argsIndex = 0;
+            var no = Input.InvalidTouchNo;
+            if (args.Count >= 4)
             {
-                duration = (args[2].Type == Memezo.DataType.Number) ? (int)args[2].Number : throw new ArgumentException("Argument type mismatch", "duration");
+                no = (args[argsIndex].Type == Memezo.DataType.Number) ? (int)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "no"); argsIndex++;
             }
+            var x = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "x"); argsIndex++;
+            var y = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "y"); argsIndex++;
+            var duration = (args[argsIndex].Type == Memezo.DataType.Number) ? (int)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "duration"); argsIndex++;
 
-            this.Tap(x, y, duration);
+            this.Tap(no, x, y, duration);
 
             return Memezo.Value.Zero;
         }
@@ -374,16 +386,12 @@ namespace Suconbu.Sumacon
         // touch_move(no, x, y, duration)
         Memezo.Value Interpreter_TouchMove(List<Memezo.Value> args)
         {
-            if (args.Count < 3) throw new ArgumentException("Too few arguments");
+            if (args.Count < 4) throw new ArgumentException("Too few arguments");
 
             var no = (args[0].Type == Memezo.DataType.Number) ? (int)args[0].Number : throw new ArgumentException("Argument type mismatch", "no");
             var x = (args[1].Type == Memezo.DataType.Number) ? (float)args[1].Number : throw new ArgumentException("Argument type mismatch", "x");
             var y = (args[2].Type == Memezo.DataType.Number) ? (float)args[2].Number : throw new ArgumentException("Argument type mismatch", "y");
-            var duration = 0;
-            if (args.Count > 3)
-            {
-                duration = (args[3].Type == Memezo.DataType.Number) ? (int)args[3].Number : throw new ArgumentException("Argument type mismatch", "duration");
-            }
+            var duration = (args[3].Type == Memezo.DataType.Number) ? (int)args[3].Number : throw new ArgumentException("Argument type mismatch", "duration");
 
             this.TouchMove(no, x, y, duration);
 
@@ -467,19 +475,17 @@ namespace Suconbu.Sumacon
             return new Memezo.Value((int)device.Screen.UserRotation);
         }
 
-        void Tap(float x, float y, int duration)
+        void Tap(int no, float x, float y, int duration)
         {
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            var no = device.Input.Tap(x, y, duration);
-
-            this.UpdateTouchMarkers(device);
-
-            Task.Delay(duration).Wait();
-            while (device.Input.TouchPoints.ContainsKey(no)) Task.Delay(10).Wait();
-
-            this.UpdateTouchMarkers(device);
+            if (this.deferredTaps.Count > 0 &&
+               this.deferredTaps.Exists(c => c.TouchNo == no))
+            {
+                this.FlushDeferredTouchCommands(device);
+            }
+            this.deferredTaps.Add(new TouchCommand(no, x, y, duration));
         }
 
         void TouchOn(int no, float x, float y)
@@ -487,7 +493,7 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            device.Input.OnTouch(no, x, y);
+            device.Input.TouchOn(no, x, y);
 
             this.UpdateTouchMarkers(device);
         }
@@ -500,9 +506,9 @@ namespace Suconbu.Sumacon
             if(this.deferredTouchMoves.Count > 0 &&
                this.deferredTouchMoves.Exists(c => c.TouchNo == no))
             {
-                this.FlushDeferfedTouchMoves(device);
+                this.FlushDeferredTouchCommands(device);
             }
-            this.deferredTouchMoves.Add(new TouchMoveCommand(no, x, y, duration));
+            this.deferredTouchMoves.Add(new TouchCommand(no, x, y, duration));
         }
 
         void TouchOff(int no)
@@ -510,12 +516,42 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
-            device.Input.OffTouch(no);
+            device.Input.TouchOff(no);
 
             this.UpdateTouchMarkers(device);
         }
 
-        void FlushDeferfedTouchMoves(Device device)
+        bool IsDeferrableFunction(string name)
+        {
+            return
+                name == ScriptCommandNames.Tap ||
+                name == ScriptCommandNames.TouchMove;
+        }
+
+        void FlushDeferredTouchCommands(Device device)
+        {
+            this.FlushDeferredTaps(device);
+            this.FlushDeferredTouchMoves(device);
+        }
+
+        void FlushDeferredTaps(Device device)
+        {
+            if (device == null) return;
+            if (this.deferredTaps.Count == 0) return;
+
+            var maxDuration = this.deferredTaps.Max(c => c.Duration);
+            var startedAt = DateTime.Now;
+            foreach (var command in this.deferredTaps)
+            {
+                device.Input.Tap(command.TouchNo, command.Point.X, command.Point.Y, command.Duration);
+            }
+            this.UpdateTouchMarkers(device);
+            while (device.Input.TouchPoints.Count > 0) Task.Delay(10).Wait();
+            this.deferredTaps.Clear();
+            this.UpdateTouchMarkers(device);
+        }
+
+        void FlushDeferredTouchMoves(Device device)
         {
             if (device == null) return;
             if (this.deferredTouchMoves.Count == 0) return;
@@ -532,9 +568,9 @@ namespace Suconbu.Sumacon
                     var no = command.TouchNo;
                     var previousPoint = previousPoints[no].Location;
                     var progress = Math.Min(1.0f, elaspseMilliseconds / durations[no]);
-                    var ix = previousPoint.X + (command.MoveTo.X - previousPoint.X) * progress;
-                    var iy = previousPoint.Y + (command.MoveTo.Y - previousPoint.Y) * progress;
-                    device.Input.MoveTouch(no, ix, iy);
+                    var ix = previousPoint.X + (command.Point.X - previousPoint.X) * progress;
+                    var iy = previousPoint.Y + (command.Point.Y - previousPoint.Y) * progress;
+                    device.Input.TouchMove(no, ix, iy);
                 }
                 this.UpdateTouchMarkers(device);
 
@@ -718,16 +754,16 @@ namespace Suconbu.Sumacon
             public int GetHashCode(VarEntry p) => p.Name.GetHashCode();
         }
 
-        struct TouchMoveCommand
+        struct TouchCommand
         {
             public int TouchNo { get; private set; }
-            public PointF MoveTo { get; private set; }
+            public PointF Point { get; private set; }
             public int Duration { get; private set; }
 
-            public TouchMoveCommand(int no, float x, float y, int duration)
+            public TouchCommand(int no, float x, float y, int duration)
             {
                 this.TouchNo = no;
-                this.MoveTo = new PointF(x, y);
+                this.Point = new PointF(x, y);
                 this.Duration = duration;
             }
         }

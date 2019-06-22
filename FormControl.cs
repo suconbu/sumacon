@@ -410,12 +410,12 @@ namespace Suconbu.Sumacon
             if (device == null) return;
 
             var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
-            this.mainTouchNo = device.Input.OnTouch(mainPoint.X, mainPoint.Y);
+            this.mainTouchNo = device.Input.TouchOn(mainPoint.X, mainPoint.Y);
             this.subTouchNo = Input.InvalidTouchNo;
             if (this.touchCenterEnabled)
             {
                 var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
-                this.subTouchNo = device.Input.OnTouch(subPoint.X, subPoint.Y);
+                this.subTouchNo = device.Input.TouchOn(subPoint.X, subPoint.Y);
             }
             this.OutputControlLogIfEnabled();
             this.lastMouseDownOrMoveAt = DateTime.Now;
@@ -427,11 +427,11 @@ namespace Suconbu.Sumacon
             if (device == null || this.mainTouchNo == Input.InvalidTouchNo) return;
 
             var mainPoint = this.ScreenPointToNormalizedPoint(device, screenPoint);
-            device.Input.MoveTouch(this.mainTouchNo, mainPoint.X, mainPoint.Y);
+            device.Input.TouchMove(this.mainTouchNo, mainPoint.X, mainPoint.Y);
             if(this.touchCenterEnabled)
             {
                 var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
-                device.Input.MoveTouch(this.subTouchNo, subPoint.X, subPoint.Y);
+                device.Input.TouchMove(this.subTouchNo, subPoint.X, subPoint.Y);
             }
             if (!this.swiping)
             {
@@ -468,7 +468,7 @@ namespace Suconbu.Sumacon
         {
             if (device == null || device.Input.TouchPoints.Count == 0) return;
 
-            device.Input.OffTouch();
+            device.Input.TouchOff();
             if (this.swiping)
             {
                 var sb = new StringBuilder();

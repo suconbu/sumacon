@@ -31,74 +31,79 @@ namespace Suconbu.Mobile
 
         public Input(Device device, string xmlPath) : base(device, xmlPath) { }
 
-        public int OnTouch(float x, float y)
+        public int TouchOn(float x, float y)
         {
-            return this.OnTouch(Input.InvalidTouchNo, x, y);
+            return this.TouchOn(Input.InvalidTouchNo, x, y);
         }
 
-        public int OnTouch(int no, float x, float y)
+        public int TouchOn(int no, float x, float y)
         {
-            if (no == Input.InvalidTouchNo)
+            lock (this)
             {
-                lock (this)
-                {
-                    no = this.touchPoints.Count;
-                }
+                no = (no == Input.InvalidTouchNo) ? this.touchPoints.Count : no;
+                this.touchPoints[no] = new TouchPoint(no, x, y);
             }
 
-            this.touchPoints[no] = new TouchPoint(no, x, y);
-
             var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
-
             var e = this.touchProtocol.On(no, point.X, point.Y);
-
             if (this.touchPadContext == null || this.touchPadContext.Finished)
             {
                 this.touchPadContext = this.device.RunCommandAsync($"shell cat - > {this.TouchDevice}");
             }
-            this.touchPadContext.PushInputBinary(e.ToArray(true));
+            lock (this) this.touchPadContext.PushInputBinary(e.ToArray(true));
+
             return no;
         }
 
-        public void MoveTouch(int no, float x, float y)
+        public void TouchMove(int no, float x, float y)
         {
             if (!this.touchPoints.TryGetValue(no, out var touchPoint)) return;
 
             var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
             var e = this.touchProtocol.Move(no, point.X, point.Y);
-            this.touchPadContext?.PushInputBinary(e.ToArray(true));
+            lock (this) this.touchPadContext?.PushInputBinary(e.ToArray(true));
 
             touchPoint.X = x;
             touchPoint.Y = y;
         }
 
-        public void OffTouch(int no = Input.InvalidTouchNo)
+        public void TouchOff(int no = Input.InvalidTouchNo)
         {
-            if (no != Input.InvalidTouchNo)
+            lock (this)
             {
-                lock (this) this.touchPoints.Remove(no);
-                var e = this.touchProtocol.Off(no);
-                this.touchPadContext?.PushInputBinary(e.ToArray(true));
-            }
-            else
-            {
-                foreach(var touchPoint in this.touchPoints)
+                if (no != Input.InvalidTouchNo)
                 {
-                    var e = this.touchProtocol.Off(touchPoint.Key);
+                    var e = this.touchProtocol.Off(no);
                     this.touchPadContext?.PushInputBinary(e.ToArray(true));
+                    this.touchPoints.Remove(no);
                 }
-                lock (this) this.touchPoints.Clear();
+                else
+                {
+                    foreach (var touchPoint in this.touchPoints)
+                    {
+                        var e = this.touchProtocol.Off(touchPoint.Key);
+                        this.touchPadContext?.PushInputBinary(e.ToArray(true));
+                    }
+                    this.touchPoints.Clear();
+                }
             }
         }
 
-        public int Tap(float x, float y, int durationMilliseconds = 100)
+        public int Tap(float x, float y, int durationMilliseconds)
         {
-            var no = this.OnTouch(x, y);
-            Delay.SetTimeout(() => this.OffTouch(no), durationMilliseconds);
+            var no = this.TouchOn(x, y);
+            Delay.SetTimeout(() => this.TouchOff(no), durationMilliseconds);
             return no;
         }
 
-        public void Swipe(float x1, float y1, float x2, float y2, int durationMilliseconds = 100)
+        public int Tap(int no, float x, float y, int durationMilliseconds)
+        {
+            this.TouchOn(no, x, y);
+            Delay.SetTimeout(() => this.TouchOff(no), durationMilliseconds);
+            return no;
+        }
+
+        public void Swipe(float x1, float y1, float x2, float y2, int durationMilliseconds)
         {
             var px1 = (int)(x1 * this.device.Screen.Size.Width);
             var py1 = (int)(y1 * this.device.Screen.Size.Height);
