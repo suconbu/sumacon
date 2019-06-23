@@ -251,7 +251,9 @@ namespace Suconbu.Sumacon
             }
             else
             {
-                this.FlushDeferredTouchCommands(this.sumacon.DeviceManager.ActiveDevice);
+                // Finish to run
+                var device = this.sumacon.DeviceManager.ActiveDevice;
+                this.FlushDeferredTouchCommands(device);
                 return false;
             }
         }
@@ -539,14 +541,29 @@ namespace Suconbu.Sumacon
             if (device == null) return;
             if (this.deferredTaps.Count == 0) return;
 
-            var maxDuration = this.deferredTaps.Max(c => c.Duration);
-            var startedAt = DateTime.Now;
-            foreach (var command in this.deferredTaps)
+            var touchNos = new Dictionary<TouchCommand, int>();
+            foreach(var command in this.deferredTaps)
             {
-                device.Input.Tap(command.TouchNo, command.Point.X, command.Point.Y, command.Duration);
+                touchNos[command] = (device.Input.TouchOn(command.TouchNo, command.Point.X, command.Point.Y));
             }
             this.UpdateTouchMarkers(device);
-            while (device.Input.TouchPoints.Count > 0) Task.Delay(10).Wait();
+
+            var maxDuration = this.deferredTaps.Max(c => c.Duration);
+            var startedAt = DateTime.Now;
+            while (true)
+            {
+                var elaspseMilliseconds = (float)(DateTime.Now - startedAt).TotalMilliseconds;
+                foreach (var command in this.deferredTaps.ToArray())
+                {
+                    if(command.Duration < elaspseMilliseconds)
+                    {
+                        device.Input.TouchOff(touchNos[command]);
+                        this.deferredTaps.Remove(command);
+                    }
+                }
+                if (elaspseMilliseconds > maxDuration) break;
+                Task.Delay(10).Wait();
+            }
             this.deferredTaps.Clear();
             this.UpdateTouchMarkers(device);
         }

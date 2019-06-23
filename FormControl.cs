@@ -256,7 +256,7 @@ namespace Suconbu.Sumacon
 
         void Sumacon_ShowTouchMarkersRequested(Mobile.TouchPoint[] touchPoints)
         {
-            for(int i = 0; i < this.kTouchMarkerCountMax; i++)
+            for (int i = 0; i < this.kTouchMarkerCountMax; i++)
             {
                 var touchPoint = touchPoints.FirstOrDefault(p => p.No == i);
                 if (touchPoint != null)
@@ -433,6 +433,7 @@ namespace Suconbu.Sumacon
                 var subPoint = this.GetMirroredPoint(this.touchCenterNormalizedPoint, mainPoint);
                 device.Input.TouchMove(this.subTouchNo, subPoint.X, subPoint.Y);
             }
+
             if (!this.swiping)
             {
                 this.swiping = true;

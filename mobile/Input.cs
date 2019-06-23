@@ -42,63 +42,56 @@ namespace Suconbu.Mobile
             {
                 no = (no == Input.InvalidTouchNo) ? this.touchPoints.Count : no;
                 this.touchPoints[no] = new TouchPoint(no, x, y);
-            }
+                var e = this.touchProtocol.On(no, this.GetActiveTouchPoints(), this.NormalizedToTouchPadPoint);
+                if (this.touchPadContext == null || this.touchPadContext.Finished)
+                {
+                    this.touchPadContext = this.device.RunCommandAsync($"shell cat - > {this.TouchDevice}");
+                }
+                this.touchPadContext.PushInputBinary(e.ToArray(true));
 
-            var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
-            var e = this.touchProtocol.On(no, point.X, point.Y, this.TouchPoints.Count);
-            if (this.touchPadContext == null || this.touchPadContext.Finished)
-            {
-                this.touchPadContext = this.device.RunCommandAsync($"shell cat - > {this.TouchDevice}");
+                return no;
             }
-            lock (this) this.touchPadContext.PushInputBinary(e.ToArray(true));
-
-            return no;
         }
 
         public void TouchMove(int no, float x, float y)
         {
-            if (!this.touchPoints.TryGetValue(no, out var touchPoint)) return;
-
-            var point = this.NormalizedToTouchPadPoint(x, y, this.device.CurrentRotation);
-            var e = this.touchProtocol.Move(no, point.X, point.Y);
-            lock (this) this.touchPadContext?.PushInputBinary(e.ToArray(true));
-
-            touchPoint.X = x;
-            touchPoint.Y = y;
+            lock (this)
+            {
+                if (!this.touchPoints.TryGetValue(no, out var touchPoint)) return;
+                touchPoint.X = x;
+                touchPoint.Y = y;
+                var e = this.touchProtocol.Move(no, this.GetActiveTouchPoints(), this.NormalizedToTouchPadPoint);
+                this.touchPadContext?.PushInputBinary(e.ToArray(true));
+            }
         }
 
-        public void TouchOff(int no = Input.InvalidTouchNo)
+        public void TouchOff()
         {
             lock (this)
             {
-                if (no != Input.InvalidTouchNo)
+                foreach (var touchPoint in this.touchPoints.Values.ToArray())
                 {
-                    var e = this.touchProtocol.Off(no, this.TouchPoints.Count);
+                    var e = this.touchProtocol.Off(touchPoint.No, this.GetActiveTouchPoints());
                     this.touchPadContext?.PushInputBinary(e.ToArray(true));
-                    this.touchPoints.Remove(no);
+                    this.touchPoints.Remove(touchPoint.No);
                 }
-                else
-                {
-                    foreach (var touchPoint in this.touchPoints.Values.ToArray())
-                    {
-                        var e = this.touchProtocol.Off(touchPoint.No, this.touchPoints.Count);
-                        this.touchPadContext?.PushInputBinary(e.ToArray(true));
-                        this.touchPoints.Remove(touchPoint.No);
-                    }
-                }
+            }
+        }
+
+        public void TouchOff(int no)
+        {
+            lock (this)
+            {
+                var e = this.touchProtocol.Off(no, this.GetActiveTouchPoints());
+                this.touchPadContext?.PushInputBinary(e.ToArray(true));
+                this.touchPoints.Remove(no);
             }
         }
 
         public int Tap(float x, float y, int durationMilliseconds)
         {
             var no = this.TouchOn(x, y);
-            Delay.SetTimeout(() => this.TouchOff(no), durationMilliseconds);
-            return no;
-        }
-
-        public int Tap(int no, float x, float y, int durationMilliseconds)
-        {
-            this.TouchOn(no, x, y);
+            this.TouchMove(no, x, y);
             Delay.SetTimeout(() => this.TouchOff(no), durationMilliseconds);
             return no;
         }
@@ -112,8 +105,16 @@ namespace Suconbu.Mobile
             this.device.RunCommandAsync($"shell input {x1} {y1} {x2} {y2} {durationMilliseconds}");
         }
 
-        Point NormalizedToTouchPadPoint(float nx, float ny, Screen.Rotation rotation)
+        TouchPoint[] GetActiveTouchPoints()
         {
+            return this.touchPoints.Values.OrderBy(p => p.No).ToArray();
+        }
+
+        Point NormalizedToTouchPadPoint(PointF normalizedPoint)
+        {
+            var nx = normalizedPoint.X;
+            var ny = normalizedPoint.Y;
+            var rotation = this.device.CurrentRotation;
             var w = this.TouchMax.X - this.TouchMin.X;
             var h = this.TouchMax.Y - this.TouchMin.Y;
             var point =
@@ -122,6 +123,8 @@ namespace Suconbu.Mobile
                 (rotation == Screen.Rotation.Landscape) ? new PointF((1.0f - ny) * w, nx * h) :
                 (rotation == Screen.Rotation.LandscapeReversed) ? new PointF(ny * w, (1.0f - nx) * h) :
                 throw new NotSupportedException();
+            point.X += this.TouchMin.X;
+            point.Y += this.TouchMin.Y;
             return Point.Truncate(point);
         }
 
@@ -175,9 +178,9 @@ namespace Suconbu.Mobile
     {
         TouchProtocolType Type { get; }
 
-        InputEvent On(int no, int x, int y, int count);
-        InputEvent Move(int no, int x, int y);
-        InputEvent Off(int no, int count);
+        InputEvent On(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad);
+        InputEvent Move(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad);
+        InputEvent Off(int no, TouchPoint[] touchPoints);
     }
 
     static class TouchProtocolFactory
@@ -193,34 +196,36 @@ namespace Suconbu.Mobile
 
     class TouchProtocolA : ITouchProtocol
     {
-        int nextSequenceNo = 1;
-
         public TouchProtocolType Type { get => TouchProtocolType.A; }
 
-        public InputEvent On(int no, int x, int y, int count)
+        int nextSequenceNo = 1;
+
+        public InputEvent On(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
         {
             int sequenceNo;
             lock(this) sequenceNo = this.nextSequenceNo++;
+            var p = normalizedToTouchPad(touchPoints[no].Location);
             var e = new InputEvent();
             e.Add(0x0003, 0x002F, no);
             e.Add(0x0003, 0x0039, sequenceNo);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x0035, p.X);
+            e.Add(0x0003, 0x0036, p.Y);
             e.Add(0x0000, 0x0000, 0);
             return e;
         }
 
-        public InputEvent Move(int no, int x, int y)
+        public InputEvent Move(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
         {
+            var p = normalizedToTouchPad(touchPoints[no].Location);
             var e = new InputEvent();
             e.Add(0x0003, 0x002F, no);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x0035, p.X);
+            e.Add(0x0003, 0x0036, p.Y);
             e.Add(0x0000, 0x0000, 0);
             return e;
         }
 
-        public InputEvent Off(int no, int count)
+        public InputEvent Off(int no, TouchPoint[] touchPoints)
         {
             var e = new InputEvent();
             e.Add(0x0003, 0x002F, no);
@@ -234,38 +239,49 @@ namespace Suconbu.Mobile
     {
         public TouchProtocolType Type { get => TouchProtocolType.B; }
 
-        public InputEvent On(int no, int x, int y, int count)
+        public InputEvent On(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
         {
             var e = new InputEvent();
-            if (count == 1)
+            if (touchPoints.Length == 1)
             {
                 e.Add(0x0001, 0x014A, 1);
             }
-            e.Add(0x0003, 0x0039, no);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
-            e.Add(0x0000, 0x0000, 0);
-            return e;
-        }
-
-        public InputEvent Move(int no, int x, int y)
-        {
-            var e = new InputEvent();
-            e.Add(0x0003, 0x0039, no);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
-            e.Add(0x0000, 0x0000, 0);
-            return e;
-        }
-
-        public InputEvent Off(int no, int count)
-        {
-            var e = new InputEvent();
-            if (count == 1)
+            foreach (var touchPoint in touchPoints)
             {
-                e.Add(0x0001, 0x014A, 0);
+                var p = normalizedToTouchPad(touchPoint.Location);
+                e.Add(0x0003, 0x0039, touchPoint.No);
+                e.Add(0x0003, 0x0035, p.X);
+                e.Add(0x0003, 0x0036, p.Y);
+                e.Add(0x0000, 0x0002, 0);
             }
             e.Add(0x0000, 0x0000, 0);
+            return e;
+        }
+
+        public InputEvent Move(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
+        {
+            var e = new InputEvent();
+            foreach (var touchPoint in touchPoints)
+            {
+                var p = normalizedToTouchPad(touchPoint.Location);
+                e.Add(0x0003, 0x0039, touchPoint.No);
+                e.Add(0x0003, 0x0035, p.X);
+                e.Add(0x0003, 0x0036, p.Y);
+                e.Add(0x0000, 0x0002, 0);
+            }
+            e.Add(0x0000, 0x0000, 0);
+            return e;
+        }
+
+        public InputEvent Off(int no, TouchPoint[] touchPoints)
+        {
+            var e = new InputEvent();
+            if (touchPoints.Length == 1)
+            {
+                e.Add(0x0001, 0x014A, 0);
+                e.Add(0x0000, 0x0002, 0);
+                e.Add(0x0000, 0x0000, 0);
+            }
             return e;
         }
     }
@@ -276,33 +292,35 @@ namespace Suconbu.Mobile
 
         readonly int kPressure = 50;
 
-        public InputEvent On(int no, int x, int y, int count)
+        public InputEvent On(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
         {
+            var p = normalizedToTouchPad(touchPoints[no].Location);
             var e = new InputEvent();
             e.Add(0x0003, 0x0039, no);
             e.Add(0x0003, 0x0037, 0);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x0035, p.X);
+            e.Add(0x0003, 0x0036, p.Y);
             e.Add(0x0003, 0x003A, this.kPressure);
             e.Add(0x0000, 0x0002, 0);
             e.Add(0x0000, 0x0000, 0);
             return e;
         }
 
-        public InputEvent Move(int no, int x, int y)
+        public InputEvent Move(int no, TouchPoint[] touchPoints, Func<PointF, Point> normalizedToTouchPad)
         {
+            var p = normalizedToTouchPad(touchPoints[no].Location);
             var e = new InputEvent();
             e.Add(0x0003, 0x0039, no);
             e.Add(0x0003, 0x0037, 0);
-            e.Add(0x0003, 0x0035, x);
-            e.Add(0x0003, 0x0036, y);
+            e.Add(0x0003, 0x0035, p.X);
+            e.Add(0x0003, 0x0036, p.Y);
             e.Add(0x0003, 0x003A, this.kPressure);
             e.Add(0x0000, 0x0002, 0);
             e.Add(0x0000, 0x0000, 0);
             return e;
         }
 
-        public InputEvent Off(int no, int count)
+        public InputEvent Off(int no, TouchPoint[] touchPoints)
         {
             var e = new InputEvent();
             e.Add(0x0000, 0x0002, 0);
@@ -311,13 +329,12 @@ namespace Suconbu.Mobile
         }
     }
 
-    struct InputEvent
+    class InputEvent
     {
-        List<byte> data;
+        List<byte> data = new List<byte>();
 
         public void Add(ushort d1, ushort d2, int d3)
         {
-            if (this.data == null) this.data = new List<byte>();
             this.data.AddRange(BitConverter.GetBytes((long)0));
             this.data.AddRange(BitConverter.GetBytes((long)0));
             this.data.AddRange(BitConverter.GetBytes(d1));
