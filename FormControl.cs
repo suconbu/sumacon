@@ -188,7 +188,7 @@ namespace Suconbu.Sumacon
                 var touchMarker = new MarkerPanel()
                 {
                     Visible = false,
-                    BackColor = Color.Lime,
+                    BackColor = Color.OrangeRed,
                     Size = new Size(10, 10)
                 };
                 this.uxScreenPictureBox.Controls.Add(touchMarker);
