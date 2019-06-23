@@ -42,6 +42,7 @@ namespace Suconbu.Sumacon
         Task scriptTask;
         CancellationTokenSource scriptTaskCanceller;
         List<TouchCommand> deferredTaps = new List<TouchCommand>();
+        List<TouchCommand> deferredSwipes = new List<TouchCommand>();
         List<TouchCommand> deferredTouchMoves = new List<TouchCommand>();
         string previousInvokedFunctionName;
 
@@ -119,7 +120,7 @@ namespace Suconbu.Sumacon
         void DeviceManager_PropertyChanged(object sender, IReadOnlyList<Mobile.Property> properties)
         {
             this.updateControlStateTimeoutKey = Delay.SetTimeout(
-                () => this.SafeInvoke(this.UpdateControlState), 100, this, this.updateControlStateTimeoutKey, true);
+                () => this.SafeInvoke(this.UpdateControlState), 100, this.updateControlStateTimeoutKey, true);
         }
 
         void UxWatchPanel_CellMouseDoubleClick(object sender, DataGridViewCellMouseEventArgs e)
@@ -168,8 +169,7 @@ namespace Suconbu.Sumacon
 
         void OnStop()
         {
-            this.deferredTaps.Clear();
-            this.deferredTouchMoves.Clear();
+            this.ClearDeferredCommands();
             this.scriptTaskCanceller?.Cancel();
             this.runState = RunState.Ready;
             this.uxScriptTextBox.Document.Unmark(this.markStartIndex, this.markEndIndex, this.kCurrentLineMarkId);
@@ -264,6 +264,7 @@ namespace Suconbu.Sumacon
             public static readonly string Wait = "wait";
             public static readonly string Beep = "beep";
             public static readonly string Tap = "tap";
+            public static readonly string Swipe = "swipe";
             public static readonly string TouchOn = "touch_on";
             public static readonly string TouchMove = "touch_move";
             public static readonly string TouchOff = "touch_off";
@@ -282,6 +283,7 @@ namespace Suconbu.Sumacon
             this.interpreter.Functions[ScriptCommandNames.Wait] = this.Interpreter_Wait;
             this.interpreter.Functions[ScriptCommandNames.Beep] = this.Interpreter_Beep;
             this.interpreter.Functions[ScriptCommandNames.Tap] = this.Interpreter_Tap;
+            this.interpreter.Functions[ScriptCommandNames.Swipe] = this.Interpreter_Swipe;
             this.interpreter.Functions[ScriptCommandNames.TouchOn] = this.Interpreter_TouchOn;
             this.interpreter.Functions[ScriptCommandNames.TouchMove] = this.Interpreter_TouchMove;
             this.interpreter.Functions[ScriptCommandNames.TouchOff] = this.Interpreter_TouchOff;
@@ -352,6 +354,8 @@ namespace Suconbu.Sumacon
             return Memezo.Value.Zero;
         }
 
+        // tap(x, y, duration)
+        // tap(no, x, y, duration)
         Memezo.Value Interpreter_Tap(List<Memezo.Value> args)
         {
             if (args.Count < 3) throw new ArgumentException("Too few arguments");
@@ -367,6 +371,28 @@ namespace Suconbu.Sumacon
             var duration = (args[argsIndex].Type == Memezo.DataType.Number) ? (int)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "duration"); argsIndex++;
 
             this.Tap(no, x, y, duration);
+
+            return Memezo.Value.Zero;
+        }
+
+        // swipe(x, y, direction, distance, duration)
+        Memezo.Value Interpreter_Swipe(List<Memezo.Value> args)
+        {
+            if (args.Count < 5) throw new ArgumentException("Too few arguments");
+
+            var argsIndex = 0;
+            var no = Input.InvalidTouchNo;
+            if (args.Count >= 6)
+            {
+                no = (args[argsIndex].Type == Memezo.DataType.Number) ? (int)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "no"); argsIndex++;
+            }
+            var x = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "x"); argsIndex++;
+            var y = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "y"); argsIndex++;
+            var direction = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "duration"); argsIndex++;
+            var distance = (args[argsIndex].Type == Memezo.DataType.Number) ? (float)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "duration"); argsIndex++;
+            var duration = (args[argsIndex].Type == Memezo.DataType.Number) ? (int)args[argsIndex].Number : throw new ArgumentException("Argument type mismatch", "duration"); argsIndex++;
+
+            this.Swipe(no, x, y, direction, distance, duration);
 
             return Memezo.Value.Zero;
         }
@@ -482,12 +508,40 @@ namespace Suconbu.Sumacon
             var device = this.sumacon.DeviceManager.ActiveDevice;
             if (device == null) throw new InvalidOperationException("Device not available");
 
+            var actualTouchNo = device.Input.TouchOn(no, x, y);
+
             if (this.deferredTaps.Count > 0 &&
-               this.deferredTaps.Exists(c => c.TouchNo == no))
+               this.deferredTaps.Exists(c => c.TouchNo == actualTouchNo))
             {
                 this.FlushDeferredTouchCommands(device);
             }
-            this.deferredTaps.Add(new TouchCommand(no, x, y, duration));
+            this.deferredTaps.Add(new TouchCommand(actualTouchNo, x, y, duration));
+            if(no == Input.InvalidTouchNo)
+            {
+                this.FlushDeferredTouchCommands(device);
+            }
+        }
+
+        void Swipe(int no, float x, float y, float direction, float distance, int duration)
+        {
+            var device = this.sumacon.DeviceManager.ActiveDevice;
+            if (device == null) throw new InvalidOperationException("Device not available");
+
+            var actualTouchNo = device.Input.TouchOn(no, x, y);
+
+            if (this.deferredSwipes.Count > 0 &&
+               this.deferredSwipes.Exists(c => c.TouchNo == actualTouchNo))
+            {
+                this.FlushDeferredTouchCommands(device);
+            }
+            var degrees = Math.PI * direction / 180.0;
+            var dx = (float)(x + distance * Math.Cos(degrees));
+            var dy = (float)(y - distance * Math.Sin(degrees));
+            this.deferredSwipes.Add(new TouchCommand(actualTouchNo, dx, dy, duration));
+            if (no == Input.InvalidTouchNo)
+            {
+                this.FlushDeferredTouchCommands(device);
+            }
         }
 
         void TouchOn(int no, float x, float y)
@@ -527,76 +581,66 @@ namespace Suconbu.Sumacon
         {
             return
                 name == ScriptCommandNames.Tap ||
+                name == ScriptCommandNames.Swipe ||
                 name == ScriptCommandNames.TouchMove;
         }
 
         void FlushDeferredTouchCommands(Device device)
         {
-            this.FlushDeferredTaps(device);
-            this.FlushDeferredTouchMoves(device);
+            this.ExecuteTouchCommands(device, this.deferredTaps, false, true);
+            this.ExecuteTouchCommands(device, this.deferredSwipes, true, true);
+            this.ExecuteTouchCommands(device, this.deferredTouchMoves, true, false);
         }
 
-        void FlushDeferredTaps(Device device)
+        void ClearDeferredCommands()
         {
-            if (device == null) return;
-            if (this.deferredTaps.Count == 0) return;
-
-            var touchNos = new Dictionary<TouchCommand, int>();
-            foreach(var command in this.deferredTaps)
-            {
-                touchNos[command] = (device.Input.TouchOn(command.TouchNo, command.Point.X, command.Point.Y));
-            }
-            this.UpdateTouchMarkers(device);
-
-            var maxDuration = this.deferredTaps.Max(c => c.Duration);
-            var startedAt = DateTime.Now;
-            while (true)
-            {
-                var elaspseMilliseconds = (float)(DateTime.Now - startedAt).TotalMilliseconds;
-                foreach (var command in this.deferredTaps.ToArray())
-                {
-                    if(command.Duration < elaspseMilliseconds)
-                    {
-                        device.Input.TouchOff(touchNos[command]);
-                        this.deferredTaps.Remove(command);
-                    }
-                }
-                if (elaspseMilliseconds > maxDuration) break;
-                Task.Delay(10).Wait();
-            }
             this.deferredTaps.Clear();
-            this.UpdateTouchMarkers(device);
+            this.deferredSwipes.Clear();
+            this.deferredTouchMoves.Clear();
         }
 
-        void FlushDeferredTouchMoves(Device device)
+        void ExecuteTouchCommands(Device device, List<TouchCommand> commands, bool move, bool off)
         {
             if (device == null) return;
-            if (this.deferredTouchMoves.Count == 0) return;
+            if (commands.Count == 0) return;
 
             var previousPoints = device.Input.TouchPoints.ToDictionary(p => p.Key, p => new TouchPoint(p.Value));
-            var durations = this.deferredTouchMoves.ToDictionary(c => c.TouchNo, c => c.Duration);
-            var maxDuration = this.deferredTouchMoves.Max(c => c.Duration);
+            var durations = commands.ToDictionary(c => c.TouchNo, c => c.Duration);
+            var maxDuration = commands.Max(c => c.Duration);
             var startedAt = DateTime.Now;
             while (true)
             {
                 var elaspseMilliseconds = (float)(DateTime.Now - startedAt).TotalMilliseconds;
-                foreach (var command in this.deferredTouchMoves)
+                foreach (var command in commands.ToArray())
                 {
                     var no = command.TouchNo;
-                    var previousPoint = previousPoints[no].Location;
-                    var progress = Math.Min(1.0f, elaspseMilliseconds / durations[no]);
-                    var ix = previousPoint.X + (command.Point.X - previousPoint.X) * progress;
-                    var iy = previousPoint.Y + (command.Point.Y - previousPoint.Y) * progress;
-                    device.Input.TouchMove(no, ix, iy);
+                    if (move)
+                    {
+                        if (previousPoints.TryGetValue(no, out var previousPoint))
+                        {
+                            var progress = Math.Min(1.0f, elaspseMilliseconds / durations[no]);
+                            var ix = previousPoint.X + (command.Point.X - previousPoint.X) * progress;
+                            var iy = previousPoint.Y + (command.Point.Y - previousPoint.Y) * progress;
+                            device.Input.TouchMove(no, ix, iy);
+                        }
+                    }
+                    if(command.Duration < elaspseMilliseconds)
+                    {
+                        if(off)
+                        {
+                            device.Input.TouchOff(command.TouchNo);
+                        }
+                        commands.Remove(command);
+                    }
                 }
                 this.UpdateTouchMarkers(device);
 
-                this.deferredTouchMoves.RemoveAll(c => c.Duration < elaspseMilliseconds);
+                commands.RemoveAll(c => c.Duration < elaspseMilliseconds);
                 if (elaspseMilliseconds > maxDuration) break;
 
                 Task.Delay(10).Wait();
             }
-            this.deferredTouchMoves.Clear();
+            commands.Clear();
         }
 
         void UpdateTouchMarkers(Device device)
@@ -702,6 +746,7 @@ namespace Suconbu.Sumacon
             {
                 this.uxStopButton.Enabled = false;
                 this.uxRunButton.Visible = true;
+                this.uxRunButton.Enabled = false;
                 this.uxPauseButton.Visible = false;
                 this.uxStepButton.Enabled = false;
                 readOnly = false;
@@ -710,6 +755,7 @@ namespace Suconbu.Sumacon
             {
                 this.uxStopButton.Enabled = false;
                 this.uxRunButton.Visible = true;
+                this.uxRunButton.Enabled = true;
                 this.uxPauseButton.Visible = false;
                 this.uxStepButton.Enabled = true;
                 readOnly = false;
