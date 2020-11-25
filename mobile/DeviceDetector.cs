@@ -19,6 +19,7 @@ namespace Suconbu.Mobile
         DeviceMonitor monitor;
         readonly List<string> serials = new List<string>();
         readonly string designatedAdbPath;
+        readonly AdbClient adbClient = new AdbClient();
 
         public DeviceDetector(string adbPath = null)
         {
@@ -83,7 +84,7 @@ namespace Suconbu.Mobile
                     // Online状態になるまでちょっと時間かかる
                     try
                     {
-                        while (AdbClient.Instance.GetDevices()?.Find(d => d.Serial == serial)?.State != DeviceState.Online)
+                        while (this.adbClient.GetDevices()?.Find(d => d.Serial == serial)?.State != DeviceState.Online)
                         {
                             Thread.Sleep(10);
                         }

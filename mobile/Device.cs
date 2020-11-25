@@ -185,10 +185,11 @@ namespace Suconbu.Mobile
         readonly Dictionary<UpdatableProperties, DeviceComponent> components = new Dictionary<UpdatableProperties, DeviceComponent>();
         readonly Dictionary<UpdatableProperties, List<Action>> propertyReadyChanged = new Dictionary<UpdatableProperties, List<Action>>();
         readonly Dictionary<UpdatableProperties, bool> propertyIsReady = new Dictionary<UpdatableProperties, bool>();
+        readonly AdbClient adbClient = new AdbClient();
 
         public Device(string serial)
         {
-            this.deviceData = AdbClient.Instance.GetDevices().Find(d => d.Serial == serial);
+            this.deviceData = this.adbClient.GetDevices().Find(d => d.Serial == serial);
 
             var match = Regex.Match(serial, @"(?:\d+\.){3}\d+:(\d+)");
             if (match.Success)
